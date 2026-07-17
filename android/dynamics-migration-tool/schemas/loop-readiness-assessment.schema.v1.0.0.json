@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://blackberry.com/dynamics/migration/android/loop-readiness-assessment.schema.v1.0.0.json",
+  "title": "Android Loop Readiness Assessment",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schemaVersion",
+    "platform",
+    "runId",
+    "generatedAt",
+    "benchmark",
+    "stage7RepairOrchestrator",
+    "qualityGuardrail",
+    "remainingP0",
+    "remainingP1",
+    "recommendedDefaults",
+    "recommendedOptionalFeatures",
+    "rolloutPlan",
+    "rollbackPlan",
+    "compatibilityPlan",
+    "releaseGates",
+    "decision"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0.0" },
+    "platform": { "type": "string", "const": "android" },
+    "runId": { "type": "string", "minLength": 1 },
+    "generatedAt": { "type": "string", "minLength": 1 },
+    "benchmark": {
+      "type": "object",
+      "required": ["caseCount", "tierA", "tierB", "runtimeEvidenceCompletion", "aggregateMetrics", "cases"],
+      "properties": {
+        "caseCount": { "type": "integer", "minimum": 0 },
+        "tierA": { "type": "object" },
+        "tierB": { "type": "object" },
+        "runtimeEvidenceCompletion": { "type": "object" },
+        "aggregateMetrics": { "type": "object" },
+        "cases": { "type": "array" }
+      }
+    },
+    "stage7RepairOrchestrator": {
+      "type": "object",
+      "required": ["maturity", "defaultRecommendation", "productionDefaultReady", "reason"],
+      "properties": {
+        "maturity": { "type": "string", "enum": ["mvp", "maturing", "production"] },
+        "defaultRecommendation": { "type": "string" },
+        "productionDefaultReady": { "type": "boolean" },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "qualityGuardrail": {
+      "type": "object",
+      "required": ["weakerValidationAllowed", "reducedCoverageAllowed", "statement"],
+      "properties": {
+        "weakerValidationAllowed": { "type": "boolean", "const": false },
+        "reducedCoverageAllowed": { "type": "boolean", "const": false },
+        "statement": { "type": "string", "minLength": 1 }
+      }
+    },
+    "remainingP0": { "type": "array" },
+    "remainingP1": { "type": "array" },
+    "recommendedDefaults": { "type": "array", "items": { "type": "string" } },
+    "recommendedOptionalFeatures": { "type": "array", "items": { "type": "string" } },
+    "rolloutPlan": { "type": "array", "items": { "type": "string" } },
+    "rollbackPlan": { "type": "array", "items": { "type": "string" } },
+    "compatibilityPlan": { "type": "array", "items": { "type": "string" } },
+    "releaseGates": { "type": "array" },
+    "decision": { "type": "string", "enum": ["production", "controlled-preview", "further-hardening"] }
+  }
+}

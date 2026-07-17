@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BlackBerry Dynamics Migration Report</title>
+<style>
+  :root {
+    --bb-black: #1a1a2e;
+    --bb-dark: #16213e;
+    --bb-accent: #0f3460;
+    --bb-blue: #4a90d9;
+    --bb-green: #27ae60;
+    --bb-yellow: #f39c12;
+    --bb-red: #e74c3c;
+    --bb-gray: #7f8c8d;
+    --bb-light: #ecf0f1;
+    --bb-white: #ffffff;
+    --bb-card: #ffffff;
+    --bb-border: #dfe6e9;
+    --bb-bg: #f5f7fa;
+    --bb-code-bg: #2d2d2d;
+    --bb-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bb-bg);
+    color: #2c3e50;
+    line-height: 1.6;
+  }
+  .header {
+    background: linear-gradient(135deg, var(--bb-black), var(--bb-dark), var(--bb-accent));
+    color: var(--bb-white);
+    padding: 2rem;
+    text-align: center;
+  }
+  .header h1 { font-size: 1.8rem; font-weight: 600; margin-bottom: 0.3rem; }
+  .header .subtitle { opacity: 0.8; font-size: 0.95rem; }
+  .header .meta { margin-top: 1rem; font-size: 0.85rem; opacity: 0.7; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>BlackBerry Dynamics Migration Report</h1>
+  <div class="subtitle">AI-Assisted Migration Analysis</div>
+  <div class="meta" id="headerMeta"></div>
+</div>
+
+<div id="autoLoadStatus" style="max-width:600px;margin:2rem auto 0;text-align:center;display:none;">
+  <p style="color:#7f8c8d;font-size:0.9rem;" id="autoLoadMsg"></p>
+</div>
+
+<div id="loadSection" style="max-width:600px;margin:2rem auto;text-align:center;">
+  <p style="margin-bottom:1rem;color:#7f8c8d;">Load your <code>migration-report.json</code> to view the report.</p>
+  <label style="display:inline-block;padding:0.8rem 2rem;background:#4a90d9;color:#fff;border-radius:6px;cursor:pointer;font-weight:500;">
+    Choose File
+    <input type="file" id="fileInput" accept=".json" style="display:none;">
+  </label>
+  <div id="loadError" style="color:#e74c3c;margin-top:1rem;display:none;"></div>
+</div>
+
+<div id="report" style="display:none;"></div>
+
+<script>
+// Auto-load migration-report.json from the output/ subdirectory
+(function() {
+  var statusEl = document.getElementById('autoLoadStatus');
+  var msgEl = document.getElementById('autoLoadMsg');
+  statusEl.style.display = 'block';
+  msgEl.textContent = 'Looking for output/migration-report.json…';
+
+  fetch('output/migration-report.json')
+    .then(function(resp) {
+      if (!resp.ok) throw new Error('Not found');
+      return resp.json();
+    })
+    .then(function(data) {
+      msgEl.textContent = 'Auto-loaded output/migration-report.json';
+      msgEl.style.color = '#27ae60';
+      document.getElementById('loadSection').style.display = 'none';
+      renderReport(data);
+    })
+    .catch(function() {
+      msgEl.textContent = 'Could not auto-load output/migration-report.json — use the file picker below.';
+      msgEl.style.color = '#f39c12';
+    });
+})();
+
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      var data = JSON.parse(ev.target.result);
+      document.getElementById('autoLoadStatus').style.display = 'none';
+      renderReport(data);
+    } catch (err) {
+      var el = document.getElementById('loadError');
+      el.textContent = 'Invalid JSON: ' + err.message;
+      el.style.display = 'block';
+    }
+  };
+  reader.readAsText(file);
+});
+
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function normalizeCoverage(entry) {
+  if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+    return {
+      status: entry.status || entry.coverageStatus || entry.result || 'unknown',
+      details: entry.details || entry.summary || entry.reason || ''
+    };
+  }
+  if (typeof entry === 'string') {
+    return { status: entry, details: '' };
+  }
+  return { status: 'unknown', details: '' };
+}
+
+function normalizeSteps(steps) {
+  if (Array.isArray(steps)) return steps.join(' -> ');
+  return steps || '';
+}
+
+function modernBadge(text, palette, uppercase) {
+  var label = esc(text == null ? 'unknown' : text);
+  if (uppercase) label = label.toUpperCase();
+  return '<span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:0.75rem;font-weight:600;letter-spacing:0.02em;background:' + palette.bg + ';color:' + palette.fg + ';border:1px solid ' + palette.border + ';">' +
+    '<span style="width:7px;height:7px;border-radius:50%;background:' + palette.dot + ';display:inline-block;flex:0 0 auto;"></span>' +
+    label +
+    '</span>';
+}
+
+function statusBadge(status) {
+  var palettes = {
+    migrated: { dot: '#16a34a', bg: '#ecfdf3', fg: '#166534', border: '#bbf7d0' },
+    complete: { dot: '#16a34a', bg: '#ecfdf3', fg: '#166534', border: '#bbf7d0' },
+    secured: { dot: '#16a34a', bg: '#ecfdf3', fg: '#166534', border: '#bbf7d0' },
+    partial: { dot: '#d97706', bg: '#fffbeb', fg: '#92400e', border: '#fde68a' },
+    failed: { dot: '#dc2626', bg: '#fef2f2', fg: '#991b1b', border: '#fecaca' },
+    'not-applicable': { dot: '#64748b', bg: '#f8fafc', fg: '#334155', border: '#cbd5e1' }
+  };
+  var p = palettes[status] || palettes['not-applicable'];
+  return modernBadge(status, p, true);
+}
+
+function riskBadge(risk) {
+  var palettes = {
+    low: { dot: '#16a34a', bg: '#ecfdf3', fg: '#166534', border: '#bbf7d0' },
+    medium: { dot: '#d97706', bg: '#fffbeb', fg: '#92400e', border: '#fde68a' },
+    high: { dot: '#dc2626', bg: '#fef2f2', fg: '#991b1b', border: '#fecaca' }
+  };
+  return modernBadge(risk, palettes[risk] || { dot: '#64748b', bg: '#f8fafc', fg: '#334155', border: '#cbd5e1' }, true);
+}
+
+function readinessBadge(rec) {
+  var palettes = {
+    go: { dot: '#16a34a', bg: '#ecfdf3', fg: '#166534', border: '#bbf7d0' },
+    'go-with-risks': { dot: '#d97706', bg: '#fffbeb', fg: '#92400e', border: '#fde68a' },
+    'no-go': { dot: '#dc2626', bg: '#fef2f2', fg: '#991b1b', border: '#fecaca' }
+  };
+  return modernBadge(rec, palettes[rec] || { dot: '#64748b', bg: '#f8fafc', fg: '#334155', border: '#cbd5e1' }, true);
+}
+
+function priorityBadge(p) {
+  var palettes = {
+    blocker: { dot: '#7f1d1d', bg: '#fef2f2', fg: '#7f1d1d', border: '#fca5a5' },
+    high: { dot: '#dc2626', bg: '#fef2f2', fg: '#991b1b', border: '#fecaca' },
+    medium: { dot: '#d97706', bg: '#fffbeb', fg: '#92400e', border: '#fde68a' },
+    low: { dot: '#16a34a', bg: '#ecfdf3', fg: '#166534', border: '#bbf7d0' }
+  };
+  return modernBadge(p, palettes[p] || { dot: '#64748b', bg: '#f8fafc', fg: '#334155', border: '#cbd5e1' }, true);
+}
+
+function mediaPathBadge(label, active, positiveWhenTrue) {
+  var positive = { dot: '#16a34a', bg: '#ecfdf3', fg: '#166534', border: '#bbf7d0' };
+  var caution = { dot: '#d97706', bg: '#fffbeb', fg: '#92400e', border: '#fde68a' };
+  var negative = { dot: '#dc2626', bg: '#fef2f2', fg: '#991b1b', border: '#fecaca' };
+  var palette;
+  if (positiveWhenTrue) {
+    palette = active ? positive : negative;
+  } else {
+    palette = active ? caution : positive;
+  }
+  return modernBadge(label, palette, false);
+}
+
+function mediaExportStatusBadge(status) {
+  var palettes = {
+    disabled: { dot: '#64748b', bg: '#f8fafc', fg: '#334155', border: '#cbd5e1' },
+    migrated: { dot: '#16a34a', bg: '#ecfdf3', fg: '#166534', border: '#bbf7d0' },
+    controlled: { dot: '#2563eb', bg: '#eff6ff', fg: '#1d4ed8', border: '#bfdbfe' },
+    unresolved: { dot: '#dc2626', bg: '#fef2f2', fg: '#991b1b', border: '#fecaca' }
+  };
+  return modernBadge(status, palettes[status] || palettes.disabled, true);
+}
+
+function safeOutcomeBadge(outcome) {
+  var palettes = {
+    safe: { dot: '#16a34a', bg: '#ecfdf3', fg: '#166534', border: '#bbf7d0' },
+    partial: { dot: '#d97706', bg: '#fffbeb', fg: '#92400e', border: '#fde68a' },
+    'no-go': { dot: '#dc2626', bg: '#fef2f2', fg: '#991b1b', border: '#fecaca' }
+  };
+  return modernBadge(outcome, palettes[outcome] || palettes.partial, true);
+}
+
+function renderFollowUp(followUp) {
+  if (!followUp || typeof followUp !== 'object') return '';
+  var html = '<div style="margin-top:0.8rem;padding:0.85rem 1rem;background:#f8fafc;border:1px solid #dbe7f3;border-radius:8px;">';
+  html += '<div style="font-weight:600;color:#1f2937;margin-bottom:0.45rem;">Suggested next iteration</div>';
+  if (followUp.whyBlocked) {
+    html += '<div style="font-size:0.9rem;margin-bottom:0.45rem;"><span style="font-weight:500;">Why blocked:</span> ' + esc(followUp.whyBlocked) + '</div>';
+  }
+  if (Array.isArray(followUp.safeNextOptions) && followUp.safeNextOptions.length) {
+    html += '<div style="font-size:0.9rem;margin-bottom:0.45rem;"><span style="font-weight:500;">Safe next options:</span><ul style="margin:0.35rem 0 0 1.2rem;">';
+    followUp.safeNextOptions.forEach(function(option) {
+      html += '<li>' + esc(option) + '</li>';
+    });
+    html += '</ul></div>';
+  }
+  if (followUp.suggestedAgentPrompt) {
+    html += '<div style="font-size:0.9rem;margin-bottom:0.45rem;"><span style="font-weight:500;">Suggested agent prompt:</span></div>';
+    html += '<pre style="background:#1f2937;color:#f9fafb;padding:0.75rem;border-radius:6px;overflow-x:auto;font-size:0.82rem;line-height:1.45;margin:0 0 0.45rem 0;white-space:pre-wrap;">' + esc(followUp.suggestedAgentPrompt) + '</pre>';
+  }
+  if (Array.isArray(followUp.evidenceFiles) && followUp.evidenceFiles.length) {
+    html += '<div style="font-size:0.9rem;"><span style="font-weight:500;">Evidence files:</span> ';
+    html += followUp.evidenceFiles.map(function(path) {
+      return '<code style="font-size:0.8rem;">' + esc(path) + '</code>';
+    }).join(' ');
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function card(title, content) {
+  return '<div style="background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:1.5rem;overflow:hidden;">' +
+    '<div style="padding:1rem 1.5rem;border-bottom:1px solid #dfe6e9;font-weight:600;font-size:1.05rem;color:#2c3e50;">'+title+'</div>' +
+    '<div style="padding:1.5rem;">'+content+'</div></div>';
+}
+
+function codeBlock(code) {
+  return '<pre style="background:#2d2d2d;color:#f8f8f2;padding:1rem;border-radius:6px;overflow-x:auto;font-size:0.85rem;line-height:1.5;margin:0;">'+esc(code)+'</pre>';
+}
+
+function summaryTile(label, value) {
+  return '<div style="background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:1.2rem;text-align:center;">' +
+    '<div style="font-size:0.8rem;color:#7f8c8d;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.5px;">'+label+'</div>' +
+    '<div>'+value+'</div></div>';
+}
+
+function row(label, value) {
+  return '<tr><td style="padding:0.6rem 1rem;border-bottom:1px solid #eee;font-weight:500;width:200px;vertical-align:top;">'+label+'</td>' +
+    '<td style="padding:0.6rem 1rem;border-bottom:1px solid #eee;">'+value+'</td></tr>';
+}
+
+function renderReport(d) {
+  document.getElementById('loadSection').style.display = 'none';
+  var meta = document.getElementById('headerMeta');
+  meta.innerHTML = (d.project ? esc(d.project.name) + ' &middot; ' + esc(d.project.package) : '') +
+    (d.generatedAt ? ' &middot; Generated ' + new Date(d.generatedAt).toLocaleString() : '') +
+    (d.schemaVersion ? ' &middot; Schema v' + esc(d.schemaVersion) : '') +
+    (d.toolkit && d.toolkit.version ? ' &middot; Toolkit v' + esc(d.toolkit.version) : '');
+
+  var html = '<div style="max-width:960px;margin:2rem auto;padding:0 1rem;">';
+
+  // Summary cards row
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem;">';
+  if (d.summary) {
+    var s = d.summary;
+    html += summaryTile('Overall Status', statusBadge(s.overallStatus));
+    html += summaryTile('Files Modified', '<span style="font-size:2rem;font-weight:700;color:#2c3e50;">'+(s.totalFilesModified != null ? s.totalFilesModified : ((d.filesModified||[]).length))+'</span>');
+    html += summaryTile('APIs Replaced', '<span style="font-size:2rem;font-weight:700;color:#2c3e50;">'+(s.totalApisReplaced != null ? s.totalApisReplaced : ((d.apisReplaced||[]).length))+'</span>');
+    html += summaryTile('Migration Comments', '<span style="font-size:2rem;font-weight:700;color:#2c3e50;">'+(s.migrationCommentCount||0)+'</span>');
+  }
+  if (d.validation) {
+    var v = d.validation;
+    var failures = (v.failures != null) ? v.failures : (v.failureCount != null ? v.failureCount : 0);
+    var warnings = (v.warnings != null) ? v.warnings : (v.warningCount != null ? v.warningCount : 0);
+    var vc = v.passed ? '#27ae60' : '#e74c3c';
+    html += summaryTile('Validation', '<span style="font-size:1.2rem;font-weight:700;color:'+vc+';">'+(v.passed?'PASSED':'FAILED')+'</span><br><span style="font-size:0.85rem;color:#7f8c8d;">'+failures+' failures, '+warnings+' warnings</span>');
+  }
+  if (d.migrationConfidence) {
+    var mc = d.migrationConfidence;
+    html += summaryTile('Confidence', '<span style="font-size:1.2rem;font-weight:700;color:#2c3e50;">'+esc(mc.score)+'/100</span><br><span style="font-size:0.85rem;color:#7f8c8d;">'+esc(mc.level || 'unknown')+'</span>');
+  }
+  if (d.releaseReadiness) {
+    html += summaryTile('Release Readiness', readinessBadge(d.releaseReadiness.recommendation || 'unknown'));
+  }
+  html += '</div>';
+
+  // Coverage
+  if (d.coverage) {
+    var rows = '';
+    for (var area in d.coverage) {
+      var info = normalizeCoverage(d.coverage[area]);
+      var label = area.replace(/([A-Z])/g, ' $1').replace(/^./, function(c){return c.toUpperCase();});
+      rows += '<tr><td style="padding:0.6rem 1rem;border-bottom:1px solid #eee;font-weight:500;">'+esc(label)+'</td>' +
+        '<td style="padding:0.6rem 1rem;border-bottom:1px solid #eee;text-align:center;">'+statusBadge(info.status)+'</td>' +
+        '<td style="padding:0.6rem 1rem;border-bottom:1px solid #eee;color:#7f8c8d;font-size:0.9rem;">'+esc(info.details)+'</td></tr>';
+    }
+    html += card('Coverage', '<table style="width:100%;border-collapse:collapse;"><thead><tr style="text-align:left;"><th style="padding:0.6rem 1rem;border-bottom:2px solid #dfe6e9;">Area</th><th style="padding:0.6rem 1rem;border-bottom:2px solid #dfe6e9;text-align:center;">Status</th><th style="padding:0.6rem 1rem;border-bottom:2px solid #dfe6e9;">Details</th></tr></thead><tbody>'+rows+'</tbody></table>');
+  }
+
+  // Media Containment
+  if (d.mediaContainment) {
+    var mc = d.mediaContainment;
+    var media = '';
+    if (mc.summary) {
+      media += '<div style="margin-bottom:1rem;color:#4b5563;">' + esc(mc.summary) + '</div>';
+    }
+    if (mc.mediaWritePaths && mc.mediaWritePaths.length) {
+      media += '<div style="font-weight:600;margin:0.6rem 0;">Media Write Paths</div>';
+      mc.mediaWritePaths.forEach(function(entry, idx) {
+        media += '<div style="border:1px solid #dfe6e9;border-radius:8px;padding:1rem;margin-bottom:0.8rem;">';
+        media += '<div style="font-weight:600;margin-bottom:0.45rem;">' + (idx + 1) + '. <code>' + esc(entry.api || 'unknown') + '</code></div>';
+        media += '<div style="font-size:0.88rem;color:#7f8c8d;margin-bottom:0.45rem;"><code>' + esc(entry.sourceFile || '') + '</code></div>';
+        media += '<div style="font-size:0.9rem;margin-bottom:0.35rem;"><span style="font-weight:500;">Original:</span> ' + esc(entry.originalBehavior || '') + '</div>';
+        media += '<div style="font-size:0.9rem;margin-bottom:0.55rem;"><span style="font-weight:500;">Migrated:</span> ' + esc(entry.migratedBehavior || '') + '</div>';
+        media += '<div style="display:flex;flex-wrap:wrap;gap:0.4rem 0.45rem;">';
+        media += mediaPathBadge('In Container', !!entry.staysInContainer, true);
+        media += mediaPathBadge('Direct Secure Stream', !!entry.usesDirectSecureStream, true);
+        media += mediaPathBadge('Filesystem Staging', !!entry.usesFilesystemStaging, false);
+        media += mediaPathBadge('Public Export Remains', !!entry.publicExportRemains, false);
+        media += mediaPathBadge('Manual Intervention', !!entry.manualInterventionRequired, false);
+        media += '</div>';
+        media += renderFollowUp(entry.followUp);
+        media += '</div>';
+      });
+    }
+    if (mc.exportPaths && mc.exportPaths.length) {
+      media += '<div style="font-weight:600;margin:0.8rem 0 0.6rem;">Export / Viewer Paths</div>';
+      mc.exportPaths.forEach(function(entry, idx) {
+        media += '<div style="border:1px solid #dfe6e9;border-radius:8px;padding:1rem;margin-bottom:0.8rem;">';
+        media += '<div style="display:flex;justify-content:space-between;gap:0.8rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:0.45rem;">';
+        media += '<div style="font-weight:600;">' + (idx + 1) + '. ' + esc(entry.pattern || 'Unknown pattern') + '</div>';
+        media += '<div style="display:flex;gap:0.35rem;flex-wrap:wrap;">' + mediaExportStatusBadge(entry.status || 'disabled') + safeOutcomeBadge(entry.safeOutcome || 'partial') + '</div>';
+        media += '</div>';
+        media += '<div style="font-size:0.88rem;color:#7f8c8d;margin-bottom:0.45rem;"><code>' + esc(entry.sourceFile || '') + '</code></div>';
+        media += '<div style="font-size:0.9rem;margin-bottom:0.35rem;"><span style="font-weight:500;">DLP impact:</span> ' + esc(entry.dlpImpact || '') + '</div>';
+        media += '<div style="font-size:0.9rem;margin-bottom:0.35rem;"><span style="font-weight:500;">Behavior change:</span> ' + esc(entry.behaviorChange || '') + '</div>';
+        media += renderFollowUp(entry.followUp);
+        media += '</div>';
+      });
+    }
+    html += card('Media Containment', media);
+  }
+
+  // Security Posture
+  if (d.securityPosture) {
+    var sp = d.securityPosture;
+    var spTable = '<table style="width:100%;border-collapse:collapse;">';
+    if (sp.dataAtRest) {
+      spTable += row('Data At Rest', statusBadge(sp.dataAtRest.status || 'unverified') + ' <span style="color:#7f8c8d;">' + esc(sp.dataAtRest.summary || '') + '</span>');
+    }
+    if (sp.dataInTransit) {
+      spTable += row('Data In Transit', statusBadge(sp.dataInTransit.status || 'unverified') + ' <span style="color:#7f8c8d;">' + esc(sp.dataInTransit.summary || '') + '</span>');
+    }
+    spTable += '</table>';
+    html += card('Security Posture', spTable);
+  }
+
+  // Confidence and release recommendation detail
+  if (d.migrationConfidence || d.releaseReadiness) {
+    var q = '<table style="width:100%;border-collapse:collapse;">';
+    if (d.migrationConfidence) {
+      q += row('Confidence Score', esc(d.migrationConfidence.score) + '/100');
+      q += row('Confidence Level', esc(d.migrationConfidence.level));
+      q += row('Confidence Rationale', esc(d.migrationConfidence.rationale));
+    }
+    if (d.releaseReadiness) {
+      q += row('Recommendation', readinessBadge(d.releaseReadiness.recommendation || 'unknown'));
+      if (d.releaseReadiness.blockingItems && d.releaseReadiness.blockingItems.length) {
+        q += row('Blocking Items', d.releaseReadiness.blockingItems.map(function(b){
+          return '<div style="padding:0.45rem 0.65rem;border-radius:8px;background:#fef2f2;border:1px solid #fecaca;color:#7f1d1d;margin-bottom:0.4rem;">'+esc(b)+'</div>';
+        }).join(''));
+      } else {
+        q += row('Blocking Items', modernBadge('none listed', { dot: '#16a34a', bg: '#ecfdf3', fg: '#166534', border: '#bbf7d0' }, true));
+      }
+    }
+    q += '</table>';
+    html += card('Migration Decision', q);
+  }
+
+  // API Replacements
+  if (d.apisReplaced && d.apisReplaced.length) {
+    var apis = '';
+    d.apisReplaced.forEach(function(a) {
+      apis += '<div style="border:1px solid #dfe6e9;border-radius:8px;padding:1rem;margin-bottom:1rem;">';
+      apis += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">';
+      apis += '<span style="font-weight:600;">'+esc(a.category)+'</span>';
+      apis += '<span>'+(a.risk ? riskBadge(a.risk) : '')+'</span>';
+      apis += '</div>';
+      apis += '<div style="font-size:0.9rem;margin-bottom:0.3rem;"><span style="color:#e74c3c;text-decoration:line-through;">'+esc(a.original)+'</span> &rarr; <span style="color:#27ae60;font-weight:500;">'+esc(a.replacement)+'</span></div>';
+      var occurrenceCount = (a.count != null ? a.count : (a.occurrences != null ? a.occurrences : 0));
+      apis += '<div style="font-size:0.85rem;color:#7f8c8d;margin-bottom:0.5rem;">'+esc(occurrenceCount)+' occurrence(s) in '+esc((a.files||[]).length)+' file(s)</div>';
+      if (a.catalogRow) apis += '<div style="font-size:0.8rem;color:#8e44ad;margin-bottom:0.3rem;">Catalog: <code>'+esc(a.catalogRow)+'</code></div>';
+      if (a.riskReason) apis += '<div style="font-size:0.85rem;color:#7f8c8d;margin-bottom:0.5rem;font-style:italic;">Risk: '+esc(a.riskReason)+'</div>';
+      if (a.before || a.after) {
+        apis += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:0.5rem;margin-top:0.5rem;">';
+        apis += '<div style="min-width:0;"><div style="font-size:0.75rem;font-weight:600;color:#e74c3c;margin-bottom:0.3rem;">BEFORE</div>'+codeBlock(a.before||'')+'</div>';
+        apis += '<div style="min-width:0;"><div style="font-size:0.75rem;font-weight:600;color:#27ae60;margin-bottom:0.3rem;">AFTER</div>'+codeBlock(a.after||'')+'</div>';
+        apis += '</div>';
+      }
+      if (a.files && a.files.length) {
+        apis += '<details style="margin-top:0.5rem;"><summary style="font-size:0.85rem;color:#4a90d9;cursor:pointer;">Files</summary><ul style="margin-top:0.3rem;font-size:0.85rem;color:#7f8c8d;">';
+        a.files.forEach(function(f){ apis += '<li>'+esc(f)+'</li>'; });
+        apis += '</ul></details>';
+      }
+      apis += '</div>';
+    });
+    html += card('API Replacements', apis);
+  }
+
+  // Files Modified
+  if (d.filesModified && d.filesModified.length) {
+    var frows = '';
+    d.filesModified.forEach(function(f) {
+      var normalized = (typeof f === 'string') ? { path: f, changeType: 'modified', description: '' } : f;
+      var typeColors = { modified: '#4a90d9', created: '#27ae60', deleted: '#e74c3c' };
+      var tc = typeColors[normalized.changeType] || '#7f8c8d';
+      frows += '<tr><td style="padding:0.5rem 1rem;border-bottom:1px solid #eee;font-family:monospace;font-size:0.85rem;word-break:break-all;">'+esc(normalized.path)+'</td>' +
+        '<td style="padding:0.5rem 1rem;border-bottom:1px solid #eee;text-align:center;white-space:nowrap;"><span style="color:'+tc+';font-weight:600;font-size:0.8rem;">'+esc(normalized.changeType)+'</span></td>' +
+        '<td style="padding:0.5rem 1rem;border-bottom:1px solid #eee;color:#7f8c8d;font-size:0.9rem;">'+esc(normalized.description || '')+'</td></tr>';
+    });
+    html += card('Files Modified ('+d.filesModified.length+')', '<table style="width:100%;border-collapse:collapse;table-layout:fixed;"><colgroup><col style="width:38%"><col style="width:10%"><col style="width:52%"></colgroup><thead><tr><th style="padding:0.5rem 1rem;border-bottom:2px solid #dfe6e9;text-align:left;">Path</th><th style="padding:0.5rem 1rem;border-bottom:2px solid #dfe6e9;text-align:center;">Type</th><th style="padding:0.5rem 1rem;border-bottom:2px solid #dfe6e9;text-align:left;">Description</th></tr></thead><tbody>'+frows+'</tbody></table>');
+  }
+
+  // Manual TODOs
+  if (d.manualTodos && d.manualTodos.length) {
+    var todos = '';
+    d.manualTodos.forEach(function(t) {
+      todos += '<div style="display:flex;gap:0.8rem;align-items:flex-start;padding:0.7rem 0;border-bottom:1px solid #eee;">';
+      todos += '<div>'+priorityBadge(t.priority)+'</div>';
+      todos += '<div style="flex:1;"><div style="font-weight:500;">'+esc(t.description)+'</div><div style="font-size:0.85rem;color:#7f8c8d;">'+esc(t.reason)+'</div>'+renderFollowUp(t.followUp)+'</div>';
+      todos += '</div>';
+    });
+    html += card('Manual TODOs ('+d.manualTodos.length+')', todos);
+  }
+
+  // Runtime Test Plan
+  if (d.runtimeTestPlan && d.runtimeTestPlan.length) {
+    var tests = '';
+    d.runtimeTestPlan.forEach(function(t, i) {
+      var scenario = t.scenario || t.name || ('Scenario ' + (i + 1));
+      var expected = t.expectedResult || t.expected || '';
+      tests += '<div style="border:1px solid #dfe6e9;border-radius:8px;padding:1rem;margin-bottom:0.8rem;">';
+      tests += '<div style="font-weight:600;margin-bottom:0.5rem;">'+(i+1)+'. '+esc(scenario)+'</div>';
+      tests += '<div style="font-size:0.9rem;margin-bottom:0.3rem;"><span style="font-weight:500;">Steps:</span> '+esc(normalizeSteps(t.steps))+'</div>';
+      tests += '<div style="font-size:0.9rem;margin-bottom:0.3rem;"><span style="font-weight:500;">Expected:</span> '+esc(expected)+'</div>';
+      if (t.relatedAreas && t.relatedAreas.length) {
+        tests += '<div style="margin-top:0.3rem;">';
+        t.relatedAreas.forEach(function(a){ tests += '<span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:0.75rem;background:#eee;color:#555;margin-right:4px;">'+esc(a)+'</span>'; });
+        tests += '</div>';
+      }
+      tests += '</div>';
+    });
+    html += card('Runtime Test Plan ('+d.runtimeTestPlan.length+' scenarios)', tests);
+  }
+
+  // UEM Admin Handoff
+  if (d.uemAdminHandoff) {
+    var u = d.uemAdminHandoff;
+    var handoff = '<table style="width:100%;border-collapse:collapse;">';
+    handoff += row('GDApplicationID', '<code>'+esc(u.gdApplicationId)+'</code>');
+    handoff += row('GDApplicationVersion', '<code>'+esc(u.gdApplicationVersion)+'</code>');
+    if (u.entitlementSetup) handoff += row('Entitlement Setup', esc(u.entitlementSetup));
+    if (u.entitlementSetupSteps && u.entitlementSetupSteps.length) handoff += row('Entitlement Setup', u.entitlementSetupSteps.map(function(s){ return '<div>'+esc(s)+'</div>'; }).join(''));
+    if (u.connectivityProfile) handoff += row('Connectivity Profile', esc(u.connectivityProfile));
+    if (u.connectivityProfileRecommendations && u.connectivityProfileRecommendations.length) handoff += row('Connectivity Profile', u.connectivityProfileRecommendations.map(function(s){ return '<div>'+esc(s)+'</div>'; }).join(''));
+    if (u.complianceProfile) handoff += row('Compliance Profile', esc(u.complianceProfile));
+    if (u.complianceProfileRecommendations && u.complianceProfileRecommendations.length) handoff += row('Compliance Profile', u.complianceProfileRecommendations.map(function(s){ return '<div>'+esc(s)+'</div>'; }).join(''));
+    var permissions = u.appPermissions || u.dynamicsPermissionsRequired;
+    if (permissions && permissions.length) {
+      handoff += row('App Permissions', permissions.map(function(p){ return '<span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:0.8rem;background:#e8f4fd;color:#2980b9;margin:2px;">'+esc(p)+'</span>'; }).join(' '));
+    }
+    handoff += '</table>';
+    html += card('UEM Admin Handoff', handoff);
+  }
+
+  // Unsupported Features
+  if (d.unsupportedFeatures && d.unsupportedFeatures.length) {
+    var uf = '';
+    d.unsupportedFeatures.forEach(function(f) {
+      uf += '<div style="padding:0.7rem 0;border-bottom:1px solid #eee;">';
+      uf += '<div style="font-weight:500;">'+esc(f.feature)+'</div>';
+      uf += '<div style="font-size:0.85rem;color:#7f8c8d;">'+esc(f.reason)+'</div>';
+      if (f.workaround) uf += '<div style="font-size:0.85rem;color:#4a90d9;">Workaround: '+esc(f.workaround)+'</div>';
+      uf += renderFollowUp(f.followUp);
+      uf += '</div>';
+    });
+    html += card('Unsupported Features', uf);
+  } else if (d.unsupportedFeatures) {
+    html += card('Unsupported Features', '<div style="color:#27ae60;">None detected</div>');
+  }
+
+  // Project Info
+  if (d.project) {
+    var p = d.project;
+    var info = '<table style="width:100%;border-collapse:collapse;">';
+    info += row('Package', '<code>'+esc(p.package)+'</code>');
+    info += row('Original minSdk', esc(p.originalMinSdk != null ? p.originalMinSdk : p.minSdkBefore));
+    info += row('Migrated minSdk', esc(p.migratedMinSdk != null ? p.migratedMinSdk : p.minSdkAfter));
+    info += '</table>';
+    html += card('Project Info', info);
+  }
+
+  html += '<div style="text-align:center;padding:2rem;color:#bdc3c7;font-size:0.85rem;">Generated by BlackBerry Dynamics Migration Tool &middot; Schema v'+esc(d.schemaVersion||'?')+'</div>';
+  html += '</div>';
+
+  document.getElementById('report').innerHTML = html;
+  document.getElementById('report').style.display = 'block';
+}
+</script>
+</body>
+</html>

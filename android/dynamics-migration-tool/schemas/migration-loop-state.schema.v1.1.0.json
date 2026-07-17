@@ -1,0 +1,138 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://blackberry.com/dynamics/migration/android/migration-loop-state.schema.v1.1.0.json",
+  "title": "Android Migration Loop State Schema",
+  "description": "Durable runtime loop state written by toolkit helpers. Tracks current loop position, attempt history, recovery, resume metadata, human decisions, deferrals, and terminal outcome without storing source content.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schemaVersion",
+    "platform",
+    "activePlatform",
+    "currentState",
+    "runId",
+    "toolkitVersion",
+    "policySource",
+    "resolvedPolicy",
+    "humanDecisions",
+    "deferrals",
+    "promptReruns",
+    "resumeInfo",
+    "terminalOutcome",
+    "attempts",
+    "escalations",
+    "recoveryEvents"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.1.0" },
+    "platform": { "type": "string", "const": "android" },
+    "activePlatform": { "type": "string", "const": "android" },
+    "activePrompt": { "type": ["string", "null"] },
+    "currentState": {
+      "type": "string",
+      "enum": [
+        "discover",
+        "plan",
+        "execute",
+        "verify",
+        "repair-or-escalate",
+        "report",
+        "success",
+        "blocked",
+        "escalated",
+        "cancelled",
+        "aborted"
+      ]
+    },
+    "runId": { "type": "string", "minLength": 1 },
+    "toolkitVersion": { "type": "string", "minLength": 1 },
+    "policySource": { "type": "string", "minLength": 1 },
+    "resolvedPolicy": { "type": "object" },
+    "humanDecisions": {
+      "type": "object",
+      "required": ["backgroundAuthorizeDecisions", "deferredDomains"],
+      "properties": {
+        "backgroundAuthorizeDecisions": { "type": "array" },
+        "deferredDomains": { "type": "array" }
+      }
+    },
+    "deferrals": { "type": "array" },
+    "promptReruns": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 2 }
+    },
+    "resumeInfo": {
+      "type": "object",
+      "required": ["completedPrompts", "nextPrompt"],
+      "properties": {
+        "completedPrompts": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "nextPrompt": { "type": ["string", "null"] }
+      }
+    },
+    "terminalOutcome": {
+      "type": ["object", "null"],
+      "properties": {
+        "timestamp": { "type": "string", "minLength": 1 },
+        "outcome": {
+          "type": "string",
+          "enum": ["success", "blocked", "escalated", "cancelled", "aborted"]
+        },
+        "promptId": { "type": "string", "minLength": 1 },
+        "reason": { "type": ["string", "null"] }
+      }
+    },
+    "attempts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "attemptId",
+          "attemptNumber",
+          "timestamp",
+          "promptId",
+          "stage",
+          "result",
+          "validationResult",
+          "diagnosticIds",
+          "filesAffected",
+          "repairStrategy",
+          "retryBudget"
+        ],
+        "properties": {
+          "attemptId": { "type": "string", "minLength": 1 },
+          "attemptNumber": { "type": "integer", "minimum": 1 },
+          "timestamp": { "type": "string", "minLength": 1 },
+          "promptId": { "type": "string", "minLength": 1 },
+          "domainIds": { "type": "array", "items": { "type": "string" } },
+          "phaseIds": { "type": "array", "items": { "type": "string" } },
+          "stage": {
+            "type": "string",
+            "enum": ["validation", "source-gate", "report-gate", "closure-gate", "recorder-gate"]
+          },
+          "result": {
+            "type": "string",
+            "enum": ["passed", "failed", "configuration-error", "environment-error", "escalated"]
+          },
+          "validationResult": { "type": "object" },
+          "diagnosticIds": { "type": "array", "items": { "type": "string" } },
+          "filesAffected": { "type": "array", "items": { "type": "string" } },
+          "repairStrategy": {
+            "type": "object",
+            "required": ["selected", "automaticRepair", "result"],
+            "properties": {
+              "selected": { "type": "string" },
+              "automaticRepair": { "type": "boolean" },
+              "result": { "type": ["string", "null"] }
+            }
+          },
+          "retryBudget": { "type": "object" }
+        }
+      }
+    },
+    "escalations": { "type": "array" },
+    "recoveryEvents": { "type": "array" }
+  }
+}

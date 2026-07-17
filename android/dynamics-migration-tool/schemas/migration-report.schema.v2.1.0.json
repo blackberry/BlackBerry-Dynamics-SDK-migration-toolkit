@@ -1,0 +1,1534 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "migration-report.schema.v2.1.0.json",
+  "title": "Dynamics Migration Report v2.1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apisReplaced",
+    "blockingFailuresFromValidate",
+    "conventionPlugins",
+    "coverage",
+    "egressFeatures",
+    "evidenceCompleteness",
+    "excludedTestOnlyModules",
+    "filesModified",
+    "generatedAt",
+    "manualTodos",
+    "migrationConfidence",
+    "provenance",
+    "project",
+    "releaseReadiness",
+    "runId",
+    "runtimeFailures",
+    "runtimeTestPlan",
+    "schemaVersion",
+    "securityPosture",
+    "summary",
+    "targetModule",
+    "toolkit",
+    "uemAdminHandoff",
+    "unverifiedSurfaces",
+    "unsupportedFeatures",
+    "validation"
+  ],
+  "$defs": {
+    "followUp": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "whyBlocked",
+        "safeNextOptions",
+        "suggestedAgentPrompt"
+      ],
+      "properties": {
+        "whyBlocked": {
+          "type": "string",
+          "minLength": 1
+        },
+        "safeNextOptions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "suggestedAgentPrompt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidenceFiles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "properties": {
+    "apisReplaced": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "after",
+          "before",
+          "category",
+          "catalogRow",
+          "count",
+          "files",
+          "modules",
+          "original",
+          "replacement",
+          "risk"
+        ],
+        "properties": {
+          "after": {
+            "type": "string",
+            "minLength": 1
+          },
+          "before": {
+            "type": "string",
+            "minLength": 1
+          },
+          "catalogRow": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Stable row ID from contracts/api-catalog.v1.0.0.json proving the replacement comes from the approved catalog."
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "original": {
+            "type": "string",
+            "minLength": 1
+          },
+          "replacement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "risk": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "riskReason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "blockingFailuresFromValidate": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "secureNetworking",
+        "securePush",
+        "backgroundAuthorize",
+        "secureFileStorage",
+        "secureSql",
+        "secureUiWidgets",
+        "secureClipboard",
+        "authorization",
+        "policyManagement",
+        "webview",
+        "icc"
+      ],
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "details"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "migrated",
+              "partial",
+              "not-applicable"
+            ]
+          },
+          "details": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "egressFeatures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "featureName",
+          "domain",
+          "outcome",
+          "status",
+          "reason",
+          "migrationAction",
+          "userVisibleChange",
+          "sourceFiles"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "featureName": {
+            "type": "string",
+            "minLength": 1
+          },
+          "domain": {
+            "type": "string",
+            "enum": [
+              "secureFileStorage",
+              "secureNetworking",
+              "icc",
+              "secureClipboard",
+              "secureUiWidgets",
+              "policyManagement"
+            ]
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "REMOVE",
+              "REPLACE_WITH_DYNAMICS",
+              "MANUAL_INTERVENTION_REQUIRED",
+              "BLOCKED_UNTIL_APPROVED"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "implemented",
+              "manual-follow-up",
+              "blocked"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "migrationAction": {
+            "type": "string",
+            "minLength": 1
+          },
+          "userVisibleChange": {
+            "type": "string",
+            "minLength": 1
+          },
+          "secureAlternative": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sourceFiles": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "followUp": {
+            "$ref": "#/$defs/followUp"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "outcome": {
+                  "const": "REPLACE_WITH_DYNAMICS"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "secureAlternative"
+              ],
+              "properties": {
+                "status": {
+                  "const": "implemented"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "outcome": {
+                  "const": "REMOVE"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "status": {
+                  "const": "implemented"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "outcome": {
+                  "const": "BLOCKED_UNTIL_APPROVED"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "followUp"
+              ],
+              "properties": {
+                "status": {
+                  "const": "blocked"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "outcome": {
+                  "const": "MANUAL_INTERVENTION_REQUIRED"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "followUp"
+              ],
+              "properties": {
+                "status": {
+                  "const": "manual-follow-up"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "evidenceCompleteness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "overallStatus",
+        "domains",
+        "runtimeEvidence"
+      ],
+      "properties": {
+        "overallStatus": {
+          "type": "string",
+          "enum": [
+            "complete",
+            "incomplete",
+            "partial"
+          ]
+        },
+        "domains": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "validatorVerified",
+              "inventoriedCallSites",
+              "rediscoveredSurfaces"
+            ],
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "verified",
+                  "partial",
+                  "unverified",
+                  "not-applicable"
+                ]
+              },
+              "validatorVerified": {
+                "type": "boolean"
+              },
+              "inventoriedCallSites": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "rediscoveredSurfaces": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "runtimeEvidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "summary"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "passed",
+                "failed",
+                "not-run"
+              ]
+            },
+            "summary": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "mediaContainment": {
+      "type": "object",
+      "description": "Optional by schema, but required by report contract whenever camera/media/export/capture behavior required special handling. Summarizes whether media now remains in the Dynamics container, whether direct secure streaming is used, and whether any export/output-URI/manual-intervention path remains.",
+      "additionalProperties": false,
+      "required": [
+        "summary",
+        "mediaWritePaths",
+        "exportPaths"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mediaWritePaths": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sourceFile",
+              "api",
+              "originalBehavior",
+              "migratedBehavior",
+              "staysInContainer",
+              "usesDirectSecureStream",
+              "usesFilesystemStaging",
+              "publicExportRemains",
+              "manualInterventionRequired"
+            ],
+            "properties": {
+              "sourceFile": { "type": "string", "minLength": 1 },
+              "api": { "type": "string", "minLength": 1 },
+              "originalBehavior": { "type": "string", "minLength": 1 },
+              "migratedBehavior": { "type": "string", "minLength": 1 },
+              "staysInContainer": { "type": "boolean" },
+              "usesDirectSecureStream": { "type": "boolean" },
+              "usesFilesystemStaging": { "type": "boolean" },
+              "publicExportRemains": { "type": "boolean" },
+              "manualInterventionRequired": { "type": "boolean" },
+              "followUp": { "$ref": "#/$defs/followUp" }
+            }
+          }
+        },
+        "exportPaths": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "sourceFile",
+              "pattern",
+              "status",
+              "dlpImpact",
+              "behaviorChange",
+              "safeOutcome"
+            ],
+            "properties": {
+              "sourceFile": { "type": "string", "minLength": 1 },
+              "pattern": { "type": "string", "minLength": 1 },
+              "status": {
+                "type": "string",
+                "enum": ["disabled", "migrated", "controlled", "unresolved"]
+              },
+              "dlpImpact": { "type": "string", "minLength": 1 },
+              "behaviorChange": { "type": "string", "minLength": 1 },
+              "safeOutcome": {
+                "type": "string",
+                "enum": ["safe", "partial", "no-go"]
+              },
+              "followUp": { "$ref": "#/$defs/followUp" }
+            }
+          }
+        }
+      }
+    },
+    "filesModified": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "changeType",
+          "description",
+          "module",
+          "path"
+        ],
+        "properties": {
+          "changeType": {
+            "type": "string",
+            "enum": [
+              "modified",
+              "created",
+              "deleted"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "module": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "generatedAt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "manualTodos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "domain",
+          "blocking",
+          "owner",
+          "severity",
+          "reason",
+          "affectedModules",
+          "evidence",
+          "requiredActions",
+          "acceptanceCriteria",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "domain": {
+            "type": "string",
+            "minLength": 1
+          },
+          "blocking": {
+            "type": "boolean"
+          },
+          "owner": {
+            "type": "string",
+            "enum": [
+              "applicationDeveloper"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "P0",
+              "P1",
+              "P2",
+              "P3"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "affectedModules": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "requiredActions": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "acceptanceCriteria": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "completed",
+              "acceptedRisk",
+              "notApplicable"
+            ]
+          },
+          "followUp": { "$ref": "#/$defs/followUp" }
+        }
+      }
+    },
+    "safFindings": {
+      "type": "array",
+      "description": "REPORT-ONLY. Aggregated SAF trust-boundary findings generated by prompt 10 from dispositions[] entries whose safDecision object is present. Mandatory when Phase 4N detects any SAF pattern; absent otherwise. Must NOT be written to migration-plan-state.json.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "findingId",
+          "callSiteId",
+          "classification",
+          "direction",
+          "module",
+          "sourceFile",
+          "sourceLine",
+          "targetMechanism",
+          "migrationDecision",
+          "featureStatus",
+          "outboundCodeReachable",
+          "plaintextStagingRemoved"
+        ],
+        "properties": {
+          "findingId": {
+            "type": "string",
+            "pattern": "^saf-(export|import|uri|tree|staging)-\\d{3}$",
+            "description": "Stable identifier for idempotent updates."
+          },
+          "callSiteId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Links to dispositions[].callSiteId in migration-plan-state.json."
+          },
+          "classification": {
+            "type": "string",
+            "enum": [
+              "SAF_INBOUND_IMPORT",
+              "SAF_OUTBOUND_EXPORT",
+              "SAF_EXTERNAL_PRIMARY_STORAGE",
+              "SAF_URI_SHARING",
+              "SAF_PLAINTEXT_STAGING"
+            ]
+          },
+          "direction": {
+            "type": "string",
+            "enum": ["inbound", "outbound"]
+          },
+          "module": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceFile": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceLine": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "uiEntryPoint": {
+            "type": ["string", "null"],
+            "description": "UI element that triggers the SAF operation."
+          },
+          "dataSource": {
+            "type": ["string", "null"],
+            "description": "Origin of data for outbound flows (e.g. 'Dynamics secure file')."
+          },
+          "targetMechanism": {
+            "type": "string",
+            "minLength": 1,
+            "description": "API or intent action (e.g. ACTION_CREATE_DOCUMENT, ClipData.newUri)."
+          },
+          "migrationDecision": {
+            "type": "string",
+            "enum": [
+              "BLOCKED_PENDING_DEVELOPER_APPROVAL",
+              "ALLOW_WITH_DLP_ENFORCEMENT",
+              "REPLACE_WITH_SECURE_INTERNAL_FLOW",
+              "MIGRATE_SECURE_COPY",
+              "BLOCK",
+              "MANUAL_REDESIGN_REQUIRED"
+            ]
+          },
+          "developerDecision": {
+            "type": ["string", "null"],
+            "description": "Null until developer explicitly responds."
+          },
+          "featureStatus": {
+            "type": "string",
+            "enum": ["blocked", "migrated-inbound", "approved-dlp", "replaced-icc", "removed"]
+          },
+          "runtimeDlpEnforced": {
+            "type": "boolean",
+            "description": "Must be true when featureStatus is approved-dlp."
+          },
+          "outboundCodeReachable": {
+            "type": "boolean",
+            "description": "Must be false for blocked outbound flows."
+          },
+          "uiDisposition": {
+            "type": ["string", "null"],
+            "enum": ["disabled", "removed", "safe-noop", null]
+          },
+          "plaintextStagingRemoved": {
+            "type": "boolean",
+            "description": "Must be true for all SAF findings."
+          },
+          "changedFiles": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "validationResult": {
+            "type": "string",
+            "enum": ["pass", "fail", "pending"]
+          },
+          "note": {
+            "type": ["string", "null"]
+          }
+        }
+      }
+    },
+    "safSummary": {
+      "type": "object",
+      "description": "REPORT-ONLY. Aggregate counts for the SAF section. Present if and only if safFindings is present.",
+      "additionalProperties": false,
+      "required": [
+        "inboundImportsSecured",
+        "outboundExportsBlocked",
+        "outboundExportsApproved",
+        "uriSharingFlowsBlocked",
+        "externalPrimaryStorageReplaced",
+        "plaintextStagingPathsRemoved",
+        "unresolvedFlowsRequiringManualIntervention"
+      ],
+      "properties": {
+        "inboundImportsSecured": { "type": "integer", "minimum": 0 },
+        "outboundExportsBlocked": { "type": "integer", "minimum": 0 },
+        "outboundExportsApproved": { "type": "integer", "minimum": 0 },
+        "uriSharingFlowsBlocked": { "type": "integer", "minimum": 0 },
+        "externalPrimaryStorageReplaced": { "type": "integer", "minimum": 0 },
+        "plaintextStagingPathsRemoved": { "type": "integer", "minimum": 0 },
+        "unresolvedFlowsRequiringManualIntervention": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "securityBlockers": {
+      "type": "array",
+      "description": "Optional. Findings that violate the BlackBerry Dynamics secure-container contract and CANNOT be deferred. Populated by prompt 10 from `output/.security-blockers.log` (written by `tooling/validate.sh` `security_blocker()` during phase scans). Today this is the non-waivable `externalStorage` surface set raised by Phase 4 (external/shared/MediaStore writes, raw `/sdcard` paths, SAF persisted tree usage) and Phase 8b FileProvider path-surface checks (`external-path`, `external-files-path`, `external-cache-path`, `root-path`). When this array is non-empty, `releaseReadiness.recommendation` MUST be `\"no-go\"`, `summary.overallStatus` MUST be `\"failed\"`, and `migrationConfidence.level` MUST be `\"low\"`. If any entry belongs to the `externalStorage` domain, `coverage.secureFileStorage.status` MUST be `\"partial\"` rather than `\"migrated\"`. Each entry is also surfaced in `releaseReadiness.blockingItems[]` and as a `manualTodos[]` entry with `blocking: true` so report consumers see the blocker through the single manual intervention model.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "domain",
+          "surface",
+          "count",
+          "message",
+          "remediation"
+        ],
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "Non-waivable domain that the blocker belongs to. Must be one of the security-critical domain identifiers recognised by `tooling/validate.sh` `NON_WAIVABLE_DOMAINS`.",
+            "enum": [
+              "externalStorage"
+            ]
+          },
+          "surface": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Sub-surface identifier emitted by `security_blocker()` (e.g. `api-surface` for the aggregated external-storage check). Free-form to allow future blocker types without a schema bump."
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Number of source-level hits the validator detected for this surface."
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Verbatim message from the validator log line. Must include language stating that manual intervention is required before production use."
+          },
+          "remediation": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Specific Dynamics-compatible replacement the developer must apply (or 'remove the call-site'). Should name the catalog row(s) in `contracts/api-catalog.v1.0.0.json` that document the secure replacement (e.g. `fs-java-ext-001 .. fs-java-ext-005` for the external-storage set)."
+          },
+          "catalogRows": {
+            "type": "array",
+            "description": "Catalog row ids (`contracts/api-catalog.v1.0.0.json` `rows[].id`) that describe the secure replacement.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "filePaths": {
+            "type": "array",
+            "description": "Optional list of source paths (project-root-relative) where the blocker was observed.",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "migrationConfidence": {
+      "type": "object",
+      "description": "Overall confidence in the migration quality. Any non-waivable security blocker forces `level` to `low`.",
+      "additionalProperties": false,
+      "required": [
+        "level",
+        "rationale",
+        "score"
+      ],
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ]
+        },
+        "rationale": {
+          "type": "string"
+        },
+        "score": {
+          "type": "number"
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "migratedMinSdk",
+        "name",
+        "originalMinSdk",
+        "package"
+      ],
+      "properties": {
+        "migratedMinSdk": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "originalMinSdk": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "package": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bootstrapGeneratedAt",
+        "catalogContract",
+        "catalogVersion",
+        "executedPrompts",
+        "runId",
+        "toolkitVersion"
+      ],
+      "properties": {
+        "bootstrapGeneratedAt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "catalogContract": {
+          "type": "string",
+          "const": "contracts/api-catalog.v1.0.0.json"
+        },
+        "catalogVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executedPrompts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "promptId",
+              "status"
+            ],
+            "properties": {
+              "promptId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "completed",
+                  "failed",
+                  "aborted",
+                  "skipped"
+                ]
+              },
+              "startedAt": {
+                "type": "string"
+              },
+              "completedAt": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "gitCommit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "runId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+        },
+        "sdkArtifact": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sdkResolvedVersion": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sdkSha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "toolkitVersion": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "releaseReadiness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blockingItems",
+        "recommendation"
+      ],
+      "properties": {
+        "blockingItems": {
+          "type": "array"
+        },
+        "recommendation": {
+          "type": "string",
+          "enum": [
+            "go",
+            "go-with-risks",
+            "no-go"
+          ]
+        }
+      }
+    },
+    "runtimeFailures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "category",
+          "fix",
+          "id",
+          "promptGap",
+          "rootCause",
+          "status",
+          "symptom",
+          "validatorGap"
+        ],
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "startupAuthSequencing",
+              "deferredInitNullability",
+              "duplicateActivityInit",
+              "other"
+            ]
+          },
+          "fix": {
+            "type": "string",
+            "minLength": 1
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "promptGap": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rootCause": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "fixed"
+            ]
+          },
+          "symptom": {
+            "type": "string",
+            "minLength": 1
+          },
+          "validatorGap": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "runtimeTestPlan": {
+      "type": "array"
+    },
+    "runId": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+    },
+    "schemaVersion": {
+      "type": "string",
+      "const": "2.1.0"
+    },
+    "securityPosture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataAtRest",
+        "dataInTransit"
+      ],
+      "properties": {
+        "dataAtRest": {
+          "type": "object",
+          "required": [
+            "status",
+            "summary"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "secured",
+                "partial",
+                "unverified"
+              ]
+            },
+            "summary": {
+              "type": "string"
+            }
+          }
+        },
+        "dataInTransit": {
+          "type": "object",
+          "required": [
+            "status",
+            "summary"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "secured",
+                "partial",
+                "unverified"
+              ]
+            },
+            "summary": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "migrationCommentCount",
+        "migrationCommentCountByModule",
+        "overallStatus",
+        "totalApisReplaced",
+        "totalFilesModified"
+      ],
+      "properties": {
+        "migrationCommentCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "migrationCommentCountByModule": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "overallStatus": {
+          "type": "string",
+          "enum": [
+            "complete",
+            "partial",
+            "failed"
+          ]
+        },
+        "totalApisReplaced": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "totalFilesModified": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "targetModule": {
+      "type": "object",
+      "required": [
+        "appliesAndroidApplicationPlugin",
+        "buildFile",
+        "buildFileType",
+        "discoveryMethod",
+        "inScopeLibraryModules",
+        "name",
+        "otherAppModules",
+        "path",
+        "projectShape",
+        "sourceSetCount"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "appliesAndroidApplicationPlugin": {
+          "type": "boolean",
+          "const": true
+        },
+        "applicationId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "buildFile": {
+          "type": "string",
+          "minLength": 1
+        },
+        "buildFileType": {
+          "type": "string",
+          "enum": [
+            "direct",
+            "convention-plugin"
+          ]
+        },
+        "conventionPluginRef": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "discoveryMethod": {
+          "type": "string",
+          "enum": [
+            "fallback-app-dir",
+            "settings-gradle-parse",
+            "user-supplied"
+          ]
+        },
+        "projectShape": {
+          "type": "string",
+          "enum": [
+            "single-module",
+            "multi-module"
+          ]
+        },
+        "sourceSetCount": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "inScopeLibraryModules": {
+          "type": "array"
+        },
+        "otherAppModules": {
+          "type": "array"
+        }
+      }
+    },
+    "excludedTestOnlyModules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "path",
+          "reachedVia"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reachedVia": {
+            "type": "string",
+            "enum": [
+              "testImplementation",
+              "androidTestImplementation",
+              "testApi",
+              "androidTestApi",
+              "testCompileOnly",
+              "androidTestCompileOnly",
+              "testRuntimeOnly",
+              "androidTestRuntimeOnly"
+            ]
+          }
+        }
+      }
+    },
+    "conventionPlugins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "consumedBy",
+          "editStrategy",
+          "edited",
+          "pluginId",
+          "sourceFile"
+        ],
+        "properties": {
+          "pluginId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceFile": {
+            "type": "string",
+            "minLength": 1
+          },
+          "appliesAndroidPlugin": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "com.android.application",
+                  "com.android.library"
+                ]
+              }
+            ]
+          },
+          "consumedBy": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "editStrategy": {
+            "type": "string",
+            "enum": [
+              "edit-convention-plugin",
+              "override-in-app-module",
+              "not-applicable"
+            ]
+          },
+          "edited": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "toolkit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "platform",
+        "reportSchemaVersion",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "const": "dynamics-migration-tool"
+        },
+        "platform": {
+          "type": "string",
+          "enum": [
+            "Android",
+            "iOS"
+          ]
+        },
+        "reportSchemaVersion": {
+          "type": "string",
+          "const": "2.1.0"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "uemAdminHandoff": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "gdApplicationId",
+        "gdApplicationVersion"
+      ],
+      "properties": {
+        "gdApplicationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "gdApplicationVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "entitlementSetup": {
+          "type": "string"
+        },
+        "connectivityProfile": {
+          "type": "string"
+        },
+        "complianceProfile": {
+          "type": "string"
+        },
+        "appPermissions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "unverifiedSurfaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "domain",
+          "sourceFile",
+          "pattern",
+          "securityCritical",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "domain": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sourceFile": {
+            "type": "string",
+            "minLength": 1
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "pattern": {
+            "type": "string",
+            "minLength": 1
+          },
+          "securityCritical": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "resolved",
+              "acceptedRisk",
+              "notApplicable"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "unsupportedFeatures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "feature",
+          "reason",
+          "workaround"
+        ],
+        "properties": {
+          "feature": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workaround": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "followUp": { "$ref": "#/$defs/followUp" }
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "description": "Latest recorder-owned validator state reflected in this report. If `passed` is false or `failures` is greater than zero, the report must not be production-ready: `releaseReadiness.recommendation` must be `no-go` and `summary.overallStatus` must be `failed`.",
+      "additionalProperties": false,
+      "required": [
+        "failures",
+        "mode",
+        "passed",
+        "warnings"
+      ],
+      "properties": {
+        "failures": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "source",
+            "final-source"
+          ],
+          "description": "Validation mode that produced failures/warnings/passed. Required on every migration-report.json. Populated by record-prompt-execution.sh from output/.last-source-check.json after the prompt-10 source gate. Must be 'source' or 'final-source' only — report-contract validation uses output/.last-report-check.json and does not overwrite this field."
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "warnings": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "if": {
+        "properties": {
+          "passed": {
+            "const": true
+          }
+        },
+        "required": [
+          "passed"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failures": {
+            "const": 0
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "failures": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "description": "Cross-field invariant: passed:true requires failures:0; passed:false requires failures>=1. Stale placeholder values (e.g. passed:false with failures:1 when the final sweep actually passed) are rejected."
+    }
+  }
+}

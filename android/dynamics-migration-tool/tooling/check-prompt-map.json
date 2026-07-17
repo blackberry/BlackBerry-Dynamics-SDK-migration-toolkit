@@ -1,0 +1,405 @@
+{
+  "schemaVersion": "1.2.0",
+  "description": "Single source of truth that maps prompt-ids to validator phases for diagnostics and final acceptance. Consumed by tooling/record-prompt-execution.sh and tooling/validate.sh. Prompts in scopedChecks run validate.sh --check-prompt <id> before the recorder writes completed progress. Prompt 10 remains the hard final acceptance gate: source validation (--mode final-source; full static + build + catalog phases) followed by report-contract validation (--mode report). Since v1.2.0 this file also carries the validationRegistry block: per-phase metadata (domains, severity, alwaysRun, file/pattern triggers, cost, requiredForFinal) for manual/maintainer incremental validation experiments. Incremental validation never substitutes for prompt-10 source/report gates.",
+  "requiresSchema": {
+    "comment": "Hybrid requires[] — prompt 10 fullSweep gates are recorder-enforced today. requires[] entries on scopedChecks are prerequisite metadata for agents/diagnostics, not intermediate recorder hard gates. Future kinds (e.g. callSitesClosed) may be added without breaking consumers that ignore unknown kinds.",
+    "kinds": {
+      "domainClosed": {
+        "fields": ["kind", "domain"],
+        "semantics": "Every executionPlan call site for domain has disposition migrated|removed, or domain is not-applicable, or a valid deferredDomains[] entry exists."
+      },
+      "allApplicableDomainsClosed": {
+        "fields": ["kind"],
+        "semantics": "Prompt 10 only — every applicable executionPlan domain is closed or valid deferral."
+      },
+      "backgroundAuthorizeDecisionsCaptured": {
+        "fields": ["kind"],
+        "semantics": "Every bootstrap.processModel.backgroundEntryPoints[] candidate has a matching entry in bootstrap.backgroundAuthorize.decisions[] (intent ∈ {migrate, deferred, not-applicable}). Used by prompt 10 to ensure prompt 03c actually captured per-candidate developer intent."
+      },
+      "auxProcessGdReachClosed": {
+        "fields": ["kind"],
+        "semantics": "Prompt 10 only — closes PROC-AUX-001 findings. When auxiliary-process components can reach GD file APIs, each hit must be resolved in code (guard/remove) or explicitly closed in migration-report.json unverifiedSurfaces[] with pattern PROC-AUX-001 and a non-open status."
+      }
+    }
+  },
+  "retryPolicy": {
+    "defaultMaxPromptFailures": 5,
+    "defaultMaxIdenticalFailures": 3,
+    "finalGateMaxIdenticalFailures": 2,
+    "perPrompt": {
+      "05a": { "maxIdenticalFailures": 4 },
+      "05c": { "maxIdenticalFailures": 4 },
+      "08": { "maxIdenticalFailures": 4 }
+    }
+  },
+  "noOp": [
+    "00",
+    "00b",
+    "12"
+  ],
+  "scopedChecks": {
+    "00pre": {
+      "phases": ["0"],
+      "description": "Bootstrap contract guard (schema + UEM + provenance/generatedAt invariant)"
+    },
+    "01": {
+      "phases": ["2"],
+      "description": "Gradle integration (settings.gradle / app build.gradle) — dependency/repository check"
+    },
+    "02": {
+      "phases": ["1"],
+      "description": "settings.json contract — required keys present"
+    },
+    "03": {
+      "phases": ["3", "11"],
+      "description": "Authorization init + two-phase startup guard"
+    },
+    "03b": {
+      "phases": ["3", "11"],
+      "description": "Authorization deferral audit across ViewModels/Fragments/Receivers"
+    },
+    "03c": {
+      "phases": ["3b", "1"],
+      "description": "Background Authorize wiring — interactive end-of-migration step. Presents bootstrap.processModel.backgroundEntryPoints[] candidates to the developer, captures per-candidate intent (migrate | deferred | not-applicable) into bootstrap.backgroundAuthorize.decisions[] only (agent must not edit deferredDomains[]), and applies the canonical pattern only to migrate-intent entries. Runs after prompts 04–09 so the developer can see which secure surfaces background entry points would touch.",
+      "requires": [
+        { "kind": "domainClosed", "domain": "authorization" },
+        { "kind": "domainClosed", "domain": "secureFileStorage" },
+        { "kind": "domainClosed", "domain": "secureSql" },
+        { "kind": "domainClosed", "domain": "secureNetworking" },
+        { "kind": "domainClosed", "domain": "secureUiWidgets" }
+      ]
+    },
+    "04": {
+      "phases": ["5", "5b", "10"],
+      "description": "SQLite migration + redundant-crypto removal + API audit",
+      "requires": [
+        { "kind": "domainClosed", "domain": "authorization" }
+      ]
+    },
+    "05a": {
+      "phases": ["4", "10"],
+      "description": "Core file I/O writers/readers (subset of Phase 4) — includes stream-layer closure checks (kotlin.io / java.nio.file / FileReader / BitmapFactory.decodeFile / sandbox-seeded GD File) per steering/40-secure-file-storage.md §5 when run via validate.sh --check-prompt 05a. Prompt 10 remains the hard recorder gate."
+    },
+    "05b": {
+      "phases": ["4", "10"],
+      "description": "UI/library reader closure (subset of Phase 4) — includes the stream-layer closure checks above when run via validate.sh --check-prompt 05b so readers (readText/readBytes/FileReader/Files.readAllBytes/decodeFile) can be diagnosed before prompt 10."
+    },
+    "05c": {
+      "phases": ["4", "10"],
+      "description": "SharedPreferences + final secure-file closure"
+    },
+    "06": {
+      "phases": ["6", "6b", "10"],
+      "description": "Networking migration + transport hardening",
+      "requires": [
+        { "kind": "domainClosed", "domain": "authorization" }
+      ]
+    },
+    "07": {
+      "phases": ["6b"],
+      "description": "WebView -> BBWebView migration"
+    },
+    "08": {
+      "phases": ["8b"],
+      "description": "ICC / TransferFileService + chooser-bypass + FileProvider manifest/resource hygiene audit",
+      "requires": [
+        { "kind": "domainClosed", "domain": "secureFileStorage" }
+      ]
+    },
+    "09": {
+      "phases": ["8"],
+      "description": "Secure UI widgets (GDEditText / GDTextView) and secureClipboard (platform + Compose GDClipboardAdapter)",
+      "requires": [
+        { "kind": "domainClosed", "domain": "authorization" }
+      ]
+    },
+    "11": {
+      "phases": ["12"],
+      "description": "Push Channel and FCM hardening — metadata-only FCM payloads, PushChannel wiring, Phase 12 FCM authorization gate",
+      "requires": [
+        { "kind": "domainClosed", "domain": "authorization" }
+      ]
+    }
+  },
+  "fullSweep": {
+    "10": {
+      "phases": ["0", "1", "2", "3", "3b", "4", "5", "5b", "6", "6b", "7", "8", "8b", "9", "10", "11", "12", "comments", "catalog", "report"],
+      "description": "Final migration validation: all static phases + Gradle build + migration-report.json contract + API catalog cross-check",
+      "requires": [
+        { "kind": "allApplicableDomainsClosed" },
+        { "kind": "backgroundAuthorizeDecisionsCaptured" },
+        { "kind": "auxProcessGdReachClosed" }
+      ]
+    }
+  },
+  "validationRegistry": {
+    "comment": "Per-phase metadata for validation planning. Consumed by tooling/lib/resolve-domains.py and tooling/validate.sh --mode incremental|full|final|final-source|report. The recorder orchestrates scopedChecks prompt gates and prompt-10 split gates (final-source then report). The --mode / --domains / --explain-plan / --list-checks flags on validate.sh are agent/maintainer debugging affordances only. SAFETY: prompt 10 always runs source+report acceptance gates regardless of this block.",
+    "phaseOrder": ["0", "1", "2", "3", "3b", "4", "5", "5b", "6", "6b", "7", "8", "8b", "9", "10", "11", "12", "comments", "catalog", "report"],
+    "globalSourceGlobs": [
+      "**/*.java", "**/*.kt", "**/*.kts", "**/*.xml", "**/*.gradle",
+      "**/*.properties", "**/*.toml", "**/*.json", "**/*.pro",
+      "**/*.c", "**/*.cc", "**/*.cpp", "**/*.cxx", "**/*.h", "**/*.hpp",
+      "**/*.mk", "**/CMakeLists.txt", "**/*.so"
+    ],
+    "crossCutting": {
+      "comment": "A change to any of these forces the broad domain set (every domain phase + every alwaysRun phase, still excluding expensiveFullOnly/reportOnly). Project-specific shared utility classes cannot be enumerated here; the recorder's prompt-owned phases plus the mandatory prompt-10 full sweep cover those.",
+      "fileTriggers": [
+        "**/Application.kt", "**/Application.java",
+        "**/*Application.kt", "**/*Application.java",
+        "**/BaseActivity.kt", "**/BaseActivity.java",
+        "**/AndroidManifest.xml",
+        "**/build.gradle", "**/build.gradle.kts",
+        "**/settings.gradle", "**/settings.gradle.kts",
+        "**/gradle.properties",
+        "**/libs.versions.toml", "**/gradle/libs.versions.toml"
+      ]
+    },
+    "expensiveFullOnly": ["9", "10", "catalog"],
+    "reportOnly": ["report"],
+    "phases": {
+      "0": {
+        "title": "bootstrap.json contract (schema, UEM, processModel, provenance, deferredDomains shape)",
+        "domains": ["bootstrapContract"],
+        "severity": "critical",
+        "alwaysRun": true,
+        "fileTriggers": ["**/output/bootstrap.json"],
+        "patternTriggers": [],
+        "estimatedCostMs": 150,
+        "requiredForFinal": true
+      },
+      "1": {
+        "title": "settings.json keys + manifest hardening + network_security_config",
+        "domains": ["config", "manifest", "secureFileStorage", "icc"],
+        "severity": "high",
+        "alwaysRun": false,
+        "fileTriggers": [
+          "**/AndroidManifest.xml",
+          "**/assets/**/settings.json",
+          "**/assets/**/com.blackberry.dynamics.settings.json",
+          "**/res/xml/network_security_config.xml"
+        ],
+        "patternTriggers": [],
+        "estimatedCostMs": 200,
+        "requiredForFinal": true
+      },
+      "2": {
+        "title": "Gradle integration (Dynamics SDK dependency / repository / settings.gradle)",
+        "domains": ["gradle"],
+        "severity": "high",
+        "alwaysRun": false,
+        "fileTriggers": [
+          "**/build.gradle", "**/build.gradle.kts",
+          "**/settings.gradle", "**/settings.gradle.kts",
+          "**/gradle.properties",
+          "**/libs.versions.toml", "**/gradle/libs.versions.toml"
+        ],
+        "patternTriggers": [],
+        "estimatedCostMs": 120,
+        "requiredForFinal": true
+      },
+      "3": {
+        "title": "Authorization init + two-phase startup guard (WI-01) + AUTH-LISTENER-001",
+        "domains": ["authorization"],
+        "severity": "critical",
+        "alwaysRun": false,
+        "fileTriggers": ["**/AndroidManifest.xml"],
+        "patternTriggers": [
+          "GDStateListener", "setGDStateListener", "activityInit",
+          "applicationInit", "GDAndroid", "onAuthorized",
+          "onLocked", "onWiped", "\\bauthorize\\s*\\(",
+          "Application", "Activity", "APP_RESTRICTIONS"
+        ],
+        "estimatedCostMs": 900,
+        "requiredForFinal": true
+      },
+      "3b": {
+        "title": "Background Authorize wiring (per-candidate intent capture)",
+        "domains": ["backgroundAuthorize"],
+        "severity": "high",
+        "alwaysRun": false,
+        "fileTriggers": ["**/output/bootstrap.json"],
+        "patternTriggers": [
+          "FirebaseMessagingService", "JobService", "JobIntentService",
+          "onHandleWork", "doWork", "ListenableWorker", "BroadcastReceiver",
+          "onReceive", "canAuthorizeAutonomously", "serviceInit",
+          "backgroundEntryPoints", "GDEnableBackgroundAuthorize"
+        ],
+        "estimatedCostMs": 500,
+        "requiredForFinal": true
+      },
+      "4": {
+        "title": "Secure file storage + external-storage blocker + stream-layer closure + SAF trust-boundary classification",
+        "domains": ["secureFileStorage", "externalStorage", "safExternalContent"],
+        "severity": "critical",
+        "alwaysRun": true,
+        "fileTriggers": [],
+        "patternTriggers": [],
+        "estimatedCostMs": 2200,
+        "requiredForFinal": true
+      },
+      "5": {
+        "title": "Secure SQL (GDSQLiteDatabase, Room bridge factory)",
+        "domains": ["secureSql"],
+        "severity": "high",
+        "alwaysRun": false,
+        "fileTriggers": [],
+        "patternTriggers": [
+          "android\\.database\\.sqlite", "com\\.good\\.gd\\.database\\.sqlite",
+          "androidx\\.room", "SQLiteOpenHelper", "SQLiteDatabase",
+          "SupportSQLiteOpenHelper", "@Database", "@Dao", "@Entity", "\\bRoom\\b"
+        ],
+        "estimatedCostMs": 400,
+        "requiredForFinal": true
+      },
+      "5b": {
+        "title": "Redundant app-level crypto removal",
+        "domains": ["redundantCrypto"],
+        "severity": "medium",
+        "alwaysRun": false,
+        "fileTriggers": [],
+        "patternTriggers": [
+          "javax\\.crypto", "\\bCipher\\b", "CipherInputStream", "CipherOutputStream",
+          "EncryptedSharedPreferences", "EncryptedFile", "MasterKey",
+          "KeyGenParameterSpec", "Aead", "SQLCipher", "net\\.sqlcipher"
+        ],
+        "estimatedCostMs": 150,
+        "requiredForFinal": true
+      },
+      "6": {
+        "title": "Secure networking + transport hardening",
+        "domains": ["secureNetworking", "transportHardening"],
+        "severity": "critical",
+        "alwaysRun": true,
+        "fileTriggers": [],
+        "patternTriggers": [],
+        "estimatedCostMs": 1200,
+        "requiredForFinal": true
+      },
+      "6b": {
+        "title": "WebView -> BBWebView migration + unsafe WebView settings",
+        "domains": ["webview"],
+        "severity": "high",
+        "alwaysRun": true,
+        "fileTriggers": [],
+        "patternTriggers": [],
+        "estimatedCostMs": 250,
+        "requiredForFinal": true
+      },
+      "7": {
+        "title": "Policy management (WI-03 cached config/policy reads)",
+        "domains": ["policyManagement"],
+        "severity": "high",
+        "alwaysRun": false,
+        "fileTriggers": ["**/AndroidManifest.xml", "**/res/xml/**"],
+        "patternTriggers": [
+          "getApplicationPolicy", "getApplicationConfig", "RestrictionsManager",
+          "onUpdateConfig", "onUpdatePolicy", "android:exported"
+        ],
+        "estimatedCostMs": 400,
+        "requiredForFinal": true
+      },
+      "8": {
+        "title": "Secure UI widgets (GDEditText/GDTextView) + clipboard/DLP",
+        "domains": ["secureUiWidgets", "secureClipboard"],
+        "severity": "critical",
+        "alwaysRun": true,
+        "fileTriggers": [],
+        "patternTriggers": [],
+        "estimatedCostMs": 700,
+        "requiredForFinal": true
+      },
+      "8b": {
+        "title": "ICC / TransferFileService + chooser-bypass + FileProvider hygiene audit (secure-container-only)",
+        "domains": ["icc"],
+        "severity": "high",
+        "alwaysRun": false,
+        "fileTriggers": ["**/AndroidManifest.xml"],
+        "patternTriggers": [
+          "GDServiceClient", "TransferFileService", "\\bsendTo\\s*\\(",
+          "AppKinetics", "GDService", "com\\.good\\.gd\\.icc", "providers"
+        ],
+        "estimatedCostMs": 500,
+        "requiredForFinal": true
+      },
+      "9": {
+        "title": "Gradle build evidence (assembleDebug artifact + build log)",
+        "domains": ["build"],
+        "severity": "high",
+        "alwaysRun": false,
+        "fileTriggers": [],
+        "patternTriggers": [],
+        "estimatedCostMs": 60000,
+        "requiredForFinal": true
+      },
+      "10": {
+        "title": "API audit (Dynamics call totals + standard-API survivors + security-blocker re-emit)",
+        "domains": ["apiAudit"],
+        "severity": "high",
+        "alwaysRun": false,
+        "fileTriggers": [],
+        "patternTriggers": [],
+        "estimatedCostMs": 1500,
+        "requiredForFinal": true
+      },
+      "11": {
+        "title": "Authorization startup hardening (AUTH-INIT/DB/UI/CTOR/STARTUP/FILE/PREF/LISTENER-001)",
+        "domains": ["authorization"],
+        "severity": "critical",
+        "alwaysRun": false,
+        "fileTriggers": ["**/AndroidManifest.xml"],
+        "patternTriggers": [
+          "GDStateListener", "setGDStateListener", "activityInit",
+          "applicationInit", "GDAndroid", "onAuthorized",
+          "Application", "Activity", "GDSQLiteDatabase", "GDEditText",
+          "ContentProvider", "androidx.startup", "Initializer",
+          "WorkManagerInitializer", "Configuration.Provider", "WorkerFactory"
+        ],
+        "estimatedCostMs": 700,
+        "requiredForFinal": true
+      },
+      "12": {
+        "title": "Push / FCM authorization gate (WI-02)",
+        "domains": ["push"],
+        "severity": "high",
+        "alwaysRun": false,
+        "fileTriggers": [],
+        "patternTriggers": [
+          "FirebaseMessagingService", "FirebaseMessaging", "onMessageReceived",
+          "onNewToken", "PushChannel", "com\\.google\\.firebase\\.messaging"
+        ],
+        "estimatedCostMs": 400,
+        "requiredForFinal": true
+      },
+      "comments": {
+        "title": "[BB_DYNAMICS-MIGRATION] audit tally + forbidden waiver tags + sensitive logging",
+        "domains": ["auditComments"],
+        "severity": "high",
+        "alwaysRun": true,
+        "fileTriggers": [],
+        "patternTriggers": [],
+        "estimatedCostMs": 200,
+        "requiredForFinal": true
+      },
+      "catalog": {
+        "title": "API catalog cross-check (allowlist of cataloged Dynamics replacements)",
+        "domains": ["apiCatalog"],
+        "severity": "high",
+        "alwaysRun": false,
+        "fileTriggers": [],
+        "patternTriggers": [],
+        "estimatedCostMs": 1200,
+        "requiredForFinal": true
+      },
+      "report": {
+        "title": "migration-report.json contract + coverage KPI checks",
+        "domains": ["reportContract"],
+        "severity": "high",
+        "alwaysRun": false,
+        "fileTriggers": ["**/output/migration-report.json"],
+        "patternTriggers": [],
+        "estimatedCostMs": 300,
+        "requiredForFinal": true
+      }
+    }
+  }
+}

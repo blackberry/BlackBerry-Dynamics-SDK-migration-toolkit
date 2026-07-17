@@ -1,0 +1,277 @@
+{
+  "schemaVersion": "1.0.0",
+  "description": "Migration kit template manifest. Each entry maps a template ID to its files, provenance, and the migration assertions the validator uses.",
+  "templates": [
+    {
+      "id": "auth/DynamicsApplicationBase",
+      "files": {
+        "java": "auth/DynamicsApplicationBase.java",
+        "kotlin": "auth/DynamicsApplicationBase.kt"
+      },
+      "provenance": {
+        "kind": "sample-derived",
+        "sourceSample": "BlackBerry-Dynamics-Android-Samples/1-GettingStarted/Dynamics-GettingStarted",
+        "sourceFile": "app/src/main/java/com/blackberry/dynamics/sample/gettingstartedbbd/MainActivity.java",
+        "license": "Apache-2.0",
+        "editorialChanges": [
+          "Adapted from Activity to Application class",
+          "Added deferral queue and isContainerAuthorized flag (kit-authored addition)",
+          "Replaced sample package with __APP_PACKAGE__"
+        ]
+      },
+      "usedByPrompt": "03",
+      "requiredCallSites": [
+        "GDAndroid.getInstance().setGDStateListener(this)",
+        "isContainerAuthorized"
+      ],
+      "gdStateListenerMethods": [
+        {"name": "onAuthorized",       "params": []},
+        {"name": "onLocked",           "params": []},
+        {"name": "onWiped",            "params": []},
+        {"name": "onUpdateConfig",     "params": ["java.util.Map<java.lang.String,java.lang.Object>"]},
+        {"name": "onUpdatePolicy",     "params": ["java.util.Map<java.lang.String,java.lang.Object>"]},
+        {"name": "onUpdateServices",   "params": []},
+        {"name": "onUpdateEntitlements","params": []}
+      ]
+    },
+    {
+      "id": "file/SecureFileIO",
+      "files": {
+        "java": "file/SecureFileIO.java",
+        "kotlin": "file/SecureFileIO.kt"
+      },
+      "provenance": {
+        "kind": "sample-derived",
+        "sourceSample": "BlackBerry-Dynamics-Android-Samples/1-GettingStarted/Dynamics-GettingStarted",
+        "sourceFile": "app/src/main/java/com/blackberry/dynamics/sample/gettingstartedbbd/FileFragment.java",
+        "license": "Apache-2.0",
+        "editorialChanges": [
+          "Extracted file I/O methods from Fragment into a standalone utility class",
+          "Replaced sample package with __APP_PACKAGE__"
+        ]
+      },
+      "usedByPrompt": "05a",
+      "forbiddenAfterMigration": [
+        "new java.io.FileOutputStream(",
+        "new java.io.FileInputStream(",
+        "getContext().openFileOutput(",
+        "getContext().openFileInput(",
+        "context.openFileOutput(",
+        "context.openFileInput(",
+        ".writeText(",
+        ".readText(",
+        ".appendText(",
+        ".writeBytes(",
+        ".readBytes(",
+        ".appendBytes(",
+        ".forEachLine(",
+        ".readLines(",
+        ".useLines(",
+        ".bufferedReader()",
+        ".bufferedWriter()",
+        ".printWriter()",
+        ".inputStream()",
+        ".outputStream()",
+        ".copyTo(",
+        ".copyRecursively(",
+        ".deleteRecursively(",
+        "java.nio.file.Files.readAllBytes",
+        "java.nio.file.Files.write",
+        "java.nio.file.Files.newInputStream",
+        "java.nio.file.Files.newOutputStream",
+        "java.nio.file.Files.newBufferedReader",
+        "java.nio.file.Files.newBufferedWriter",
+        "java.nio.file.Files.readString",
+        "java.nio.file.Files.writeString",
+        "java.nio.file.Files.lines",
+        "new FileReader(",
+        "new FileWriter(",
+        "new PrintWriter(",
+        "new Scanner(",
+        "new RandomAccessFile(",
+        "BitmapFactory.decodeFile("
+      ],
+      "requiredCallSites": [
+        "GDFileSystem.openFileOutput(",
+        "GDFileSystem.openFileInput("
+      ],
+      "streamLayerHelpers": [
+        "SecureFileIO.writeText",
+        "SecureFileIO.readText",
+        "SecureFileIO.appendText",
+        "SecureFileIO.writeBytes",
+        "SecureFileIO.readBytes",
+        "SecureFileIO.readBytesOrNull",
+        "SecureFileIO.decodeBitmap",
+        "SecureFileIO.compressBitmap",
+        "SecureFileIO.newReader",
+        "SecureFileIO.newWriter",
+        "SecureFileIO.copy",
+        "SecureFileIO.deleteRecursively"
+      ],
+      "streamLayerNote": "Stream-layer helpers wrap com.good.gd.file streams exclusively. Kotlin File extensions may compile on com.good.gd.file.File via java.io interop but still bypass secure I/O. NEVER replace these helpers with kotlin.io or java.nio.file convenience APIs. See steering/40-secure-file-storage.md §5."
+    },
+    {
+      "id": "sql/raw/DynamicsDbHelper",
+      "files": {
+        "java": "sql/raw/DynamicsDbHelper.java",
+        "kotlin": "sql/raw/DynamicsDbHelper.kt"
+      },
+      "provenance": {
+        "kind": "sample-derived",
+        "sourceSample": "BlackBerry-Dynamics-Android-Samples/1-GettingStarted/Dynamics-GettingStarted",
+        "sourceFile": "app/src/main/java/com/blackberry/dynamics/sample/gettingstartedbbd/ColorDbHelper.java",
+        "license": "Apache-2.0",
+        "editorialChanges": [
+          "Genericized table/column names to __DB_NAME__ placeholder",
+          "Replaced sample package with __APP_PACKAGE__"
+        ]
+      },
+      "usedByPrompt": "04",
+      "note": "Raw SQLiteOpenHelper only. For Room, use sql/room-bridge/ template set.",
+      "requiredImports": [
+        "com.good.gd.database.sqlite.SQLiteDatabase",
+        "com.good.gd.database.sqlite.SQLiteOpenHelper"
+      ],
+      "keptImports": [
+        "android.database.Cursor",
+        "android.content.ContentValues"
+      ]
+    },
+    {
+      "id": "sql/room-bridge",
+      "files": {
+        "java": [
+          "sql/room-bridge/GDRoomOpenHelperFactory.java",
+          "sql/room-bridge/GDRoomOpenHelper.java",
+          "sql/room-bridge/GDRoomDatabase.java",
+          "sql/room-bridge/GDRoomStatement.java",
+          "sql/room-bridge/GDRoomQueryBindingHelper.java"
+        ],
+        "kotlin": [
+          "sql/room-bridge/GDRoomOpenHelperFactory.kt",
+          "sql/room-bridge/GDRoomOpenHelper.kt",
+          "sql/room-bridge/GDRoomDatabase.kt",
+          "sql/room-bridge/GDRoomStatement.kt",
+          "sql/room-bridge/GDRoomQueryBindingHelper.kt"
+        ]
+      },
+      "provenance": {
+        "kind": "kit-authored",
+        "rationale": "No public Dynamics SDK sample covers Room+SupportSQLiteOpenHelper bridge. Authored by migration-kit team from steering 41-secure-storage-sql.md and SupportSQLiteDatabase interface spec.",
+        "license": "Apache-2.0"
+      },
+      "usedByPrompt": "04",
+      "forbiddenInFactory": [
+        "FrameworkSQLiteOpenHelperFactory"
+      ],
+      "requiredImports": [
+        "com.good.gd.database.sqlite.SQLiteDatabase",
+        "com.good.gd.database.sqlite.SQLiteOpenHelper"
+      ]
+    },
+    {
+      "id": "icc/GDICCProviderShareDialog",
+      "files": {
+        "kotlin": "icc/GDICCProviderShareDialog.kt"
+      },
+      "provenance": {
+        "kind": "kit-authored",
+        "rationale": "Compose-first ICC provider chooser for TransferFile sharing; replaces MaterialAlertDialogBuilder in @Composable screens per steering 60.",
+        "license": "Apache-2.0"
+      },
+      "usedByPrompt": "08",
+      "forbiddenInComposeIccScreens": [
+        "MaterialAlertDialogBuilder",
+        "AlertDialog.Builder",
+        "showShareChooser("
+      ],
+      "requiredCallSites": [
+        "GDICCProviderShareDialog("
+      ]
+    },
+    {
+      "id": "clipboard/GDClipboardAdapter",
+      "files": {
+        "kotlin": "clipboard/GDClipboardAdapter.kt"
+      },
+      "provenance": {
+        "kind": "kit-authored",
+        "rationale": "No official Dynamics Compose-native clipboard API. Interim adapter routes plain-text Compose clipboard flows through com.good.gd.content.ClipboardManager per steering 45.",
+        "license": "Apache-2.0"
+      },
+      "usedByPrompt": "09",
+      "requiredImports": [
+        "com.good.gd.content.ClipboardManager"
+      ],
+      "forbiddenInAdapter": [
+        "LocalClipboardManager.current",
+        "LocalClipboard.current",
+        "android.content.ClipboardManager"
+      ]
+    },
+    {
+      "id": "network/OkHttpDynamicsClient",
+      "files": {
+        "java": "network/OkHttpDynamicsClient.java",
+        "kotlin": "network/OkHttpDynamicsClient.kt"
+      },
+      "provenance": {
+        "kind": "sample-derived",
+        "sourceSample": "BlackBerry-Dynamics-Android-Samples/2-Features/OkHttpBD",
+        "sourceFile": "app/src/main/java/com/blackberry/dynamics/sample/okhttp/MainActivity.java",
+        "license": "Apache-2.0",
+        "editorialChanges": [
+          "Extracted OkHttpClient construction into standalone factory",
+          "Added BBCookieJar (situational — include when app uses cookie-based sessions)",
+          "Documented interceptor ordering requirement",
+          "Replaced sample package with __APP_PACKAGE__"
+        ]
+      },
+      "usedByPrompt": "06",
+      "requiredCallSites": [
+        "new BBCustomInterceptor()",
+        ".addInterceptor(bbCustomInterceptor)"
+      ],
+      "interceptorOrderNote": "BBCustomInterceptor must be added AFTER any app-side interceptors (auth, logging). App interceptors → BBCustomInterceptor."
+    },
+    {
+      "id": "network/GDHttpClientExample",
+      "files": {
+        "java": "network/GDHttpClientExample.java"
+      },
+      "provenance": {
+        "kind": "sample-derived",
+        "sourceSample": "BlackBerry-Dynamics-Android-Samples/1-GettingStarted/Dynamics-GettingStarted",
+        "sourceFile": "app/src/main/java/com/blackberry/dynamics/sample/gettingstartedbbd/HttpFragment.java",
+        "license": "Apache-2.0"
+      },
+      "usedByPrompt": "06",
+      "note": "For apps using HttpURLConnection. OkHttp (OkHttpDynamicsClient) is preferred for new code.",
+      "requiredImports": [
+        "com.good.gd.apache.http.HttpResponse",
+        "com.good.gd.apache.http.client.methods.HttpGet",
+        "com.good.gd.net.GDHttpClient"
+      ],
+      "forbiddenImports": [
+        "org.apache.http"
+      ]
+    },
+    {
+      "id": "network/GDSocketExample",
+      "files": {
+        "java": "network/GDSocketExample.java"
+      },
+      "provenance": {
+        "kind": "sample-derived",
+        "sourceSample": "BlackBerry-Dynamics-Android-Samples/1-GettingStarted/Dynamics-GettingStarted",
+        "sourceFile": "app/src/main/java/com/blackberry/dynamics/sample/gettingstartedbbd/SocketFragment.java",
+        "license": "Apache-2.0"
+      },
+      "usedByPrompt": "06",
+      "requiredImports": ["com.good.gd.net.GDSocket"],
+      "forbiddenImports": ["com.good.gd.net.ssl.GDSocket"],
+      "lifecycleNote": "Use socket.close(), never socket.disconnect()"
+    }
+  ]
+}

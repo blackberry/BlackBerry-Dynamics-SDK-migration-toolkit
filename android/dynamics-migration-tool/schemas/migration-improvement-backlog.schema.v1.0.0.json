@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://blackberry.com/dynamics/migration/android/migration-improvement-backlog.schema.v1.0.0.json",
+  "title": "Android Migration Improvement Backlog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "platform",
+    "runId",
+    "generatedAt",
+    "safety",
+    "candidateCount",
+    "candidates",
+    "evidenceSources"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0.0" },
+    "platform": { "type": "string", "const": "android" },
+    "runId": { "type": "string", "minLength": 1 },
+    "generatedAt": { "type": "string", "minLength": 1 },
+    "safety": {
+      "type": "object",
+      "required": [
+        "autoPromotionProhibited",
+        "requiresHumanReview",
+        "requiresRegressionFixture",
+        "requiresDeterministicAcceptanceEvidence",
+        "statement"
+      ],
+      "properties": {
+        "autoPromotionProhibited": { "type": "boolean", "const": true },
+        "requiresHumanReview": { "type": "boolean", "const": true },
+        "requiresRegressionFixture": { "type": "boolean", "const": true },
+        "requiresDeterministicAcceptanceEvidence": { "type": "boolean", "const": true },
+        "statement": { "type": "string", "minLength": 1 }
+      }
+    },
+    "candidateCount": { "type": "integer", "minimum": 0 },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "candidateId",
+          "failurePattern",
+          "frequency",
+          "affectedApplications",
+          "rootCauseHypothesis",
+          "currentWorkaround",
+          "proposedChange",
+          "regressionFixtureRequired",
+          "securityImplications",
+          "confidenceLevel",
+          "humanApprovalStatus",
+          "autoPromotionProhibited",
+          "deterministicAcceptanceEvidenceRequired",
+          "evidence",
+          "sourceArtifacts"
+        ],
+        "properties": {
+          "candidateId": { "type": "string", "minLength": 1 },
+          "failurePattern": { "type": "object" },
+          "frequency": { "type": "integer", "minimum": 1 },
+          "affectedApplications": { "type": "array", "items": { "type": "string" } },
+          "rootCauseHypothesis": { "type": "string", "minLength": 1 },
+          "currentWorkaround": { "type": "string", "minLength": 1 },
+          "proposedChange": {
+            "type": "object",
+            "required": ["target", "description"],
+            "properties": {
+              "target": {
+                "type": "string",
+                "enum": ["prompt", "steering", "validator", "implementation", "documentation", "developer-decision"]
+              },
+              "description": { "type": "string", "minLength": 1 }
+            }
+          },
+          "regressionFixtureRequired": { "type": "object" },
+          "securityImplications": { "type": "string", "minLength": 1 },
+          "confidenceLevel": { "type": "string", "enum": ["low", "medium", "high"] },
+          "humanApprovalStatus": { "type": "string", "enum": ["pending-review", "approved", "rejected"] },
+          "autoPromotionProhibited": { "type": "boolean", "const": true },
+          "deterministicAcceptanceEvidenceRequired": { "type": "boolean", "const": true },
+          "evidence": { "type": "array", "items": { "type": "string" } },
+          "sourceArtifacts": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "evidenceSources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "exists"],
+        "properties": {
+          "path": { "type": "string" },
+          "exists": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

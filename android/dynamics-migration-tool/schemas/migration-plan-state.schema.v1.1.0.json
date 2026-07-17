@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "migration-plan-state.schema.v1.1.0.json",
+  "title": "Dynamics Migration Plan State v1.1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "egressFeatureDecisions",
+    "dispositions"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.1.0"
+    },
+    "runId": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+    },
+    "egressFeatureDecisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "featureId",
+          "domain",
+          "outcome",
+          "uiDisposition",
+          "codePathReachable"
+        ],
+        "properties": {
+          "featureId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "domain": {
+            "type": "string",
+            "enum": [
+              "secureFileStorage",
+              "secureNetworking",
+              "icc",
+              "secureClipboard",
+              "secureUiWidgets",
+              "policyManagement"
+            ]
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "REMOVE",
+              "REPLACE_WITH_DYNAMICS",
+              "MANUAL_INTERVENTION_REQUIRED",
+              "BLOCKED_UNTIL_APPROVED"
+            ]
+          },
+          "module": {
+            "type": "string",
+            "minLength": 1
+          },
+          "note": {
+            "type": "string"
+          },
+          "secureAlternative": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "uiDisposition": {
+            "type": "string",
+            "enum": [
+              "removed",
+              "disabled",
+              "replaced",
+              "flagged"
+            ]
+          },
+          "codePathReachable": {
+            "type": "boolean"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "outcome": {
+                  "const": "REPLACE_WITH_DYNAMICS"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "secureAlternative"
+              ],
+              "properties": {
+                "uiDisposition": {
+                  "const": "replaced"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "outcome": {
+                  "enum": [
+                    "REMOVE",
+                    "BLOCKED_UNTIL_APPROVED"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "codePathReachable": {
+                  "const": false
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "dispositions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "callSiteId",
+          "domain",
+          "status"
+        ],
+        "properties": {
+          "callSiteId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "domain": {
+            "type": "string",
+            "enum": [
+              "secureSql",
+              "secureFileStorage",
+              "secureNetworking",
+              "icc",
+              "secureUiWidgets",
+              "secureClipboard"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "migrated",
+              "removed"
+            ]
+          },
+          "module": {
+            "type": "string",
+            "minLength": 1
+          },
+          "note": {
+            "type": "string"
+          },
+          "safDecision": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Structured SAF trust-boundary decision for secureFileStorage dispositions. Required by prompt guidance when note contains SAF_* markers; ignored for non-SAF dispositions.",
+            "required": [
+              "classification",
+              "direction",
+              "migrationDecision"
+            ],
+            "properties": {
+              "classification": {
+                "type": "string",
+                "enum": [
+                  "SAF_INBOUND_IMPORT",
+                  "SAF_OUTBOUND_EXPORT",
+                  "SAF_EXTERNAL_PRIMARY_STORAGE",
+                  "SAF_URI_SHARING",
+                  "SAF_PLAINTEXT_STAGING"
+                ]
+              },
+              "direction": {
+                "type": "string",
+                "enum": [
+                  "inbound",
+                  "outbound"
+                ]
+              },
+              "migrationDecision": {
+                "type": "string",
+                "enum": [
+                  "MIGRATE_SECURE_COPY",
+                  "BLOCKED_PENDING_DEVELOPER_APPROVAL",
+                  "BLOCK",
+                  "ALLOW_WITH_DLP_ENFORCEMENT",
+                  "REPLACE_WITH_SECURE_INTERNAL_FLOW",
+                  "MANUAL_REDESIGN_REQUIRED"
+                ]
+              },
+              "developerDecision": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "developerApprovalRequested": {
+                "type": "boolean"
+              },
+              "decisionTimestamp": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "uiEntryPoint": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "targetMechanism": {
+                "type": "string"
+              },
+              "runtimeDlpEnforced": {
+                "type": "boolean"
+              },
+              "outboundCodeReachable": {
+                "type": "boolean"
+              },
+              "uiDisposition": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "disabled",
+                  "removed",
+                  "safe-noop",
+                  null
+                ]
+              },
+              "plaintextStagingRemoved": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
