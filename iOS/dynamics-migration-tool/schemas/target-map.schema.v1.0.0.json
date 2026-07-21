@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://blackberry.com/dynamics/migration/ios/target-map.schema.v1.0.0.json",
+  "title": "iOS Migration Tool Target Map Schema",
+  "description": "Xcode target and package boundary map produced by tooling/lib/discover-targets.py.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "platform",
+    "runId",
+    "generatedAt",
+    "projectRoot",
+    "buildEntrypoint",
+    "targets",
+    "packageManager",
+    "ambiguities",
+    "provenance"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "platform": {
+      "type": "string",
+      "const": "ios"
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generatedAt": {
+      "type": "string"
+    },
+    "projectRoot": {
+      "type": "string"
+    },
+    "buildEntrypoint": {
+      "type": "object",
+      "required": ["type", "reason"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["workspace", "project", "unresolved"]
+        },
+        "path": { "type": ["string", "null"] },
+        "reason": { "type": "string" }
+      }
+    },
+    "targets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "type", "unsupported"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "PBXNativeTarget UUID from project.pbxproj"
+          },
+          "name": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["application", "framework", "library", "extension", "widget", "appclip", "tests", "other"]
+          },
+          "productType": { "type": "string" },
+          "sourceRoots": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "infoPlistPath": { "type": ["string", "null"] },
+          "entitlementsPath": { "type": ["string", "null"] },
+          "bridgingHeaderPath": { "type": ["string", "null"] },
+          "extensionPointIdentifier": {
+            "type": ["string", "null"],
+            "description": "NSExtensionPointIdentifier from the target Info.plist when present (e.g. com.apple.share-services)"
+          },
+          "dependencies": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "packageManagerBoundary": {
+            "type": "string",
+            "enum": ["cocoapods", "spm", "manual", "mixed", "none"]
+          },
+          "unsupported": { "type": "boolean" },
+          "unsupportedReason": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "packageManager": {
+      "type": "object",
+      "required": ["hasPodfile", "podfilePath", "hasSpmDependencies", "spmCount"],
+      "properties": {
+        "hasPodfile": { "type": "boolean" },
+        "podfilePath": { "type": ["string", "null"] },
+        "hasSpmDependencies": { "type": "boolean" },
+        "spmCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "ambiguities": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Unresolved states that require developer clarification."
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["discoveryMethod", "requiresXcodebuild"],
+      "properties": {
+        "discoveryMethod": {
+          "type": "string",
+          "enum": ["pbxproj-parse", "xcodebuild-assisted", "fallback"]
+        },
+        "requiresXcodebuild": { "type": "boolean" }
+      }
+    }
+  },
+  "additionalProperties": true
+}

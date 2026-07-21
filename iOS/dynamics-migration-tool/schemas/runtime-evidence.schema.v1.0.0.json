@@ -1,0 +1,97 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://blackberry.com/dynamics/migration/ios/runtime-evidence.schema.v1.0.0.json",
+  "title": "iOS Runtime Evidence Schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "platform",
+    "runId",
+    "generatedAt",
+    "applicationBuild",
+    "environment",
+    "policyConfiguration",
+    "overallStatus",
+    "summary",
+    "tests"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0.0" },
+    "platform": { "type": "string", "const": "ios" },
+    "runId": { "type": "string", "minLength": 1 },
+    "generatedAt": { "type": "string", "minLength": 1 },
+    "applicationBuild": { "type": "object" },
+    "environment": { "type": "object" },
+    "policyConfiguration": { "type": "object" },
+    "overallStatus": {
+      "type": "string",
+      "enum": ["passed", "failed", "blocked", "pending", "not-applicable"]
+    },
+    "summary": { "type": "string", "minLength": 1 },
+    "tests": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "testId",
+          "behavior",
+          "status",
+          "preconditions",
+          "steps",
+          "expectedResult",
+          "observedResult",
+          "evidenceReferences",
+          "timestamp",
+          "tester"
+        ],
+        "properties": {
+          "testId": { "type": "string", "minLength": 1 },
+          "behavior": {
+            "type": "string",
+            "enum": [
+              "uem-activation",
+              "authorization",
+              "lock-unlock",
+              "wipe",
+              "policy-change",
+              "secure-storage",
+              "secure-networking",
+              "authentication-deferral",
+              "background-authorization",
+              "icc-appkinetics",
+              "dlp-restrictions",
+              "clipboard",
+              "file-sharing",
+              "application-restart",
+              "process-death-recovery",
+              "offline-reconnect"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pass", "fail", "blocked", "pending", "not-applicable"]
+          },
+          "preconditions": { "type": "array", "items": { "type": "string" } },
+          "steps": { "type": "array", "items": { "type": "string" } },
+          "expectedResult": { "type": "string" },
+          "observedResult": { "type": "string" },
+          "evidenceReferences": { "type": "array", "items": { "type": "string" } },
+          "timestamp": { "type": "string" },
+          "tester": {
+            "type": "object",
+            "required": ["type", "name"],
+            "properties": {
+              "type": { "type": "string", "enum": ["human", "automation"] },
+              "name": { "type": "string" }
+            }
+          },
+          "automationSource": { "type": ["string", "null"] },
+          "blockerReason": { "type": "string" }
+        }
+      }
+    }
+  }
+}

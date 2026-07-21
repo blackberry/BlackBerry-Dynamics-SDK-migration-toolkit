@@ -13,14 +13,14 @@ migration report viewer. Use the platform folder that matches your app.
 BlackBerry-Dynamics-SDK-migration-toolkit/
 ├── android/
 │   └── dynamics-migration-tool/   # Android toolkit
-└── ios/
+└── iOS/
     └── dynamics-migration-tool/   # iOS toolkit
 ```
 
 | Platform | Path | Status |
 |----------|------|--------|
 | Android | [`android/dynamics-migration-tool/`](android/dynamics-migration-tool/) | Available |
-| iOS | [`ios/dynamics-migration-tool/`](ios/dynamics-migration-tool/) | Coming soon |
+| iOS | [`iOS/dynamics-migration-tool/`](iOS/dynamics-migration-tool/) | Available |
 
 Treat Android and iOS as separate products. Do not mix prompts, steering, or
 validators across platforms.
@@ -31,7 +31,7 @@ validators across platforms.
 2. Open that toolkit’s `README.md` for prerequisites and quickstart.
 3. Follow `MIGRATION_INSTRUCTIONS.md` for the full walkthrough.
 
-**Android (available now):**
+**Android:**
 
 ```bash
 cd android/dynamics-migration-tool
@@ -40,8 +40,14 @@ cd android/dynamics-migration-tool
 # ./dynamics-migration-tool/tooling/migrate.sh --agent cursor
 ```
 
-**iOS:** use `ios/dynamics-migration-tool/` once published; until then, follow
-that folder’s README when it appears in this repository.
+**iOS:**
+
+```bash
+cd iOS/dynamics-migration-tool
+# See README.md, then:
+# cp -r . /path/to/your-ios-app/dynamics-migration-tool
+# ./dynamics-migration-tool/tooling/migrate.sh --agent cursor
+```
 
 ## What each toolkit includes
 

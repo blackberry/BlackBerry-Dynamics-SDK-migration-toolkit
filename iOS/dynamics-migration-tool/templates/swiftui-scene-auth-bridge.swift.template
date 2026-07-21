@@ -1,0 +1,60 @@
+// [BB_DYNAMICS-MIGRATION] SwiftUI SceneDelegate authorization bridge template
+import BlackBerryDynamics.Runtime
+import SwiftUI
+
+@main
+struct MigratedApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
+    var body: some Scene {
+        WindowGroup { EmptyView() }
+    }
+}
+
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    var window: UIWindow?
+    static var isAuthorized = false
+
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        true
+    }
+
+    func application(_ application: UIApplication,
+                     configurationForConnecting connectingSceneSession: UISceneSession,
+                     options: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        let config = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
+        config.delegateClass = SceneDelegate.self
+        return config
+    }
+}
+
+final class SceneDelegate: UIResponder, UIWindowSceneDelegate, GDiOSDelegate {
+    var window: UIWindow?
+
+    func scene(_ scene: UIScene,
+               willConnectTo session: UISceneSession,
+               options connectionOptions: UIScene.ConnectionOptions) {
+        guard let windowScene = scene as? UIWindowScene else { return }
+        window = windowScene.keyWindow
+        GDiOS.sharedInstance().delegate = self
+        GDiOS.sharedInstance().authorize()
+    }
+
+    nonisolated func handle(_ anEvent: GDAppEvent) {
+        switch anEvent.type {
+        case .authorized:
+            Task { @MainActor in self.onAuthorized() }
+        default:
+            break
+        }
+    }
+
+    @MainActor
+    private func onAuthorized() {
+        guard !AppDelegate.isAuthorized else { return }
+        AppDelegate.isAuthorized = true
+        window?.rootViewController = UIHostingController(rootView: ContentView())
+        window?.makeKeyAndVisible()
+    }
+}
