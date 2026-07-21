@@ -1,0 +1,210 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://blackberry.com/dynamics/migration/ios/migration-loop-state.schema.v1.0.0.json",
+  "title": "iOS Migration Loop State Schema",
+  "description": "Runtime loop telemetry written by validator/recorder helpers. Tracks repeated failures, retry budget state, and escalation evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "platform",
+    "policySource",
+    "resolvedPolicy",
+    "runId",
+    "toolkitVersion",
+    "attempts",
+    "escalations"
+  ],
+  "$defs": {
+    "repairFeedback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["safeNextAction"],
+      "properties": {
+        "ownerPrompt": { "type": ["string", "null"] },
+        "failingPhase": { "type": ["string", "null"] },
+        "failingDomain": { "type": ["string", "null"] },
+        "affectedFiles": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "suggestedCommand": { "type": ["string", "null"] },
+        "safeNextAction": {
+          "type": "string",
+          "enum": [
+            "rerun-owner-prompt",
+            "run-targeted-validation",
+            "fix-environment",
+            "restore-from-backup-branch",
+            "request-developer-deferral",
+            "escalate-to-developer"
+          ]
+        }
+      }
+    },
+    "retryBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identicalFailureCount",
+        "limit",
+        "promptFailureCount",
+        "remaining",
+        "thresholdType"
+      ],
+      "properties": {
+        "identicalFailureCount": { "type": "integer", "minimum": 0 },
+        "limit": { "type": "integer", "minimum": 1 },
+        "promptFailureCount": { "type": "integer", "minimum": 0 },
+        "remaining": { "type": "integer" },
+        "thresholdType": {
+          "type": "string",
+          "enum": ["default", "final-gate", "per-prompt", "environment"]
+        },
+        "exhausted": { "type": "boolean" }
+      }
+    }
+  },
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "platform": {
+      "type": "string",
+      "const": "ios"
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "toolkitVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policySource": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resolvedPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "defaultMaxPromptFailures",
+        "defaultMaxIdenticalFailures",
+        "finalGateMaxIdenticalFailures",
+        "perPrompt"
+      ],
+      "properties": {
+        "defaultMaxPromptFailures": { "type": "integer", "minimum": 1 },
+        "defaultMaxIdenticalFailures": { "type": "integer", "minimum": 1 },
+        "finalGateMaxIdenticalFailures": { "type": "integer", "minimum": 1 },
+        "perPrompt": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["maxIdenticalFailures"],
+            "properties": {
+              "maxIdenticalFailures": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    },
+    "attempts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "attemptId",
+          "domainIds",
+          "phaseIds",
+          "promptId",
+          "result",
+          "retryBudget",
+          "stage",
+          "timestamp"
+        ],
+        "properties": {
+          "attemptId": { "type": "string", "minLength": 1 },
+          "timestamp": { "type": "string", "minLength": 1 },
+          "promptId": { "type": "string", "minLength": 1 },
+          "domainIds": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "phaseIds": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "stage": {
+            "type": "string",
+            "enum": ["validation", "source-gate", "report-gate", "closure-gate", "recorder-gate"]
+          },
+          "result": {
+            "type": "string",
+            "enum": ["passed", "failed", "configuration-error", "environment-error", "escalated"]
+          },
+          "validationRunId": { "type": ["string", "null"] },
+          "gateId": { "type": ["string", "null"] },
+          "sidecarPath": { "type": ["string", "null"] },
+          "failureHash": { "type": ["string", "null"] },
+          "failureSignature": { "type": ["object", "null"] },
+          "sourceFingerprint": { "type": ["string", "null"] },
+          "sourceChangedSincePrev": { "type": "boolean" },
+          "failCount": { "type": "integer", "minimum": 0 },
+          "warnCount": { "type": "integer", "minimum": 0 },
+          "topFailures": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "repairFeedback": { "$ref": "#/$defs/repairFeedback" },
+          "retryBudget": { "$ref": "#/$defs/retryBudget" }
+        }
+      }
+    },
+    "escalations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "escalationId",
+          "promptId",
+          "reason",
+          "safeNextAction",
+          "stage",
+          "timestamp"
+        ],
+        "properties": {
+          "escalationId": { "type": "string", "minLength": 1 },
+          "timestamp": { "type": "string", "minLength": 1 },
+          "promptId": { "type": "string", "minLength": 1 },
+          "stage": {
+            "type": "string",
+            "enum": ["validation", "source-gate", "report-gate", "closure-gate", "recorder-gate"]
+          },
+          "failureHash": { "type": ["string", "null"] },
+          "reason": {
+            "type": "string",
+            "enum": ["identical-failure-budget-exhausted", "prompt-failure-budget-exhausted", "environment-escalation"]
+          },
+          "safeNextAction": {
+            "type": "string",
+            "enum": [
+              "rerun-owner-prompt",
+              "run-targeted-validation",
+              "fix-environment",
+              "restore-from-backup-branch",
+              "request-developer-deferral",
+              "escalate-to-developer"
+            ]
+          },
+          "message": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

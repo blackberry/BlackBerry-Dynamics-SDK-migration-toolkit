@@ -1,0 +1,616 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "migration-report.schema.ios.v2.1.0.json",
+  "title": "Dynamics iOS Migration Report v2.1.0",
+  "description": "Machine-readable output of the iOS Dynamics migration toolkit. schemaVersion 2.1.0 adds runProvenance and catalogRowId to apisReplaced.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "platform",
+    "toolkit",
+    "runProvenance",
+    "targetMapSummary",
+    "lifecycleSummary",
+    "executedPromptAudit",
+    "closureSummary",
+    "blockers",
+    "unresolvedCallSites",
+    "validationProof",
+    "apiCatalogEvidence",
+    "runtimeEvidenceStatus",
+    "project",
+    "summary",
+    "filesModified",
+    "apisReplaced",
+    "coverage",
+    "manualTodos",
+    "unsupportedFeatures",
+    "runtimeTestPlan",
+    "uemAdminHandoff",
+    "validation",
+    "securityPosture",
+    "migrationConfidence",
+    "releaseReadiness"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "2.1.0"
+    },
+    "platform": {
+      "type": "string",
+      "const": "iOS"
+    },
+    "toolkit": {
+      "type": "object",
+      "required": ["name", "platform", "version", "reportSchemaVersion"],
+      "properties": {
+        "name": { "type": "string", "const": "dynamics-migration-tool" },
+        "platform": { "type": "string", "const": "iOS" },
+        "version": { "type": "string", "minLength": 1 },
+        "reportSchemaVersion": { "type": "string", "const": "2.1.0" }
+      },
+      "additionalProperties": false
+    },
+    "runProvenance": {
+      "type": "object",
+      "description": "Traceability back to the bootstrap run that seeded this migration.",
+      "required": ["runId", "toolkitVersion"],
+      "properties": {
+        "runId": { "type": "string", "minLength": 1 },
+        "bootstrapTimestamp": { "type": "string" },
+        "toolkitVersion": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "targetMapSummary": {
+      "type": "object",
+      "required": ["buildEntrypointType", "targetCount", "ambiguityCount"],
+      "properties": {
+        "buildEntrypointType": { "type": "string" },
+        "buildEntrypointPath": { "type": ["string", "null"] },
+        "targetCount": { "type": "integer", "minimum": 0 },
+        "applicationTargetCount": { "type": "integer", "minimum": 0 },
+        "extensionLikeTargetCount": { "type": "integer", "minimum": 0 },
+        "ambiguityCount": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": true
+    },
+    "lifecycleSummary": {
+      "type": "object",
+      "required": ["primaryPattern", "hasSceneDelegate", "hasSwiftUIApp"],
+      "properties": {
+        "primaryPattern": { "type": "string" },
+        "hasSceneDelegate": { "type": "boolean" },
+        "hasSwiftUIApp": { "type": "boolean" },
+        "preAuthRiskCount": { "type": "integer", "minimum": 0 },
+        "selectedAuthorizationPattern": { "type": "string" },
+        "postAuthBoundary": { "type": "string" },
+        "windowStrategy": { "type": "string" },
+        "sceneQueueingStrategy": { "type": "string" },
+        "lifecycleRootCount": { "type": "integer", "minimum": 0 },
+        "opaqueStartupPathCount": { "type": "integer", "minimum": 0 },
+        "prompt03Validation": { "type": "string" },
+        "prompt03bValidation": { "type": "string" },
+        "reachabilityGeneratedAt": { "type": "string" },
+        "reachabilitySourceFingerprint": { "type": "string" },
+        "notes": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "executedPromptAudit": {
+      "type": "object",
+      "required": ["recordedCount", "prompts"],
+      "properties": {
+        "recordedCount": { "type": "integer", "minimum": 0 },
+        "prompts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["promptId", "status", "recordedAt"],
+            "properties": {
+              "promptId": { "type": "string" },
+              "status": { "type": "string" },
+              "recordedAt": { "type": "string" },
+              "runId": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "closureSummary": {
+      "type": "object",
+      "required": [
+        "applicableCallSiteCount",
+        "resolvedCallSiteCount",
+        "unresolvedCallSiteCount",
+        "allApplicableDomainsClosed"
+      ],
+      "properties": {
+        "applicableCallSiteCount": { "type": "integer", "minimum": 0 },
+        "resolvedCallSiteCount": { "type": "integer", "minimum": 0 },
+        "unresolvedCallSiteCount": { "type": "integer", "minimum": 0 },
+        "blockedCount": { "type": "integer", "minimum": 0 },
+        "deferredCount": { "type": "integer", "minimum": 0 },
+        "allApplicableDomainsClosed": { "type": "boolean" },
+        "domains": { "type": "array", "items": { "type": "object" } }
+      },
+      "additionalProperties": true
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "domain": { "type": "string" },
+          "message": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "unresolvedCallSites": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["callSiteId", "reason"],
+        "properties": {
+          "callSiteId": { "type": "string" },
+          "reason": { "type": "string" },
+          "domainId": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "validationProof": {
+      "type": "object",
+      "required": ["mode", "result", "phases"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["prompt-scoped", "full", "preflight"] },
+        "promptScope": { "type": ["string", "null"] },
+        "runId": { "type": "string" },
+        "result": { "type": "string", "enum": ["pass", "warn", "fail"] },
+        "timestamp": { "type": "string" },
+        "isStale": { "type": "boolean" },
+        "phases": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "apiCatalogEvidence": {
+      "type": "object",
+      "required": ["catalogVersion"],
+      "properties": {
+        "catalogVersion": { "type": "string" },
+        "unknownCatalogRows": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "runtimeEvidenceStatus": {
+      "type": "object",
+      "required": ["runtimeVerification", "uemEvidence"],
+      "properties": {
+        "runtimeVerification": { "type": "string" },
+        "uemEvidence": { "type": "string" },
+        "notes": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "project": {
+      "type": "object",
+      "description": "Identifying information about the migrated Xcode project.",
+      "properties": {
+        "name": { "type": "string" },
+        "bundleIdentifier": { "type": "string" },
+        "deploymentTarget": { "type": "string" },
+        "swiftVersion": { "type": "string" },
+        "xcodeProjectPath": { "type": "string" }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "overallStatus": {
+          "type": "string",
+          "enum": ["complete", "partial", "failed"]
+        },
+        "migrationDate": { "type": "string" },
+        "totalFilesModified": { "type": "integer", "minimum": 0 },
+        "totalApisReplaced": { "type": "integer", "minimum": 0 },
+        "totalManualTodos": { "type": "integer", "minimum": 0 },
+        "totalUnsupportedFeatures": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "filesModified": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "changeType"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "changeType": {
+            "type": "string",
+            "enum": ["modified", "created", "deleted"]
+          },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "apisReplaced": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["category", "before", "after", "risk"],
+        "properties": {
+          "category": { "type": "string" },
+          "before": { "type": "string", "minLength": 1 },
+          "after": { "type": "string", "minLength": 1 },
+          "catalogRowId": {
+            "type": "string",
+            "description": "ID of the matching row in api-catalog.ios.v1.0.0.json"
+          },
+          "files": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "occurrences": { "type": "integer", "minimum": 0 },
+          "risk": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          },
+          "riskReason": { "type": "string" },
+          "beforeSnippet": { "type": "string" },
+          "afterSnippet": { "type": "string" }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["migrated", "partial", "not-applicable"]
+          },
+          "details": { "type": "string" }
+        }
+      }
+    },
+    "storageClosure": {
+      "type": "object",
+      "properties": {
+        "sqlWrappers": {
+          "type": "object",
+          "properties": {
+            "directSqliteStatus": { "type": "string" },
+            "fmdbStatus": { "type": "string" },
+            "grdbStatus": { "type": "string" },
+            "sqliteSwiftStatus": { "type": "string" },
+            "sqlcipherStatus": { "type": "string" },
+            "notes": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": true
+        },
+        "coreDataAndSwiftData": {
+          "type": "object",
+          "properties": {
+            "coreDataStatus": { "type": "string" },
+            "swiftDataStatus": { "type": "string" },
+            "swiftDataDisposition": { "type": "string" },
+            "notes": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": true
+        },
+        "fileWritersAndReaders": {
+          "type": "object",
+          "properties": {
+            "writerClosureStatus": { "type": "string" },
+            "readerClosureStatus": { "type": "string" },
+            "followOnConsumersStatus": { "type": "string" },
+            "notes": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": true
+        },
+        "preferencesKeychainCrypto": {
+          "type": "object",
+          "properties": {
+            "sensitiveUserDefaultsStatus": { "type": "string" },
+            "keychainDecisionStatus": { "type": "string" },
+            "localCryptoDecisionStatus": { "type": "string" },
+            "notes": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "networkWebClosure": {
+      "type": "object",
+      "description": "G19/G20 closure evidence summary for networking and WKWebView domains.",
+      "properties": {
+        "urlSession": {
+          "type": "object",
+          "properties": {
+            "callSiteCount": { "type": "integer", "minimum": 0 },
+            "postAuthTimingStatus": { "type": "string" },
+            "notes": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": true
+        },
+        "directSockets": {
+          "type": "object",
+          "properties": {
+            "callSiteCount": { "type": "integer", "minimum": 0 },
+            "migratedCount": { "type": "integer", "minimum": 0 },
+            "blockedCount": { "type": "integer", "minimum": 0 },
+            "notes": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": true
+        },
+        "protocolAndPinning": {
+          "type": "object",
+          "properties": {
+            "decisionStatus": { "type": "string" },
+            "notes": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": true
+        },
+        "backgroundSessions": {
+          "type": "object",
+          "properties": {
+            "decisionStatus": { "type": "string" },
+            "g12Dependency": { "type": "string" },
+            "notes": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": true
+        },
+        "webview": {
+          "type": "object",
+          "properties": {
+            "supportStatus": { "type": "string" },
+            "contentClassificationStatus": { "type": "string" },
+            "unsupportedFeatureStatus": { "type": "string" },
+            "notes": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "dlpIccPolicyClosure": {
+      "type": "object",
+      "description": "G18/G21/G24 closure evidence summary for external data movement, AppKinetics, and policy domains.",
+      "properties": {
+        "externalSurfaces": {
+          "type": "object",
+          "properties": {
+            "directionSummary": {
+              "type": "object",
+              "properties": {
+                "unmanagedToManaged": { "type": "integer", "minimum": 0 },
+                "managedToUnmanaged": { "type": "integer", "minimum": 0 },
+                "managedToManaged": { "type": "integer", "minimum": 0 },
+                "metadataOnly": { "type": "integer", "minimum": 0 },
+                "unknownOrBidirectional": { "type": "integer", "minimum": 0 }
+              },
+              "additionalProperties": true
+            },
+            "managedEndpointClassificationStatus": { "type": "string" },
+            "notes": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": true
+        },
+        "inbound": {
+          "type": "object",
+          "properties": {
+            "secureCopyStatus": { "type": "string" },
+            "notes": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": true
+        },
+        "outbound": {
+          "type": "object",
+          "properties": {
+            "approvalBlockerStatus": { "type": "string" },
+            "notes": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": true
+        },
+        "appkinetics": {
+          "type": "object",
+          "properties": {
+            "serviceClosureStatus": { "type": "string" },
+            "registrationStatus": { "type": "string" },
+            "notes": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": true
+        },
+        "residualSharePaths": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string" },
+            "notes": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": true
+        },
+        "policy": {
+          "type": "object",
+          "properties": {
+            "apiTimingStatus": { "type": "string" },
+            "updateHandlingStatus": { "type": "string" },
+            "cacheStatus": { "type": "string" },
+            "defaultHandlingStatus": { "type": "string" },
+            "notes": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "manualTodos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["description", "priority"],
+        "properties": {
+          "description": { "type": "string", "minLength": 1 },
+          "priority": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          },
+          "reason": { "type": "string" },
+          "area": { "type": "string" }
+        }
+      }
+    },
+    "unsupportedFeatures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["feature", "status"],
+        "properties": {
+          "feature": { "type": "string", "minLength": 1 },
+          "status": { "type": "string" },
+          "details": { "type": "string" },
+          "recommendedAction": { "type": "string" }
+        }
+      }
+    },
+    "runtimeTestPlan": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "steps", "expectedResult"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "steps": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "expectedResult": { "type": "string", "minLength": 1 },
+          "relatedAreas": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "uemAdminHandoff": {
+      "type": "object",
+      "properties": {
+        "gdApplicationId": { "type": "string" },
+        "gdApplicationVersion": { "type": "string" },
+        "bundleIdentifier": { "type": "string" },
+        "additionalBundleIdentifiers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Other application target bundle IDs in multi-app workspaces (Swift+ObjC demos, etc.). Primary scheme derivation still uses bundleIdentifier."
+        },
+        "applicationSetupType": {
+          "type": "string",
+          "enum": ["in-house", "partner-third-party", "blackberry-developed"]
+        },
+        "requiredPlistKeys": {
+          "type": "object",
+          "properties": {
+            "GDApplicationID": { "type": "string", "enum": ["present", "missing"] },
+            "GDApplicationVersion": { "type": "string", "enum": ["present", "missing"] },
+            "CFBundleURLTypes": { "type": "string", "enum": ["present", "missing"] },
+            "NSFaceIDUsageDescription": { "type": "string", "enum": ["present", "missing"] },
+            "NSCameraUsageDescription": { "type": "string", "enum": ["present", "missing"] },
+            "BlackBerryDynamics.CheckEventReceiver": { "type": "string", "enum": ["present", "missing", "not-applicable"] }
+          },
+          "additionalProperties": true
+        },
+        "registeredUrlSchemes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "entitlementSteps": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "connectivityProfileRecommendations": { "type": "string" },
+        "complianceProfileRecommendations": { "type": "string" },
+        "appPermissions": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "required": ["passed", "failures", "warnings"],
+      "properties": {
+        "passed": { "type": "boolean" },
+        "failures": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 },
+        "validatorVersion": { "type": "string" }
+      }
+    },
+    "securityPosture": {
+      "type": "object",
+      "required": ["dataAtRest", "dataInTransit"],
+      "properties": {
+        "dataAtRest": {
+          "type": "object",
+          "required": ["status", "summary"],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["secured", "partial", "unverified"]
+            },
+            "summary": { "type": "string" }
+          }
+        },
+        "dataInTransit": {
+          "type": "object",
+          "required": ["status", "summary"],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["secured", "partial", "unverified"]
+            },
+            "summary": { "type": "string" }
+          }
+        }
+      }
+    },
+    "migrationConfidence": {
+      "type": "object",
+      "required": ["score", "level", "rationale"],
+      "properties": {
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "level": {
+          "type": "string",
+          "enum": ["high", "medium", "low"]
+        },
+        "rationale": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "releaseReadiness": {
+      "type": "object",
+      "required": ["recommendation", "blockingItems"],
+      "properties": {
+        "recommendation": {
+          "type": "string",
+          "enum": ["go", "go-with-risks", "no-go"]
+        },
+        "blockingItems": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

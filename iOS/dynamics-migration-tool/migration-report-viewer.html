@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BlackBerry Dynamics Migration Report</title>
+<style>
+  :root {
+    --bb-black: #1a1a2e;
+    --bb-dark: #16213e;
+    --bb-accent: #0f3460;
+    --bb-blue: #4a90d9;
+    --bb-green: #27ae60;
+    --bb-yellow: #f39c12;
+    --bb-red: #e74c3c;
+    --bb-gray: #7f8c8d;
+    --bb-light: #ecf0f1;
+    --bb-white: #ffffff;
+    --bb-card: #ffffff;
+    --bb-border: #dfe6e9;
+    --bb-bg: #f5f7fa;
+    --bb-code-bg: #2d2d2d;
+    --bb-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bb-bg);
+    color: #2c3e50;
+    line-height: 1.6;
+  }
+  .header {
+    background: linear-gradient(135deg, var(--bb-black), var(--bb-dark), var(--bb-accent));
+    color: var(--bb-white);
+    padding: 2rem;
+    text-align: center;
+  }
+  .header h1 { font-size: 1.8rem; font-weight: 600; margin-bottom: 0.3rem; }
+  .header .subtitle { opacity: 0.8; font-size: 0.95rem; }
+  .header .meta { margin-top: 1rem; font-size: 0.85rem; opacity: 0.7; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>BlackBerry Dynamics Migration Report</h1>
+  <div class="subtitle">AI-Assisted Migration Analysis</div>
+  <div class="meta" id="headerMeta"></div>
+</div>
+
+<div id="autoLoadStatus" style="max-width:600px;margin:2rem auto 0;text-align:center;display:none;">
+  <p style="color:#7f8c8d;font-size:0.9rem;" id="autoLoadMsg"></p>
+</div>
+
+<div id="loadSection" style="max-width:600px;margin:2rem auto;text-align:center;">
+  <p style="margin-bottom:1rem;color:#7f8c8d;">Load your <code>migration-report.json</code> to view the report.</p>
+  <label style="display:inline-block;padding:0.8rem 2rem;background:#4a90d9;color:#fff;border-radius:6px;cursor:pointer;font-weight:500;">
+    Choose File
+    <input type="file" id="fileInput" accept=".json" style="display:none;">
+  </label>
+  <div id="loadError" style="color:#e74c3c;margin-top:1rem;display:none;"></div>
+</div>
+
+<div id="report" style="display:none;"></div>
+
+<script>
+// Auto-load migration-report.json from the output/ subdirectory
+(function() {
+  var statusEl = document.getElementById('autoLoadStatus');
+  var msgEl = document.getElementById('autoLoadMsg');
+  statusEl.style.display = 'block';
+  msgEl.textContent = 'Looking for output/migration-report.json…';
+
+  fetch('output/migration-report.json')
+    .then(function(resp) {
+      if (!resp.ok) throw new Error('Not found');
+      return resp.json();
+    })
+    .then(function(data) {
+      msgEl.textContent = 'Auto-loaded output/migration-report.json';
+      msgEl.style.color = '#27ae60';
+      document.getElementById('loadSection').style.display = 'none';
+      renderReport(data);
+    })
+    .catch(function() {
+      msgEl.textContent = 'Could not auto-load output/migration-report.json — use the file picker below.';
+      msgEl.style.color = '#f39c12';
+    });
+})();
+
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      var data = JSON.parse(ev.target.result);
+      document.getElementById('autoLoadStatus').style.display = 'none';
+      renderReport(data);
+    } catch (err) {
+      var el = document.getElementById('loadError');
+      el.textContent = 'Invalid JSON: ' + err.message;
+      el.style.display = 'block';
+    }
+  };
+  reader.readAsText(file);
+});
+
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function normalizeCoverage(entry) {
+  if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+    return {
+      status: entry.status || entry.coverageStatus || entry.result || 'unknown',
+      details: entry.details || entry.summary || entry.reason || ''
+    };
+  }
+  if (typeof entry === 'string') {
+    return { status: entry, details: '' };
+  }
+  return { status: 'unknown', details: '' };
+}
+
+function normalizeSteps(steps) {
+  if (Array.isArray(steps)) return steps.join(' -> ');
+  return steps || '';
+}
+
+function modernBadge(text, palette, uppercase) {
+  var label = esc(text == null ? 'unknown' : text);
+  if (uppercase) label = label.toUpperCase();
+  return '<span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:0.75rem;font-weight:600;letter-spacing:0.02em;background:' + palette.bg + ';color:' + palette.fg + ';border:1px solid ' + palette.border + ';">' +
+    '<span style="width:7px;height:7px;border-radius:50%;background:' + palette.dot + ';display:inline-block;flex:0 0 auto;"></span>' +
+    label +
+    '</span>';
+}
+
+function statusBadge(status) {
+  var palettes = {
+    migrated: { dot: '#16a34a', bg: '#ecfdf3', fg: '#166534', border: '#bbf7d0' },
+    complete: { dot: '#16a34a', bg: '#ecfdf3', fg: '#166534', border: '#bbf7d0' },
+    secured: { dot: '#16a34a', bg: '#ecfdf3', fg: '#166534', border: '#bbf7d0' },
+    partial: { dot: '#d97706', bg: '#fffbeb', fg: '#92400e', border: '#fde68a' },
+    blocked: { dot: '#dc2626', bg: '#fef2f2', fg: '#991b1b', border: '#fecaca' },
+    deferred: { dot: '#b45309', bg: '#fffbeb', fg: '#92400e', border: '#fde68a' },
+    failed: { dot: '#dc2626', bg: '#fef2f2', fg: '#991b1b', border: '#fecaca' },
+    'not-applicable': { dot: '#64748b', bg: '#f8fafc', fg: '#334155', border: '#cbd5e1' }
+  };
+  var p = palettes[status] || palettes['not-applicable'];
+  return modernBadge(status, p, true);
+}
+
+function riskBadge(risk) {
+  var palettes = {
+    low: { dot: '#16a34a', bg: '#ecfdf3', fg: '#166534', border: '#bbf7d0' },
+    medium: { dot: '#d97706', bg: '#fffbeb', fg: '#92400e', border: '#fde68a' },
+    high: { dot: '#dc2626', bg: '#fef2f2', fg: '#991b1b', border: '#fecaca' }
+  };
+  return modernBadge(risk, palettes[risk] || { dot: '#64748b', bg: '#f8fafc', fg: '#334155', border: '#cbd5e1' }, true);
+}
+
+function readinessBadge(rec) {
+  var palettes = {
+    go: { dot: '#16a34a', bg: '#ecfdf3', fg: '#166534', border: '#bbf7d0' },
+    'go-with-risks': { dot: '#d97706', bg: '#fffbeb', fg: '#92400e', border: '#fde68a' },
+    'no-go': { dot: '#dc2626', bg: '#fef2f2', fg: '#991b1b', border: '#fecaca' }
+  };
+  return modernBadge(rec, palettes[rec] || { dot: '#64748b', bg: '#f8fafc', fg: '#334155', border: '#cbd5e1' }, true);
+}
+
+function priorityBadge(p) {
+  var palettes = {
+    high: { dot: '#dc2626', bg: '#fef2f2', fg: '#991b1b', border: '#fecaca' },
+    medium: { dot: '#d97706', bg: '#fffbeb', fg: '#92400e', border: '#fde68a' },
+    low: { dot: '#16a34a', bg: '#ecfdf3', fg: '#166534', border: '#bbf7d0' }
+  };
+  return modernBadge(p, palettes[p] || { dot: '#64748b', bg: '#f8fafc', fg: '#334155', border: '#cbd5e1' }, true);
+}
+
+function card(title, content) {
+  return '<div style="background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);margin-bottom:1.5rem;overflow:hidden;">' +
+    '<div style="padding:1rem 1.5rem;border-bottom:1px solid #dfe6e9;font-weight:600;font-size:1.05rem;color:#2c3e50;">'+title+'</div>' +
+    '<div style="padding:1.5rem;">'+content+'</div></div>';
+}
+
+function codeBlock(code) {
+  return '<pre style="background:#2d2d2d;color:#f8f8f2;padding:1rem;border-radius:6px;overflow-x:auto;font-size:0.85rem;line-height:1.5;margin:0;">'+esc(code)+'</pre>';
+}
+
+function summaryTile(label, value) {
+  return '<div style="background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:1.2rem;text-align:center;">' +
+    '<div style="font-size:0.8rem;color:#7f8c8d;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.5px;">'+label+'</div>' +
+    '<div>'+value+'</div></div>';
+}
+
+function row(label, value) {
+  return '<tr><td style="padding:0.6rem 1rem;border-bottom:1px solid #eee;font-weight:500;width:200px;vertical-align:top;">'+label+'</td>' +
+    '<td style="padding:0.6rem 1rem;border-bottom:1px solid #eee;">'+value+'</td></tr>';
+}
+
+function renderReport(d) {
+  document.getElementById('loadSection').style.display = 'none';
+  if ((d.schemaVersion || '') !== '2.1.0') {
+    document.getElementById('report').innerHTML =
+      '<div style="max-width:960px;margin:2rem auto;padding:0 1rem;">' +
+      card('Unsupported Report Version',
+        '<div style="color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:0.9rem;">' +
+        'This viewer supports schema <code>2.1.0</code> only. Loaded schema is <code>' + esc(d.schemaVersion || 'unknown') + '</code>.' +
+        '</div>'
+      ) +
+      '</div>';
+    document.getElementById('report').style.display = 'block';
+    return;
+  }
+  var meta = document.getElementById('headerMeta');
+  meta.innerHTML = (d.project ? esc(d.project.name) + ' &middot; ' + esc(d.project.bundleIdentifier || d.project.package) : '') +
+    (d.runProvenance && d.runProvenance.runId ? ' &middot; Run ' + esc(d.runProvenance.runId) : '') +
+    (d.generatedAt ? ' &middot; Generated ' + new Date(d.generatedAt).toLocaleString() : '') +
+    (d.schemaVersion ? ' &middot; Schema v' + esc(d.schemaVersion) : '') +
+    (d.toolkit && d.toolkit.version ? ' &middot; Toolkit v' + esc(d.toolkit.version) : '');
+
+  var html = '<div style="max-width:960px;margin:2rem auto;padding:0 1rem;">';
+
+  // Summary cards row
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem;">';
+  if (d.summary) {
+    var s = d.summary;
+    html += summaryTile('Overall Status', statusBadge(s.overallStatus));
+    html += summaryTile('Files Modified', '<span style="font-size:2rem;font-weight:700;color:#2c3e50;">'+(s.totalFilesModified != null ? s.totalFilesModified : ((d.filesModified||[]).length))+'</span>');
+    html += summaryTile('APIs Replaced', '<span style="font-size:2rem;font-weight:700;color:#2c3e50;">'+(s.totalApisReplaced != null ? s.totalApisReplaced : ((d.apisReplaced||[]).length))+'</span>');
+    html += summaryTile('Migration Comments', '<span style="font-size:2rem;font-weight:700;color:#2c3e50;">'+(s.migrationCommentCount||0)+'</span>');
+  }
+  if (d.validation) {
+    var v = d.validation;
+    var failures = (v.failures != null) ? v.failures : (v.failureCount != null ? v.failureCount : 0);
+    var warnings = (v.warnings != null) ? v.warnings : (v.warningCount != null ? v.warningCount : 0);
+    var vc = v.passed ? '#27ae60' : '#e74c3c';
+    html += summaryTile('Validation', '<span style="font-size:1.2rem;font-weight:700;color:'+vc+';">'+(v.passed?'PASSED':'FAILED')+'</span><br><span style="font-size:0.85rem;color:#7f8c8d;">'+failures+' failures, '+warnings+' warnings</span>');
+  }
+  if (d.migrationConfidence) {
+    var mc = d.migrationConfidence;
+    html += summaryTile('Confidence', '<span style="font-size:1.2rem;font-weight:700;color:#2c3e50;">'+esc(mc.score)+'/100</span><br><span style="font-size:0.85rem;color:#7f8c8d;">'+esc(mc.level || 'unknown')+'</span>');
+  }
+  if (d.releaseReadiness) {
+    html += summaryTile('Release Readiness', readinessBadge(d.releaseReadiness.recommendation || 'unknown'));
+  }
+  html += '</div>';
+
+  if (d.runProvenance || d.toolkit) {
+    var rp = d.runProvenance || {};
+    var tk = d.toolkit || {};
+    var provenance = '<table style="width:100%;border-collapse:collapse;">';
+    provenance += row('Run ID', '<code>' + esc(rp.runId || '') + '</code>');
+    provenance += row('Bootstrap Timestamp', esc(rp.bootstrapTimestamp || ''));
+    provenance += row('Toolkit Version', esc((tk.version || rp.toolkitVersion || '')));
+    provenance += row('Toolkit Schema', esc(tk.reportSchemaVersion || ''));
+    provenance += '</table>';
+    html += card('Run Provenance', provenance);
+  }
+
+  if (d.targetMapSummary) {
+    var tm = d.targetMapSummary;
+    var tmap = '<table style="width:100%;border-collapse:collapse;">';
+    tmap += row('Build Entrypoint', esc((tm.buildEntrypointType || '') + (tm.buildEntrypointPath ? ' (' + tm.buildEntrypointPath + ')' : '')));
+    tmap += row('Target Count', esc(tm.targetCount));
+    tmap += row('Application Targets', esc(tm.applicationTargetCount));
+    tmap += row('Extension/Widget/AppClip Targets', esc(tm.extensionLikeTargetCount));
+    tmap += row('Ambiguity Count', esc(tm.ambiguityCount));
+    tmap += '</table>';
+    html += card('Target Map Summary', tmap);
+  }
+
+  if (d.lifecycleSummary) {
+    var ls = d.lifecycleSummary;
+    var lifecycle = '<table style="width:100%;border-collapse:collapse;">';
+    lifecycle += row('Primary Pattern', esc(ls.primaryPattern || ''));
+    if (ls.selectedAuthorizationPattern) lifecycle += row('Authorization Pattern', esc(ls.selectedAuthorizationPattern));
+    if (ls.postAuthBoundary) lifecycle += row('Post-Auth Boundary', '<code>' + esc(ls.postAuthBoundary) + '</code>');
+    lifecycle += row('Has SceneDelegate', esc(ls.hasSceneDelegate));
+    lifecycle += row('Has SwiftUI App', esc(ls.hasSwiftUIApp));
+    lifecycle += row('Pre-Authorization Risks', esc((ls.preAuthRiskCount != null) ? ls.preAuthRiskCount : ''));
+    if (ls.lifecycleRootCount != null) lifecycle += row('Lifecycle Roots Analyzed', esc(ls.lifecycleRootCount));
+    if (ls.opaqueStartupPathCount != null) lifecycle += row('Opaque Startup Paths', esc(ls.opaqueStartupPathCount));
+    if (ls.windowStrategy) lifecycle += row('Window Strategy', esc(ls.windowStrategy));
+    if (ls.sceneQueueingStrategy) lifecycle += row('Scene Queueing Strategy', esc(ls.sceneQueueingStrategy));
+    if (ls.prompt03Validation) lifecycle += row('Prompt 03 Validation', statusBadge(ls.prompt03Validation === 'pass' ? 'migrated' : (ls.prompt03Validation === 'fail' ? 'failed' : 'partial')));
+    if (ls.prompt03bValidation) lifecycle += row('Prompt 03b Validation', statusBadge(ls.prompt03bValidation === 'pass' ? 'migrated' : (ls.prompt03bValidation === 'fail' ? 'failed' : 'partial')));
+    if (ls.reachabilityGeneratedAt) lifecycle += row('Reachability Generated At', esc(ls.reachabilityGeneratedAt));
+    if (ls.reachabilitySourceFingerprint) lifecycle += row('Reachability Source Fingerprint', '<code>' + esc(ls.reachabilitySourceFingerprint) + '</code>');
+    lifecycle += '</table>';
+    html += card('Lifecycle Summary', lifecycle);
+  }
+
+  if (d.executedPromptAudit && Array.isArray(d.executedPromptAudit.prompts)) {
+    var auditRows = '';
+    d.executedPromptAudit.prompts.forEach(function(p) {
+      auditRows += '<tr>' +
+        '<td style="padding:0.45rem 0.8rem;border-bottom:1px solid #eee;"><code>' + esc(p.promptId || '') + '</code></td>' +
+        '<td style="padding:0.45rem 0.8rem;border-bottom:1px solid #eee;">' + esc(p.status || '') + '</td>' +
+        '<td style="padding:0.45rem 0.8rem;border-bottom:1px solid #eee;"><code>' + esc(p.recordedAt || '') + '</code></td>' +
+        '</tr>';
+    });
+    html += card('Executed Prompt Audit',
+      '<div style="margin-bottom:0.6rem;color:#7f8c8d;">Recorded: ' + esc(d.executedPromptAudit.recordedCount || d.executedPromptAudit.prompts.length) + '</div>' +
+      '<table style="width:100%;border-collapse:collapse;"><thead><tr>' +
+      '<th style="text-align:left;padding:0.45rem 0.8rem;border-bottom:2px solid #dfe6e9;">Prompt</th>' +
+      '<th style="text-align:left;padding:0.45rem 0.8rem;border-bottom:2px solid #dfe6e9;">Status</th>' +
+      '<th style="text-align:left;padding:0.45rem 0.8rem;border-bottom:2px solid #dfe6e9;">Recorded At</th>' +
+      '</tr></thead><tbody>' + auditRows + '</tbody></table>'
+    );
+  }
+
+  if (d.closureSummary) {
+    var cs = d.closureSummary;
+    var closure = '<table style="width:100%;border-collapse:collapse;">';
+    closure += row('Applicable Call Sites', esc(cs.applicableCallSiteCount || 0));
+    closure += row('Resolved Call Sites', esc(cs.resolvedCallSiteCount || 0));
+    closure += row('Unresolved Call Sites', esc(cs.unresolvedCallSiteCount || 0));
+    closure += row('Blocked Count', esc(cs.blockedCount || 0));
+    closure += row('Deferred Count', esc(cs.deferredCount || 0));
+    closure += row('All Applicable Domains Closed', statusBadge(cs.allApplicableDomainsClosed ? 'migrated' : 'partial'));
+    closure += '</table>';
+    html += card('Closure Summary', closure);
+  }
+
+  if ((d.blockers && d.blockers.length) || (d.unresolvedCallSites && d.unresolvedCallSites.length)) {
+    var blockerHtml = '';
+    (d.blockers || []).forEach(function(b) {
+      blockerHtml += '<div style="padding:0.55rem 0.7rem;border:1px solid #fecaca;background:#fef2f2;border-radius:8px;margin-bottom:0.45rem;color:#7f1d1d;">' + esc(b.message || b.description || b) + '</div>';
+    });
+    if (d.unresolvedCallSites && d.unresolvedCallSites.length) {
+      blockerHtml += '<div style="margin-top:0.7rem;font-weight:600;">Unresolved Call Sites</div>';
+      blockerHtml += '<ul style="margin:0.4rem 0 0 1.1rem;">' +
+        d.unresolvedCallSites.map(function(cs) { return '<li><code>' + esc(cs.callSiteId || cs.id || '') + '</code> ' + esc(cs.reason || '') + '</li>'; }).join('') +
+        '</ul>';
+    }
+    html += card('Blockers And Unresolved', blockerHtml || '<div>None</div>');
+  }
+
+  if (d.validationProof) {
+    var vp = d.validationProof;
+    var validationProof = '<table style="width:100%;border-collapse:collapse;">';
+    validationProof += row('Mode', esc(vp.mode || ''));
+    validationProof += row('Run ID', '<code>' + esc(vp.runId || '') + '</code>');
+    validationProof += row('Timestamp', esc(vp.timestamp || ''));
+    validationProof += row('Stale', esc(vp.isStale));
+    validationProof += row('Result', esc(vp.result || ''));
+    validationProof += row('Phases', esc((vp.phases || []).join(', ')));
+    validationProof += '</table>';
+    html += card('Validation Proof', validationProof);
+  }
+
+  if (d.apiCatalogEvidence || d.runtimeEvidenceStatus) {
+    var evidence = '<table style="width:100%;border-collapse:collapse;">';
+    if (d.apiCatalogEvidence) {
+      evidence += row('Catalog Version', esc(d.apiCatalogEvidence.catalogVersion || ''));
+      evidence += row('Unknown Catalog Rows', esc((d.apiCatalogEvidence.unknownCatalogRows || []).join(', ')));
+    }
+    if (d.runtimeEvidenceStatus) {
+      evidence += row('Runtime Verification', esc(d.runtimeEvidenceStatus.runtimeVerification || ''));
+      evidence += row('UEM Evidence', esc(d.runtimeEvidenceStatus.uemEvidence || ''));
+    }
+    html += card('Evidence Status', evidence);
+  }
+
+  // Coverage
+  if (d.coverage) {
+    var rows = '';
+    for (var area in d.coverage) {
+      var info = normalizeCoverage(d.coverage[area]);
+      var label = area.replace(/([A-Z])/g, ' $1').replace(/^./, function(c){return c.toUpperCase();});
+      rows += '<tr><td style="padding:0.6rem 1rem;border-bottom:1px solid #eee;font-weight:500;">'+esc(label)+'</td>' +
+        '<td style="padding:0.6rem 1rem;border-bottom:1px solid #eee;text-align:center;">'+statusBadge(info.status)+'</td>' +
+        '<td style="padding:0.6rem 1rem;border-bottom:1px solid #eee;color:#7f8c8d;font-size:0.9rem;">'+esc(info.details)+'</td></tr>';
+    }
+    html += card('Coverage', '<table style="width:100%;border-collapse:collapse;"><thead><tr style="text-align:left;"><th style="padding:0.6rem 1rem;border-bottom:2px solid #dfe6e9;">Area</th><th style="padding:0.6rem 1rem;border-bottom:2px solid #dfe6e9;text-align:center;">Status</th><th style="padding:0.6rem 1rem;border-bottom:2px solid #dfe6e9;">Details</th></tr></thead><tbody>'+rows+'</tbody></table>');
+  }
+
+  // Storage Closure (Tranche 3)
+  if (d.storageClosure) {
+    var sc = d.storageClosure;
+    var storageHtml = '';
+
+    function renderStorageGroup(title, fields) {
+      var table = '<table style="width:100%;border-collapse:collapse;">';
+      fields.forEach(function(field) {
+        var value = field.value;
+        if (value == null || value === '') return;
+        var rendered = field.asStatus ? statusBadge(value) : esc(value);
+        table += row(field.label, rendered);
+      });
+      table += '</table>';
+      if (table.indexOf('<tr') !== -1) {
+        storageHtml += '<div style="margin-bottom:0.75rem;"><div style="font-weight:600;margin:0 0 0.35rem 0;">' + esc(title) + '</div>' + table + '</div>';
+      }
+    }
+
+    if (sc.sqlWrappers) {
+      renderStorageGroup('SQL Wrappers', [
+        { label: 'Direct SQLite', value: sc.sqlWrappers.directSqliteStatus, asStatus: true },
+        { label: 'FMDB', value: sc.sqlWrappers.fmdbStatus, asStatus: true },
+        { label: 'GRDB', value: sc.sqlWrappers.grdbStatus, asStatus: true },
+        { label: 'SQLite.swift', value: sc.sqlWrappers.sqliteSwiftStatus, asStatus: true },
+        { label: 'SQLCipher', value: sc.sqlWrappers.sqlcipherStatus, asStatus: true }
+      ]);
+    }
+
+    if (sc.coreDataAndSwiftData) {
+      renderStorageGroup('Core Data And SwiftData', [
+        { label: 'Core Data', value: sc.coreDataAndSwiftData.coreDataStatus, asStatus: true },
+        { label: 'SwiftData', value: sc.coreDataAndSwiftData.swiftDataStatus, asStatus: true },
+        { label: 'SwiftData Disposition', value: sc.coreDataAndSwiftData.swiftDataDisposition, asStatus: true }
+      ]);
+    }
+
+    if (sc.fileWritersAndReaders) {
+      renderStorageGroup('File Writers And Readers', [
+        { label: 'Writer Closure', value: sc.fileWritersAndReaders.writerClosureStatus, asStatus: true },
+        { label: 'Reader Closure', value: sc.fileWritersAndReaders.readerClosureStatus, asStatus: true },
+        { label: 'Follow-On Consumers', value: sc.fileWritersAndReaders.followOnConsumersStatus, asStatus: true }
+      ]);
+    }
+
+    if (sc.preferencesKeychainCrypto) {
+      renderStorageGroup('Preferences, Keychain, Crypto', [
+        { label: 'Sensitive UserDefaults', value: sc.preferencesKeychainCrypto.sensitiveUserDefaultsStatus, asStatus: true },
+        { label: 'Keychain Decisions', value: sc.preferencesKeychainCrypto.keychainDecisionStatus, asStatus: true },
+        { label: 'Local Crypto Decisions', value: sc.preferencesKeychainCrypto.localCryptoDecisionStatus, asStatus: true }
+      ]);
+    }
+
+    if (!storageHtml) {
+      storageHtml = '<div style="color:#7f8c8d;">No storage closure details provided.</div>';
+    }
+
+    html += card('Storage Closure', storageHtml);
+  }
+
+  if (d.networkWebClosure) {
+    var nw = d.networkWebClosure;
+    var nwHtml = '';
+
+    function renderNetworkGroup(title, fields) {
+      var table = '<table style="width:100%;border-collapse:collapse;">';
+      fields.forEach(function(field) {
+        if (field.value == null || field.value === '') return;
+        table += row(field.label, esc(field.value));
+      });
+      table += '</table>';
+      if (table.indexOf('<tr') !== -1) {
+        nwHtml += '<div style="margin-bottom:0.75rem;"><div style="font-weight:600;margin:0 0 0.35rem 0;">' + esc(title) + '</div>' + table + '</div>';
+      }
+    }
+
+    if (nw.urlSession) {
+      renderNetworkGroup('URLSession', [
+        { label: 'Call Sites', value: nw.urlSession.callSiteCount },
+        { label: 'Post-Auth Timing Status', value: nw.urlSession.postAuthTimingStatus }
+      ]);
+    }
+    if (nw.directSockets) {
+      renderNetworkGroup('Direct Sockets', [
+        { label: 'Call Sites', value: nw.directSockets.callSiteCount },
+        { label: 'Migrated', value: nw.directSockets.migratedCount },
+        { label: 'Blocked', value: nw.directSockets.blockedCount }
+      ]);
+    }
+    if (nw.protocolAndPinning) {
+      renderNetworkGroup('Custom Protocol / Pinning', [
+        { label: 'Decision Status', value: nw.protocolAndPinning.decisionStatus }
+      ]);
+    }
+    if (nw.backgroundSessions) {
+      renderNetworkGroup('Background Sessions', [
+        { label: 'Decision Status', value: nw.backgroundSessions.decisionStatus },
+        { label: 'G12 Dependency', value: nw.backgroundSessions.g12Dependency }
+      ]);
+    }
+    if (nw.webview) {
+      renderNetworkGroup('WKWebView', [
+        { label: 'Support Status', value: nw.webview.supportStatus },
+        { label: 'Content Classification', value: nw.webview.contentClassificationStatus },
+        { label: 'Unsupported Feature Status', value: nw.webview.unsupportedFeatureStatus }
+      ]);
+    }
+
+    if (!nwHtml) {
+      nwHtml = '<div style="color:#7f8c8d;">No network/web closure details provided.</div>';
+    }
+    html += card('Network And Web Closure', nwHtml);
+  }
+
+  if (d.dlpIccPolicyClosure) {
+    var dp = d.dlpIccPolicyClosure;
+    var dpHtml = '';
+
+    function renderTranche5Group(title, fields) {
+      var table = '<table style="width:100%;border-collapse:collapse;">';
+      fields.forEach(function(field) {
+        if (field.value == null || field.value === '') return;
+        var rendered = field.asStatus ? statusBadge(field.value) : esc(field.value);
+        table += row(field.label, rendered);
+      });
+      table += '</table>';
+      if (table.indexOf('<tr') !== -1) {
+        dpHtml += '<div style="margin-bottom:0.75rem;"><div style="font-weight:600;margin:0 0 0.35rem 0;">' + esc(title) + '</div>' + table + '</div>';
+      }
+    }
+
+    if (dp.externalSurfaces) {
+      var ds = dp.externalSurfaces.directionSummary || {};
+      renderTranche5Group('External Surface Direction Summary', [
+        { label: 'Unmanaged -> Managed', value: ds.unmanagedToManaged },
+        { label: 'Managed -> Unmanaged', value: ds.managedToUnmanaged },
+        { label: 'Managed -> Managed', value: ds.managedToManaged },
+        { label: 'Metadata Only', value: ds.metadataOnly },
+        { label: 'Unknown/Bidirectional', value: ds.unknownOrBidirectional },
+        { label: 'Endpoint Classification', value: dp.externalSurfaces.managedEndpointClassificationStatus, asStatus: true }
+      ]);
+    }
+    if (dp.inbound) {
+      renderTranche5Group('Inbound Closure', [
+        { label: 'Secure Copy Status', value: dp.inbound.secureCopyStatus, asStatus: true }
+      ]);
+    }
+    if (dp.outbound) {
+      renderTranche5Group('Outbound Closure', [
+        { label: 'Approval/Blocker Status', value: dp.outbound.approvalBlockerStatus, asStatus: true }
+      ]);
+    }
+    if (dp.appkinetics) {
+      renderTranche5Group('AppKinetics Closure', [
+        { label: 'Service Closure', value: dp.appkinetics.serviceClosureStatus, asStatus: true },
+        { label: 'Registration Status', value: dp.appkinetics.registrationStatus, asStatus: true }
+      ]);
+    }
+    if (dp.residualSharePaths) {
+      renderTranche5Group('Residual URL/Share Paths', [
+        { label: 'Status', value: dp.residualSharePaths.status, asStatus: true }
+      ]);
+    }
+    if (dp.policy) {
+      renderTranche5Group('Policy Closure', [
+        { label: 'API Timing', value: dp.policy.apiTimingStatus, asStatus: true },
+        { label: 'Update Handling', value: dp.policy.updateHandlingStatus, asStatus: true },
+        { label: 'Cache Status', value: dp.policy.cacheStatus, asStatus: true },
+        { label: 'Default Handling', value: dp.policy.defaultHandlingStatus, asStatus: true }
+      ]);
+    }
+
+    if (!dpHtml) {
+      dpHtml = '<div style="color:#7f8c8d;">No tranche-5 closure details provided.</div>';
+    }
+    html += card('DLP / ICC / Policy Closure', dpHtml);
+  }
+
+  // Security Posture
+  if (d.securityPosture) {
+    var sp = d.securityPosture;
+    var spTable = '<table style="width:100%;border-collapse:collapse;">';
+    if (sp.dataAtRest) {
+      spTable += row('Data At Rest', statusBadge(sp.dataAtRest.status || 'unverified') + ' <span style="color:#7f8c8d;">' + esc(sp.dataAtRest.summary || '') + '</span>');
+    }
+    if (sp.dataInTransit) {
+      spTable += row('Data In Transit', statusBadge(sp.dataInTransit.status || 'unverified') + ' <span style="color:#7f8c8d;">' + esc(sp.dataInTransit.summary || '') + '</span>');
+    }
+    spTable += '</table>';
+    html += card('Security Posture', spTable);
+  }
+
+  // Confidence and release recommendation detail
+  if (d.migrationConfidence || d.releaseReadiness) {
+    var q = '<table style="width:100%;border-collapse:collapse;">';
+    if (d.migrationConfidence) {
+      q += row('Confidence Score', esc(d.migrationConfidence.score) + '/100');
+      q += row('Confidence Level', esc(d.migrationConfidence.level));
+      q += row('Confidence Rationale', esc(d.migrationConfidence.rationale));
+    }
+    if (d.releaseReadiness) {
+      q += row('Recommendation', readinessBadge(d.releaseReadiness.recommendation || 'unknown'));
+      if (d.releaseReadiness.blockingItems && d.releaseReadiness.blockingItems.length) {
+        q += row('Blocking Items', d.releaseReadiness.blockingItems.map(function(b){
+          return '<div style="padding:0.45rem 0.65rem;border-radius:8px;background:#fef2f2;border:1px solid #fecaca;color:#7f1d1d;margin-bottom:0.4rem;">'+esc(b)+'</div>';
+        }).join(''));
+      } else {
+        q += row('Blocking Items', modernBadge('none listed', { dot: '#16a34a', bg: '#ecfdf3', fg: '#166534', border: '#bbf7d0' }, true));
+      }
+    }
+    q += '</table>';
+    html += card('Migration Decision', q);
+  }
+
+  // API Replacements
+  if (d.apisReplaced && d.apisReplaced.length) {
+    var apis = '';
+    d.apisReplaced.forEach(function(a) {
+      apis += '<div style="border:1px solid #dfe6e9;border-radius:8px;padding:1rem;margin-bottom:1rem;">';
+      apis += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">';
+      apis += '<span style="font-weight:600;">'+esc(a.category)+'</span>';
+      apis += '<span>'+(a.risk ? riskBadge(a.risk) : '')+'</span>';
+      apis += '</div>';
+      apis += '<div style="font-size:0.9rem;margin-bottom:0.3rem;"><span style="color:#e74c3c;text-decoration:line-through;">'+esc(a.original)+'</span> &rarr; <span style="color:#27ae60;font-weight:500;">'+esc(a.replacement)+'</span></div>';
+      var occurrenceCount = (a.count != null ? a.count : (a.occurrences != null ? a.occurrences : 0));
+      apis += '<div style="font-size:0.85rem;color:#7f8c8d;margin-bottom:0.5rem;">'+esc(occurrenceCount)+' occurrence(s) in '+esc((a.files||[]).length)+' file(s)</div>';
+      if (a.riskReason) apis += '<div style="font-size:0.85rem;color:#7f8c8d;margin-bottom:0.5rem;font-style:italic;">Risk: '+esc(a.riskReason)+'</div>';
+      if (a.before || a.after) {
+        apis += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:0.5rem;margin-top:0.5rem;">';
+        apis += '<div style="min-width:0;"><div style="font-size:0.75rem;font-weight:600;color:#e74c3c;margin-bottom:0.3rem;">BEFORE</div>'+codeBlock(a.before||'')+'</div>';
+        apis += '<div style="min-width:0;"><div style="font-size:0.75rem;font-weight:600;color:#27ae60;margin-bottom:0.3rem;">AFTER</div>'+codeBlock(a.after||'')+'</div>';
+        apis += '</div>';
+      }
+      if (a.files && a.files.length) {
+        apis += '<details style="margin-top:0.5rem;"><summary style="font-size:0.85rem;color:#4a90d9;cursor:pointer;">Files</summary><ul style="margin-top:0.3rem;font-size:0.85rem;color:#7f8c8d;">';
+        a.files.forEach(function(f){ apis += '<li>'+esc(f)+'</li>'; });
+        apis += '</ul></details>';
+      }
+      apis += '</div>';
+    });
+    html += card('API Replacements', apis);
+  }
+
+  // Files Modified
+  if (d.filesModified && d.filesModified.length) {
+    var frows = '';
+    d.filesModified.forEach(function(f) {
+      var normalized = (typeof f === 'string') ? { path: f, changeType: 'modified', description: '' } : f;
+      var typeColors = { modified: '#4a90d9', created: '#27ae60', deleted: '#e74c3c' };
+      var tc = typeColors[normalized.changeType] || '#7f8c8d';
+      frows += '<tr><td style="padding:0.5rem 1rem;border-bottom:1px solid #eee;font-family:monospace;font-size:0.85rem;word-break:break-all;">'+esc(normalized.path)+'</td>' +
+        '<td style="padding:0.5rem 1rem;border-bottom:1px solid #eee;text-align:center;white-space:nowrap;"><span style="color:'+tc+';font-weight:600;font-size:0.8rem;">'+esc(normalized.changeType)+'</span></td>' +
+        '<td style="padding:0.5rem 1rem;border-bottom:1px solid #eee;color:#7f8c8d;font-size:0.9rem;">'+esc(normalized.description || '')+'</td></tr>';
+    });
+    html += card('Files Modified ('+d.filesModified.length+')', '<table style="width:100%;border-collapse:collapse;table-layout:fixed;"><colgroup><col style="width:38%"><col style="width:10%"><col style="width:52%"></colgroup><thead><tr><th style="padding:0.5rem 1rem;border-bottom:2px solid #dfe6e9;text-align:left;">Path</th><th style="padding:0.5rem 1rem;border-bottom:2px solid #dfe6e9;text-align:center;">Type</th><th style="padding:0.5rem 1rem;border-bottom:2px solid #dfe6e9;text-align:left;">Description</th></tr></thead><tbody>'+frows+'</tbody></table>');
+  }
+
+  // Manual TODOs
+  if (d.manualTodos && d.manualTodos.length) {
+    var todos = '';
+    d.manualTodos.forEach(function(t) {
+      todos += '<div style="display:flex;gap:0.8rem;align-items:flex-start;padding:0.7rem 0;border-bottom:1px solid #eee;">';
+      todos += '<div>'+priorityBadge(t.priority)+'</div>';
+      todos += '<div><div style="font-weight:500;">'+esc(t.description)+'</div><div style="font-size:0.85rem;color:#7f8c8d;">'+esc(t.reason)+'</div></div>';
+      todos += '</div>';
+    });
+    html += card('Manual TODOs ('+d.manualTodos.length+')', todos);
+  }
+
+  // Runtime Test Plan
+  if (d.runtimeTestPlan && d.runtimeTestPlan.length) {
+    var tests = '';
+    d.runtimeTestPlan.forEach(function(t, i) {
+      var scenario = t.scenario || t.name || ('Scenario ' + (i + 1));
+      var expected = t.expectedResult || t.expected || '';
+      tests += '<div style="border:1px solid #dfe6e9;border-radius:8px;padding:1rem;margin-bottom:0.8rem;">';
+      tests += '<div style="font-weight:600;margin-bottom:0.5rem;">'+(i+1)+'. '+esc(scenario)+'</div>';
+      tests += '<div style="font-size:0.9rem;margin-bottom:0.3rem;"><span style="font-weight:500;">Steps:</span> '+esc(normalizeSteps(t.steps))+'</div>';
+      tests += '<div style="font-size:0.9rem;margin-bottom:0.3rem;"><span style="font-weight:500;">Expected:</span> '+esc(expected)+'</div>';
+      if (t.relatedAreas && t.relatedAreas.length) {
+        tests += '<div style="margin-top:0.3rem;">';
+        t.relatedAreas.forEach(function(a){ tests += '<span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:0.75rem;background:#eee;color:#555;margin-right:4px;">'+esc(a)+'</span>'; });
+        tests += '</div>';
+      }
+      tests += '</div>';
+    });
+    html += card('Runtime Test Plan ('+d.runtimeTestPlan.length+' scenarios)', tests);
+  }
+
+  // UEM Admin Handoff
+  if (d.uemAdminHandoff) {
+    var u = d.uemAdminHandoff;
+    var handoff = '<table style="width:100%;border-collapse:collapse;">';
+    handoff += row('GDApplicationID', '<code>'+esc(u.gdApplicationId)+'</code>');
+    handoff += row('GDApplicationVersion', '<code>'+esc(u.gdApplicationVersion)+'</code>');
+    if (u.entitlementSetup) handoff += row('Entitlement Setup', esc(u.entitlementSetup));
+    if (u.entitlementSetupSteps && u.entitlementSetupSteps.length) handoff += row('Entitlement Setup', u.entitlementSetupSteps.map(function(s){ return '<div>'+esc(s)+'</div>'; }).join(''));
+    if (u.connectivityProfile) handoff += row('Connectivity Profile', esc(u.connectivityProfile));
+    if (u.connectivityProfileRecommendations && u.connectivityProfileRecommendations.length) handoff += row('Connectivity Profile', u.connectivityProfileRecommendations.map(function(s){ return '<div>'+esc(s)+'</div>'; }).join(''));
+    if (u.complianceProfile) handoff += row('Compliance Profile', esc(u.complianceProfile));
+    if (u.complianceProfileRecommendations && u.complianceProfileRecommendations.length) handoff += row('Compliance Profile', u.complianceProfileRecommendations.map(function(s){ return '<div>'+esc(s)+'</div>'; }).join(''));
+    var permissions = u.appPermissions || u.dynamicsPermissionsRequired;
+    if (permissions && permissions.length) {
+      handoff += row('App Permissions', permissions.map(function(p){ return '<span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:0.8rem;background:#e8f4fd;color:#2980b9;margin:2px;">'+esc(p)+'</span>'; }).join(' '));
+    }
+    handoff += '</table>';
+    html += card('UEM Admin Handoff', handoff);
+  }
+
+  // Unsupported Features
+  if (d.unsupportedFeatures && d.unsupportedFeatures.length) {
+    var uf = '';
+    d.unsupportedFeatures.forEach(function(f) {
+      uf += '<div style="padding:0.7rem 0;border-bottom:1px solid #eee;">';
+      uf += '<div style="font-weight:500;">'+esc(f.feature)+'</div>';
+      uf += '<div style="font-size:0.85rem;color:#7f8c8d;">'+esc(f.reason)+'</div>';
+      if (f.workaround) uf += '<div style="font-size:0.85rem;color:#4a90d9;">Workaround: '+esc(f.workaround)+'</div>';
+      uf += '</div>';
+    });
+    html += card('Unsupported Features', uf);
+  } else if (d.unsupportedFeatures) {
+    html += card('Unsupported Features', '<div style="color:#27ae60;">None detected</div>');
+  }
+
+  // Project Info (platform-aware: iOS uses bundleIdentifier/deploymentTarget, Android uses package/minSdk)
+  if (d.project) {
+    var p = d.project;
+    var isIOS = d.platform === 'iOS';
+    var info = '<table style="width:100%;border-collapse:collapse;">';
+    if (isIOS) {
+      info += row('Bundle Identifier', '<code>'+esc(p.bundleIdentifier)+'</code>');
+      info += row('Language', esc(p.language));
+      info += row('Integration Method', esc(p.integrationMethod));
+      info += row('Original Deployment Target', esc(p.originalDeploymentTarget != null ? p.originalDeploymentTarget : p.deploymentTargetBefore));
+      info += row('Migrated Deployment Target', esc(p.migratedDeploymentTarget != null ? p.migratedDeploymentTarget : p.deploymentTargetAfter));
+    } else {
+      info += row('Package', '<code>'+esc(p.package)+'</code>');
+      info += row('Original minSdk', esc(p.originalMinSdk != null ? p.originalMinSdk : p.minSdkBefore));
+      info += row('Migrated minSdk', esc(p.migratedMinSdk != null ? p.migratedMinSdk : p.minSdkAfter));
+    }
+    info += '</table>';
+    html += card('Project Info', info);
+  }
+
+  html += '<div style="text-align:center;padding:2rem;color:#bdc3c7;font-size:0.85rem;">Generated by BlackBerry Dynamics Migration Tool &middot; Schema v'+esc(d.schemaVersion||'?')+'</div>';
+  html += '</div>';
+
+  document.getElementById('report').innerHTML = html;
+  document.getElementById('report').style.display = 'block';
+}
+</script>
+</body>
+</html>

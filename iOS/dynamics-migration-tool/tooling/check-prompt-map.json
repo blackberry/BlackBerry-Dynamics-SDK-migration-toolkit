@@ -1,0 +1,467 @@
+{
+  "schemaVersion": "1.2.0",
+  "platform": "ios",
+  "description": "Prompt dependency, ownership, and validation registry for iOS recorder + validator gates.",
+  "retryPolicy": {
+    "defaultMaxPromptFailures": 5,
+    "defaultMaxIdenticalFailures": 3,
+    "finalGateMaxIdenticalFailures": 2,
+    "perPrompt": {}
+  },
+  "phaseCatalog": [
+    "0-artifact-provenance",
+    "1-configuration",
+    "2-framework-integration",
+    "3-keychain-sharing",
+    "4-authorization-integration",
+    "4-lifecycle-window-root-ui",
+    "4-preauth-reachability",
+    "4-residual-authorization-closure",
+    "5-secure-file-writers",
+    "5b-secure-file-readers-follow-on",
+    "5c-preferences-keychain-crypto",
+    "5d-storage-final-closure",
+    "6-secure-core-data-swiftdata",
+    "7-secure-sql-wrappers",
+    "8a-network-request-timing",
+    "8b-network-session-configuration",
+    "8c-network-custom-protocol-pinning",
+    "8d-network-socket-closure",
+    "8e-network-background-session-classification",
+    "8f-network-final-closure",
+    "8g-webview-support-initialization",
+    "8h-webview-content-routing",
+    "8i-webview-unsupported-feature-closure",
+    "8j-webview-final-closure",
+    "9a-external-surface-inventory-direction",
+    "9b-inbound-secure-copy-closure",
+    "9c-outbound-dlp-blocker-closure",
+    "9d-appkinetics-source-closure",
+    "9e-appkinetics-plist-registration",
+    "9f-residual-url-share-surface",
+    "9g-policy-timing",
+    "9h-policy-cache-update-handling",
+    "9i-dlp-icc-policy-final-closure",
+    "10-build-verification",
+    "11-migration-comments",
+    "12-migration-report"
+  ],
+  "prompts": [
+    {
+      "id": "00pre",
+      "description": "Bootstrap — establishes run provenance",
+      "requires": [],
+      "requiredArtifacts": [],
+      "canBeNotApplicable": false,
+      "ownedDomains": [],
+      "validator": {
+        "mode": "preflight",
+        "requiredPhases": ["0-artifact-provenance"],
+        "mustBeFull": false
+      }
+    },
+    {
+      "id": "00",
+      "description": "App analysis — produces migration-analysis.json with execution plan",
+      "requires": ["00pre"],
+      "requiredArtifacts": [
+        "output/bootstrap.json",
+        "output/target-map.json"
+      ],
+      "canBeNotApplicable": false,
+      "ownedDomains": [],
+      "validator": {
+        "mode": "none",
+        "requiredPhases": [],
+        "mustBeFull": false
+      }
+    },
+    {
+      "id": "00b",
+      "description": "Architecture diagrams (required on iOS)",
+      "requires": ["00"],
+      "requiredArtifacts": [
+        "output/migration-analysis.json"
+      ],
+      "canBeNotApplicable": false,
+      "ownedDomains": [],
+      "validator": {
+        "mode": "none",
+        "requiredPhases": [],
+        "mustBeFull": false
+      }
+    },
+    {
+      "id": "01",
+      "description": "Xcode integration",
+      "requires": ["00", "00b"],
+      "requiredArtifacts": [
+        "output/bootstrap.json",
+        "output/target-map.json",
+        "output/migration-analysis.json"
+      ],
+      "canBeNotApplicable": false,
+      "ownedDomains": [],
+      "validator": {
+        "mode": "prompt-scoped",
+        "requiredPhases": [
+          "0-artifact-provenance",
+          "1-configuration",
+          "2-framework-integration",
+          "3-keychain-sharing"
+        ],
+        "mustBeFull": false
+      }
+    },
+    {
+      "id": "02",
+      "description": "Info.plist and UEM values — INTERACTION_REQUIRED",
+      "requires": ["01"],
+      "requiredArtifacts": [
+        "output/bootstrap.json",
+        "output/target-map.json",
+        "output/migration-analysis.json"
+      ],
+      "canBeNotApplicable": false,
+      "ownedDomains": [],
+      "validator": {
+        "mode": "prompt-scoped",
+        "requiredPhases": [
+          "0-artifact-provenance",
+          "1-configuration",
+          "3-keychain-sharing"
+        ],
+        "mustBeFull": false
+      }
+    },
+    {
+      "id": "03",
+      "description": "Authorization",
+      "requires": ["02"],
+      "requiredArtifacts": [
+        "output/bootstrap.json",
+        "output/target-map.json",
+        "output/migration-analysis.json",
+        "output/migration-plan-state.json"
+      ],
+      "canBeNotApplicable": false,
+      "ownedDomains": ["authorization"],
+      "validator": {
+        "mode": "prompt-scoped",
+        "requiredPhases": [
+          "0-artifact-provenance",
+          "4-authorization-integration",
+          "4-lifecycle-window-root-ui"
+        ],
+        "mustBeFull": false
+      }
+    },
+    {
+      "id": "03b",
+      "description": "Authorization deferral audit",
+      "requires": ["03"],
+      "requiredArtifacts": [
+        "output/bootstrap.json",
+        "output/target-map.json",
+        "output/migration-analysis.json",
+        "output/migration-plan-state.json",
+        "output/auth-reachability.json"
+      ],
+      "canBeNotApplicable": false,
+      "ownedDomains": ["authorization"],
+      "validator": {
+        "mode": "prompt-scoped",
+        "requiredPhases": [
+          "0-artifact-provenance",
+          "4-preauth-reachability",
+          "4-residual-authorization-closure"
+        ],
+        "mustBeFull": false
+      }
+    },
+    {
+      "id": "04",
+      "description": "Secure SQL",
+      "requires": ["03b"],
+      "requiredArtifacts": [
+        "output/bootstrap.json",
+        "output/target-map.json",
+        "output/migration-analysis.json",
+        "output/migration-plan-state.json"
+      ],
+      "canBeNotApplicable": true,
+      "ownedDomains": ["secureSql"],
+      "validator": {
+        "mode": "prompt-scoped",
+        "requiredPhases": [
+          "0-artifact-provenance",
+          "7-secure-sql-wrappers"
+        ],
+        "mustBeFull": false
+      },
+      "nonWaivableBlockers": ["blocked", "deferred"]
+    },
+    {
+      "id": "04b",
+      "description": "Secure Core Data",
+      "requires": ["03b"],
+      "requiredArtifacts": [
+        "output/bootstrap.json",
+        "output/target-map.json",
+        "output/migration-analysis.json",
+        "output/migration-plan-state.json"
+      ],
+      "canBeNotApplicable": true,
+      "ownedDomains": ["secureCoreData"],
+      "validator": {
+        "mode": "prompt-scoped",
+        "requiredPhases": [
+          "0-artifact-provenance",
+          "6-secure-core-data-swiftdata"
+        ],
+        "mustBeFull": false
+      },
+      "nonWaivableBlockers": ["blocked", "deferred"]
+    },
+    {
+      "id": "05",
+      "description": "Secure file storage",
+      "requires": ["03b"],
+      "requiredArtifacts": [
+        "output/bootstrap.json",
+        "output/target-map.json",
+        "output/migration-analysis.json",
+        "output/migration-plan-state.json"
+      ],
+      "canBeNotApplicable": true,
+      "ownedDomains": ["secureFileStorage"],
+      "validator": {
+        "mode": "prompt-scoped",
+        "requiredPhases": [
+          "0-artifact-provenance",
+          "5-secure-file-writers",
+          "5b-secure-file-readers-follow-on",
+          "5c-preferences-keychain-crypto",
+          "5d-storage-final-closure"
+        ],
+        "mustBeFull": false
+      },
+      "nonWaivableBlockers": ["blocked", "deferred"]
+    },
+    {
+      "id": "06",
+      "description": "Secure networking",
+      "requires": ["03b"],
+      "requiredArtifacts": [
+        "output/bootstrap.json",
+        "output/target-map.json",
+        "output/migration-analysis.json",
+        "output/migration-plan-state.json"
+      ],
+      "canBeNotApplicable": true,
+      "ownedDomains": ["secureNetworking"],
+      "validator": {
+        "mode": "prompt-scoped",
+        "requiredPhases": [
+          "0-artifact-provenance",
+          "8a-network-request-timing",
+          "8b-network-session-configuration",
+          "8c-network-custom-protocol-pinning",
+          "8d-network-socket-closure",
+          "8e-network-background-session-classification",
+          "8f-network-final-closure"
+        ],
+        "mustBeFull": false
+      }
+    },
+    {
+      "id": "07",
+      "description": "WKWebView secure migration",
+      "requires": ["06"],
+      "requiredArtifacts": [
+        "output/bootstrap.json",
+        "output/target-map.json",
+        "output/migration-analysis.json",
+        "output/migration-plan-state.json"
+      ],
+      "canBeNotApplicable": true,
+      "ownedDomains": ["webview"],
+      "validator": {
+        "mode": "prompt-scoped",
+        "requiredPhases": [
+          "0-artifact-provenance",
+          "8g-webview-support-initialization",
+          "8h-webview-content-routing",
+          "8i-webview-unsupported-feature-closure",
+          "8j-webview-final-closure"
+        ],
+        "mustBeFull": false
+      }
+    },
+    {
+      "id": "08",
+      "description": "AppKinetics ICC",
+      "requires": ["03b"],
+      "requiredArtifacts": [
+        "output/bootstrap.json",
+        "output/target-map.json",
+        "output/migration-analysis.json",
+        "output/migration-plan-state.json"
+      ],
+      "canBeNotApplicable": true,
+      "ownedDomains": ["icc"],
+      "validator": {
+        "mode": "prompt-scoped",
+        "requiredPhases": [
+          "0-artifact-provenance",
+          "9d-appkinetics-source-closure",
+          "9e-appkinetics-plist-registration",
+          "9f-residual-url-share-surface",
+          "9i-dlp-icc-policy-final-closure"
+        ],
+        "mustBeFull": false
+      }
+    },
+    {
+      "id": "09",
+      "description": "DLP and external data movement",
+      "requires": ["03b"],
+      "requiredArtifacts": [
+        "output/bootstrap.json",
+        "output/target-map.json",
+        "output/migration-analysis.json",
+        "output/migration-plan-state.json"
+      ],
+      "canBeNotApplicable": true,
+      "ownedDomains": ["dlpPasteboard"],
+      "validator": {
+        "mode": "prompt-scoped",
+        "requiredPhases": [
+          "0-artifact-provenance",
+          "9a-external-surface-inventory-direction",
+          "9b-inbound-secure-copy-closure",
+          "9c-outbound-dlp-blocker-closure",
+          "9f-residual-url-share-surface",
+          "9i-dlp-icc-policy-final-closure"
+        ],
+        "mustBeFull": false
+      }
+    },
+    {
+      "id": "09b",
+      "description": "Policy management",
+      "requires": ["09"],
+      "requiredArtifacts": [
+        "output/bootstrap.json",
+        "output/target-map.json",
+        "output/migration-analysis.json",
+        "output/migration-plan-state.json"
+      ],
+      "canBeNotApplicable": true,
+      "ownedDomains": ["policyManagement"],
+      "validator": {
+        "mode": "prompt-scoped",
+        "requiredPhases": [
+          "0-artifact-provenance",
+          "9g-policy-timing",
+          "9h-policy-cache-update-handling",
+          "9i-dlp-icc-policy-final-closure"
+        ],
+        "mustBeFull": false
+      }
+    },
+    {
+      "id": "11",
+      "description": "Push channel audit and migration decisions",
+      "requires": ["03b", "06"],
+      "requiredArtifacts": [
+        "output/bootstrap.json",
+        "output/target-map.json",
+        "output/migration-analysis.json",
+        "output/migration-plan-state.json"
+      ],
+      "canBeNotApplicable": true,
+      "ownedDomains": [],
+      "validator": {
+        "mode": "none",
+        "requiredPhases": [],
+        "mustBeFull": false
+      }
+    },
+    {
+      "id": "10",
+      "description": "Generate migration report — final acceptance gate",
+      "requires": ["00pre", "00", "00b", "01", "02", "03", "03b", "04", "04b", "05", "06", "07", "08", "09", "09b", "11"],
+      "requiredArtifacts": [
+        "output/bootstrap.json",
+        "output/target-map.json",
+        "output/migration-analysis.json",
+        "output/migration-plan-state.json",
+        "output/auth-reachability.json",
+        "output/.last-check.json",
+        "output/migration-report.json"
+      ],
+      "canBeNotApplicable": false,
+      "ownedDomains": [],
+      "validator": {
+        "mode": "full",
+        "requiredPhases": [
+          "0-artifact-provenance",
+          "1-configuration",
+          "2-framework-integration",
+          "3-keychain-sharing",
+          "4-authorization-integration",
+          "4-lifecycle-window-root-ui",
+          "4-preauth-reachability",
+          "4-residual-authorization-closure",
+          "5-secure-file-writers",
+          "5b-secure-file-readers-follow-on",
+          "5c-preferences-keychain-crypto",
+          "6-secure-core-data-swiftdata",
+          "7-secure-sql-wrappers",
+          "5d-storage-final-closure",
+          "8a-network-request-timing",
+          "8b-network-session-configuration",
+          "8c-network-custom-protocol-pinning",
+          "8d-network-socket-closure",
+          "8e-network-background-session-classification",
+          "8f-network-final-closure",
+          "8g-webview-support-initialization",
+          "8h-webview-content-routing",
+          "8i-webview-unsupported-feature-closure",
+          "8j-webview-final-closure",
+          "9a-external-surface-inventory-direction",
+          "9b-inbound-secure-copy-closure",
+          "9c-outbound-dlp-blocker-closure",
+          "9d-appkinetics-source-closure",
+          "9e-appkinetics-plist-registration",
+          "9f-residual-url-share-surface",
+          "9g-policy-timing",
+          "9h-policy-cache-update-handling",
+          "9i-dlp-icc-policy-final-closure",
+          "10-build-verification",
+          "11-migration-comments",
+          "12-migration-report"
+        ],
+        "mustBeFull": true
+      },
+      "nonWaivableBlockers": ["blocked", "deferred"]
+    },
+    {
+      "id": "12",
+      "description": "Generate migration retrospective (optional, post-acceptance)",
+      "requires": ["10"],
+      "requiredArtifacts": [
+        "output/bootstrap.json",
+        "output/migration-report.json"
+      ],
+      "canBeNotApplicable": true,
+      "ownedDomains": [],
+      "validator": {
+        "mode": "none",
+        "requiredPhases": [],
+        "mustBeFull": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,250 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://blackberry.com/dynamics/migration/ios/last-check.schema.v1.0.0.json",
+  "title": "iOS Migration Validation Proof Schema (.last-check.json)",
+  "description": "Written exclusively by tooling/validate.sh. Records validation mode, scope, result, and fingerprints. The recorder rejects stale, failed, wrong-run, or insufficiently scoped proof.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "diagnosticContractVersion",
+    "platform",
+    "runId",
+    "validationMode",
+    "validationRunId",
+    "result",
+    "isStale",
+    "timestamp",
+    "toolkitVersion",
+    "phasesExecuted",
+    "errors",
+    "blockers",
+    "warnings",
+    "violations"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "diagnosticContractVersion": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Version of the standardized repair-oriented diagnostic fields in violations[]."
+    },
+    "platform": {
+      "type": "string",
+      "const": "ios"
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "validationMode": {
+      "type": "string",
+      "enum": ["full", "preflight", "prompt-scoped"],
+      "description": "Prompt 10 requires mode='full'. Prompt-scoped proof is insufficient for the final report gate."
+    },
+    "validationRunId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique id for this validator invocation; used by loop-state dedup."
+    },
+    "promptScope": {
+      "type": ["string", "null"],
+      "description": "Set when validationMode='prompt-scoped'. Null for full or preflight."
+    },
+    "phasesExecuted": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Validator phase IDs that ran in this invocation."
+    },
+    "result": {
+      "type": "string",
+      "enum": ["pass", "fail", "warn"]
+    },
+    "isStale": {
+      "type": "boolean",
+      "description": "True when proof fingerprints are known stale relative to current source/artifacts."
+    },
+    "failCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "warnCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "timestamp": {
+      "type": "string"
+    },
+    "sourceFingerprints": {
+      "type": "object",
+      "description": "Hashes or mtimes of key artifacts at validation time.",
+      "additionalProperties": { "type": "string" }
+    },
+    "toolkitVersion": {
+      "type": "string"
+    },
+    "validatorPath": {
+      "type": "string"
+    },
+    "errors": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "blockers": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "severity",
+          "phase",
+          "domain",
+          "message",
+          "diagnosticCode",
+          "diagnosticContractVersion",
+          "platform",
+          "validationPhase",
+          "owningPrompt",
+          "evidence",
+          "expectedCondition",
+          "observedCondition",
+          "defectKind",
+          "safeRepairCategory",
+          "suggestedVerificationCommand",
+          "humanJudgmentRequired",
+          "automaticRepairProhibited",
+          "diagnosticFingerprint"
+        ],
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": ["fail", "warn"]
+          },
+          "phase": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "fix": {
+            "type": "string"
+          },
+          "files": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "diagnosticCode": {
+            "type": "string",
+            "minLength": 1
+          },
+          "diagnosticContractVersion": {
+            "type": "string",
+            "const": "1.0.0"
+          },
+          "platform": {
+            "type": "string",
+            "const": "ios"
+          },
+          "validationPhase": {
+            "type": "string",
+            "minLength": 1
+          },
+          "owningPrompt": {
+            "type": "string",
+            "minLength": 1
+          },
+          "affectedFile": {
+            "type": ["string", "null"]
+          },
+          "location": {
+            "type": "object",
+            "required": ["file", "line"],
+            "properties": {
+              "file": { "type": ["string", "null"] },
+              "line": { "type": ["integer", "null"], "minimum": 1 }
+            },
+            "additionalProperties": false
+          },
+          "evidence": {
+            "type": "object",
+            "required": ["message", "files", "detector"],
+            "properties": {
+              "message": { "type": "string" },
+              "files": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "detector": { "type": ["string", "null"] }
+            },
+            "additionalProperties": false
+          },
+          "expectedCondition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "observedCondition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "defectKind": {
+            "type": "string",
+            "enum": [
+              "tool-defect",
+              "migrated-application-defect",
+              "unsupported-application-behaviour",
+              "missing-developer-decision",
+              "environment-or-dependency-failure",
+              "runtime-evidence-gap"
+            ]
+          },
+          "safeRepairCategory": {
+            "type": "string",
+            "enum": [
+              "rerun-owner-prompt",
+              "developer-decision-required",
+              "fix-environment",
+              "redesign-required",
+              "update-report-evidence",
+              "manual-review"
+            ]
+          },
+          "suggestedVerificationCommand": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rerunPrompt": {
+            "type": ["string", "null"]
+          },
+          "rerunPhase": {
+            "type": "string",
+            "minLength": 1
+          },
+          "humanJudgmentRequired": {
+            "type": "boolean"
+          },
+          "automaticRepairProhibited": {
+            "type": "boolean"
+          },
+          "diagnosticFingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

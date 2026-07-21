@@ -1,0 +1,9 @@
+# Generated output (per-project, not part of the tool)
+output/*
+!output/.gitkeep
+
+# Generated release packages
+dist/
+
+# macOS
+.DS_Store
