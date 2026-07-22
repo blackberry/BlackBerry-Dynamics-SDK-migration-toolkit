@@ -388,5 +388,6 @@ When running Prompt 03b, systematically check:
 - [ ] Scene event queue + post-auth drain pattern (if scenes are present)
 - [ ] Placeholder root until authorize (no full storyboard split/timeline graph pre-auth)
 - [ ] Root VC coordinator IUOs are optional (Dynamics Launcher may probe RVC early)
+- [ ] Post-auth root install wires coordinator **before** attaching `rootViewController`
 - [ ] Idle unlock: Phase 2 one-shot flag never cleared on `notAuthorized`; `start()` idempotent
 - [ ] Every background task / fetch handler

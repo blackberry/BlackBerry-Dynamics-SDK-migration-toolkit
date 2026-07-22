@@ -207,7 +207,7 @@
       "severity": "blocking",
       "sdkEvidence": "installed-sdk-headers",
       "provenanceRef": ["bb-api-ref", "installed-sdk-headers"],
-      "limitations": "DB path must resolve to a location inside the secure container. Function signatures mirror sqlite3 exactly.",
+      "limitations": "DB path must resolve inside the secure container. Call-site signatures mirror sqlite3, but ALL sqlite3_* symbols used with an encrypted handle must resolve from Dynamics SQLite — never system libsqlite3. Open-only bridges are insufficient.",
       "reportRequirements": "Report apisReplaced entry must reference this row ID."
     },
     {
@@ -215,15 +215,15 @@
       "domain": "secureSql",
       "nativeApi": "FMDB wrappers over sqlite3_open",
       "nativeHeaders": [],
-      "dynamicsReplacement": "Direct sqlite3enc_* migration or supported wrapper replacement",
-      "dynamicsHeaders": ["sqlite3enc.h"],
+      "dynamicsReplacement": "Direct sqlite3enc_* migration OR retain FMDB with full iOS Dynamics SQLite linkage (product dep + header redirect)",
+      "dynamicsHeaders": ["sqlite3.h", "sqlite3enc.h"],
       "languages": ["swift", "objc"],
       "tier": "tier2",
       "severity": "blocking",
       "sdkEvidence": "installed-sdk-headers",
       "provenanceRef": ["installed-sdk-headers"],
-      "limitations": "FMDB calls sqlite3_open internally unless explicitly reworked/forked.",
-      "reportRequirements": "Report should describe wrapper migration strategy and closure status."
+      "limitations": "FMDB calls sqlite3_open internally. Open-only sqlite3enc hooks while exec/prepare still use system libsqlite3 cause SIGSEGV. Required: iOS BlackBerryDynamics link + GD_C sqlite3/sqlite3enc headers for the FMDB module; macOS may keep system SQLite.",
+      "reportRequirements": "Report must describe wrapper migration strategy (replace vs full-linkage) and confirm iOS does not link system libsqlite3 for the SQL module."
     },
     {
       "id": "ios-storage-sql-003",

@@ -25,11 +25,19 @@ since SQLite files live in the secure container.
 
 | Standard SQLite | Dynamics Equivalent (Module Import) | Dynamics Equivalent (Header Import) | Notes |
 |----------------|-------------------------------------|--------------------------------------|-------|
-| `#include <sqlite3.h>` | `@import GD_C.SecureStore.SQLite;` | `#import <BlackBerryDynamics/GD_C/sqlite3enc.h>` | Encrypted SQLite header — use module import for CocoaPods |
+| `#include <sqlite3.h>` | `@import GD_C.SecureStore.SQLite;` | `#import <BlackBerryDynamics/GD_C/sqlite3.h>` + `sqlite3enc.h` | Encrypted SQLite headers — use module import for CocoaPods |
 | `sqlite3_open()` | `sqlite3enc_open()` | `sqlite3enc_open()` | Opens encrypted database |
 | `sqlite3_open_v2()` | `sqlite3enc_open_v2()` | Opens encrypted database (extended) |
-| `sqlite3_close()` | `sqlite3_close()` | Same API (close is not changed) |
-| All other `sqlite3_*` | Same | Prepare, step, finalize, bind, etc. are unchanged |
+| `sqlite3_close()` / `sqlite3_exec` / prepare / step / bind | Same **call-site shape** | Same **call-site shape** | **ABI invariant:** symbols must resolve from Dynamics SQLite, never system `/usr/lib/libsqlite3.dylib` |
+
+**CRITICAL — SQLite ABI / linkage invariant**: A Dynamics `sqlite3enc_open`
+handle is **not** interchangeable with system SQLite. If FMDB (or any
+wrapper) still links `/usr/lib/libsqlite3.dylib` for `sqlite3_exec` /
+`sqlite3_prepare_v2` / `sqlite3_step`, the app will `SIGSEGV` on the first
+post-auth open (typically right after activation unlock). Open-only
+function-pointer bridges (`sqlite3_open` → `sqlite3enc_open` while exec
+still comes from system SQLite) are **insufficient** and must not be marked
+`migrated`.
 
 ---
 
@@ -187,35 +195,63 @@ the Xcode project. This is NOT a manual step — complete it during migration:
 
 ## FMDB Migration
 
-If the app uses FMDB, the migration requires changing how the database
-is opened:
+If the app uses FMDB, **do not** stop at swapping the open call.
 
-### Before
+### Forbidden (causes device SIGSEGV)
 
-```swift
-let db = FMDatabase(path: databasePath)
-db.open()
-```
+- Installing only `sqlite3enc_open` via a function-pointer / open hook while
+  FMDB still links system `libsqlite3` for exec/prepare/step
+- Keeping `#include <sqlite3.h>` / `#include_next <sqlite3.h>` on iOS in the
+  FMDB/ObjC SQL module after adopting `sqlite3enc`
+- Marking `secureSql` `migrated` when the iOS binary still links
+  `/usr/lib/libsqlite3.dylib` for the SQL module
 
-### After
+### Canonical options
 
-FMDB uses `sqlite3_open` internally. To use encrypted SQLite with FMDB,
-you need to either:
+1. **Replace FMDB with direct `sqlite3enc` calls** (recommended for small
+   surfaces)
+2. **Keep FMDB, but link the entire ObjC SQL module to Dynamics SQLite on
+   iOS** (required for large FMDB codebases / shared SPM packages)
 
-1. **Use a custom FMDB build** that links against `sqlite3enc` instead
-   of `sqlite3`
-2. **Replace FMDB with direct `sqlite3enc` calls** (recommended for
-   simpler usage)
-3. **Wrap `sqlite3enc_open`** in an FMDB-compatible helper
+### Canonical FMDB + SPM pattern (iOS Dynamics / macOS system SQLite)
 
-Option 2 (recommended):
+When FMDB lives in a shared SPM package (cross-platform SQL module):
+
+1. `Package.swift` — add iOS-only `BlackBerryDynamics` product dependency;
+   link system `libsqlite3` **only** on macOS:
+   ```swift
+   // iOS
+   .product(name: "BlackBerryDynamics", package: "BlackBerry-Dynamics-iOS-SDK"),
+   // macOS only
+   .linkedLibrary("sqlite3", .when(platforms: [.macOS])),
+   ```
+2. Private ObjC header **beside** FMDB `.m` sources (not under public
+   `include/` unless the umbrella is updated in the same change):
+   ```objc
+   #if TARGET_OS_IOS
+   #import <BlackBerryDynamics/GD_C/sqlite3.h>
+   #import <BlackBerryDynamics/GD_C/sqlite3enc.h>
+   #else
+   #include_next <sqlite3.h>
+   #endif
+   ```
+3. Route FMDB open through `sqlite3enc_open` / `sqlite3enc_open_v2` on iOS
+   (relative container paths).
+4. Verify the built iOS framework links `@rpath/BlackBerryDynamics.framework`
+   and does **not** link system `libsqlite3`.
+
+**SPM header hygiene:** never drop a Dynamics SQL shim into
+`Sources/.../include/` without updating the umbrella header. Prefer a
+**private** header next to `FMDatabase.m` so `GD_C` does not leak into every
+ObjC SQL module consumer (umbrella/PCM failures).
+
+Option 1 (small surface — replace FMDB):
 
 ```swift
 // [BB_DYNAMICS-MIGRATION] Replaced FMDB with direct sqlite3enc calls
-// FMDB uses sqlite3_open internally which is not encrypted
 var db: OpaquePointer?
 sqlite3enc_open("database.db", &db)
-// Use sqlite3_prepare_v2, sqlite3_step, etc. directly
+// Use sqlite3_prepare_v2, sqlite3_step, etc. — all resolved via Dynamics headers
 ```
 
 ---
@@ -304,7 +340,14 @@ path resolution issues across SDK versions.
    databases, ensure all sensitive ones use `sqlite3enc_open`
 4. **FMDB/GRDB internal sqlite3_open** — these libraries call `sqlite3_open`
    internally; using them as-is bypasses encryption
-5. **"Unable to find module dependency: 'GD_C'" in Swift** — this occurs
+5. **Open-only sqlite3enc bridge + system libsqlite3** — `sqlite3enc_open`
+   succeeds, then `sqlite3_exec` / prepare from `/usr/lib/libsqlite3.dylib`
+   `SIGSEGV`s. Fix: link the SQL/FMDB module to BlackBerryDynamics on iOS and
+   redirect headers to `GD_C/sqlite3.h` + `sqlite3enc.h`
+6. **SPM public SQL shim not in umbrella** — header under `include/` without
+   umbrella update → Clang PCM / umbrella validation failure. Prefer private
+   headers beside `.m` sources
+7. **"Unable to find module dependency: 'GD_C'" in Swift** — this occurs
    when using `import GD_C.SecureStore.SQLite` in Swift with CocoaPods
    xcframework integration. `GD_C` is declared as `framework module GD_C`
    in the BlackBerryDynamics modulemap, but no standalone `GD_C.framework`

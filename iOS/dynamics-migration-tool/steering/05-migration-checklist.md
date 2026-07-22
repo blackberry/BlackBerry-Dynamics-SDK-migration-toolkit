@@ -82,15 +82,20 @@ Use this checklist to track migration progress. Each phase maps to a prompt.
 - [ ] Two-phase startup contract enforced (pre-auth UI shell only; no business/data init)
 - [ ] Scene event queue implemented and drained post-auth (if app uses scenes)
 - [ ] Swift `GDiOSDelegate` callback bridge to MainActor applied (if strict concurrency)
+- [ ] Post-auth root install wires coordinator **before** `rootViewController` attach
+- [ ] Storyboard/split root coordinators are optional (no IUO force-unwrap in status-bar paths)
 - [ ] No secure API access before authorization confirmed
 
 ## Phase 4: Secure SQL (Prompt 04, if applicable)
 
 - [ ] All `sqlite3_open()` calls replaced with `sqlite3enc_open()`
-- [ ] `#include <sqlite3.h>` replaced with `@import GD_C.SecureStore.SQLite;` (CocoaPods) or `#import <BlackBerryDynamics/GD_C/sqlite3enc.h>` (manual)
-- [ ] FMDB wrapper updated (if applicable)
-- [ ] GRDB wrapper updated (if applicable)
+- [ ] `#include <sqlite3.h>` replaced with `@import GD_C.SecureStore.SQLite;` (CocoaPods) or `#import <BlackBerryDynamics/GD_C/sqlite3.h>` + `sqlite3enc.h` (manual/SPM)
+- [ ] **ABI invariant:** iOS SQL/FMDB module links BlackBerryDynamics and does **not** link system `libsqlite3` for exec/prepare/step
+- [ ] FMDB open-only bridges rejected; full-linkage or direct `sqlite3enc` rewrite applied
+- [ ] SPM SQL shims are private headers (or umbrella updated in the same change)
+- [ ] GRDB wrapper blocked/replaced (if applicable)
 - [ ] Database access deferred to post-authorization
+- [ ] Phase 7 `check-sql-linkage.py` passes
 
 ## Phase 5: Secure Core Data (Prompt 04b, if applicable)
 
