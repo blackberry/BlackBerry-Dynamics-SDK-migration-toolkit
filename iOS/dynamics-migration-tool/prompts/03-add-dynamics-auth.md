@@ -435,14 +435,52 @@ Confirm Phase 2 bootstrap uses a flag separate from `isAuthorized` (e.g.
 `notAuthorized`. Re-auth must set `isAuthorized = true` and resume only.
 Service `start()` methods must not assert when already active.
 
+**Check 7 — Wire coordinator / dependencies BEFORE attaching root (mandatory)**
+When post-auth UI install creates a storyboard/split root that owns a
+coordinator (or similar dependency), **wire it before** assigning
+`window.rootViewController` / scene window root. Dynamics Launcher and
+UIKit may immediately probe `prefersStatusBarHidden` /
+`preferredStatusBarStyle` on attach; an IUO coordinator still nil will abort
+(`_swift_runtime_on_report`) right after activation unlock.
+
+```swift
+// PASS: wire, then attach
+let root = storyboard.instantiateInitialViewController() as! RootSplitViewController
+let coordinator = SceneCoordinator(splitViewController: root)
+root.coordinator = coordinator          // wire first
+root.loadViewIfNeeded()                 // optional: resolve columns safely
+window?.rootViewController = root       // attach only after wire
+
+// FAIL: attach before wire — Launcher probes status bar → nil IUO crash
+// window?.rootViewController = root
+// root.coordinator = SceneCoordinator(...)
+```
+
+Also make root VC coordinator properties **optional** (not `Type!`) with
+no-op status-bar paths when nil until post-auth install completes.
+
+**Check 8 — Status-bar / RVC IUOs are optional**
+Scan storyboard roots / split roots:
+
+```
+rg "prefersStatusBarHidden|preferredStatusBarStyle|coordinator!" \
+  --include="*.swift" -n
+```
+
+Any `coordinator!` (or equivalent) inside those overrides is a fail — use
+`coordinator?` / optional chaining.
+
 **Rollback instruction**: If the app crashes immediately after authorization
-changes (blank screen, `EXC_BAD_ACCESS`, or SDK lock screen stuck):
+changes (blank screen, `EXC_BAD_ACCESS`, Swift runtime abort on status bar,
+or SDK lock screen stuck):
 1. Revert only the window/rootViewController assignment in `onAuthorized`
 2. Verify `self.window?` is not nil at the point of assignment (use `guard`)
 3. Check that `UIMainStoryboardFile` was removed from Info.plist if present
 4. If using SceneDelegate, ensure `window` is bridged from scene to appDelegate
 5. If crash is on idle unlock, check whether Phase 2 re-ran `start()` on an
    already-active manager
+6. If crash is immediately after first activate during post-auth root install,
+   verify wire-before-attach and optional coordinators (Check 7 / 8)
 
 ---
 

@@ -466,6 +466,17 @@ status.
   as verified runtime evidence, `failed` as failed runtime evidence, and
   `blocked`/`pending`/`not-applicable` as unavailable or pending runtime
   verification with a concrete reason.
+- When `secureSql` and/or `authorization` are applicable and
+  `runtimeEvidenceStatus.runtimeVerification` is still `pending` /
+  `unavailable`:
+  - `releaseReadiness.recommendation` MUST NOT be `go`
+  - use `go-with-risks` or `no-go`
+  - document a **first Dynamics activate smoke** in
+    `runtimeEvidenceStatus.notes` and/or `releaseReadiness.blockingItems`
+    covering: post-auth root install (wire-before-attach / no IUO abort) and
+    first `sqlite3enc` open+exec (no system-`libsqlite3` SIGSEGV)
+  - prefer recording results into `output/runtime-evidence.json` tests
+    `runtime-authorization-001` and `runtime-secure-sql-001`
 - `uemAdminHandoff` must include `bundleIdentifier` (iOS-specific)
 - `uemAdminHandoff` must include `requiredPlistKeys` with completed/missing
   status for `GDApplicationID`, `GDApplicationVersion`, `CFBundleURLTypes`,

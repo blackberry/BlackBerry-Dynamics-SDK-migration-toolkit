@@ -140,14 +140,35 @@ with Dynamics encrypted SQLite because it calls `sqlite3_open` internally.
 
 ### 5. Handle FMDB (if applicable)
 
-FMDB calls `sqlite3_open` internally. Either:
-- Replace FMDB with direct `sqlite3enc` calls (recommended)
-- Or use a custom FMDB fork that links `sqlite3enc`
+FMDB calls `sqlite3_open` internally. **Open-only bridges are forbidden.**
 
-The FMDB → `sqlite3enc` replacement is high-effort: every `FMDatabase`,
-`FMResultSet`, and `FMDatabaseQueue` call needs a direct C equivalent.
-Flag as a manual migration task if the FMDB surface area is large (> 20
-call sites). Add to `manualTodos` in the migration report.
+Either:
+
+1. **Replace FMDB with direct `sqlite3enc` calls** (recommended for small
+   surfaces), **or**
+2. **Keep FMDB but link the entire ObjC SQL module to Dynamics SQLite on
+   iOS** (required for large FMDB / shared SPM SQL packages):
+   - Add iOS-only `BlackBerryDynamics` product dependency in that package’s
+     `Package.swift`
+   - Keep `.linkedLibrary("sqlite3")` **macOS-only**
+   - Redirect headers on iOS to
+     `#import <BlackBerryDynamics/GD_C/sqlite3.h>` + `sqlite3enc.h`
+   - Route FMDB open through `sqlite3enc_open` / `sqlite3enc_open_v2`
+   - Place SQL shims as **private** headers beside FMDB `.m` sources — do
+     **not** drop them under SPM `include/` unless the umbrella is updated
+     in the same change (avoids PCM / umbrella failures and GD module leak)
+
+Do **not** mark FMDB sites `migrated` if:
+- only the open path was redirected to `sqlite3enc_open`, or
+- the iOS SQL module still links system `libsqlite3`, or
+- `#include <sqlite3.h>` remains without Dynamics redirect on iOS
+
+The FMDB → direct `sqlite3enc` rewrite is high-effort for large surfaces
+(> 20 call sites). Prefer option 2 (full linkage) rather than leaving an
+open-only helper. GRDB remains unsupported (see 5a).
+
+Validator Phase `7-secure-sql-wrappers` runs `check-sql-linkage.py` and
+fails incomplete linkage even when FMDB lives under excluded library roots.
 
 ### 5a. Handle GRDB (if applicable)
 
@@ -247,10 +268,14 @@ Missing dispositions block recorder completion.
 Disposition rules for this prompt:
 - Every applicable `secureSql` call site must be updated.
 - `migrated` is valid only when the call site now uses `sqlite3enc_*`
-  (or has equivalent verified secure replacement evidence).
+  **and** all follow-on `sqlite3_*` symbols resolve from Dynamics SQLite on
+  iOS (headers + link). Open-only bridges are not `migrated`.
 - Wrapper-heavy sites (FMDB/GRDB/SQLite.swift/SQLCipher) that cannot be
   safely closed in this prompt must be explicit `blocked` with rationale;
   silent carry-forward is not allowed.
+- FMDB retained in-tree is `migrated` only with the full-linkage pattern in
+  `41-secure-storage-sql.md` (iOS BlackBerryDynamics product + header
+  redirect; macOS may keep system SQLite).
 - `blocked` and `deferred` are non-waivable for Prompt 04 completion.
 
 Prompt-scoped validation phases for this prompt are:
@@ -261,11 +286,13 @@ Prompt-scoped validation phases for this prompt are:
 ## Output
 
 - All `sqlite3_open` replaced with `sqlite3enc_open`
-- Header imports updated
+- Header imports updated (Dynamics SQLite on iOS for open **and** exec/prepare)
 - SQLite.swift replaced with raw C API and SPM dependency removed (if applicable)
-- FMDB/GRDB migration documented (if applicable)
-- SQLCipher removed (if applicable)
+- FMDB migrated via direct `sqlite3enc` **or** full iOS Dynamics linkage
+  (not open-only); SPM SQL shims are private headers unless umbrella updated
+- GRDB/SQLCipher handled per rules above
 - Old dependency fully removed from project files (not left as a manual TODO)
-- Build verification result
+- Build verification result (`xcodebuild` after SQL shim placement)
+- Phase 7 SQL linkage checker passes
 
 See `41-secure-storage-sql.md` for the full steering reference.

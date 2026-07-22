@@ -2821,10 +2821,16 @@ PY
         record_phase "7-secure-sql-wrappers"
         echo -e "${BOLD}Phase 7: Secure SQL / Wrapper Closure${NC}"
         run_storage_contract_check "sql" "SQL and wrapper closure"
-        if app_grep "sqlite3_open\(|sqlite3_open_v2\(|FMDB\|FMDatabase\|FMDatabaseQueue\|GRDB\|DatabaseQueue\|import SQLite\|SQLCipher\|sqlite3_key\|PRAGMA key" --include="*.swift" --include="*.m" --include="*.mm" --include="*.h" --include="*.c"; then
-            fail "Unmanaged SQL API/wrapper usage still detected (sqlite3/FMDB/GRDB/SQLite.swift/SQLCipher)"
+        # Unmanaged opens / unsupported wrappers. FMDB/FMDatabase retained under a
+        # Dynamics-linked module is allowed when check-sql-linkage.py passes —
+        # do not treat bare FMDB identifiers as an automatic fail.
+        if app_grep "sqlite3_open\(|sqlite3_open_v2\(|GRDB\|DatabaseQueue\|import SQLite\|SQLCipher\|sqlite3_key\|PRAGMA key" --include="*.swift" --include="*.m" --include="*.mm" --include="*.h" --include="*.c"; then
+            fail "Unmanaged SQL API/wrapper usage still detected (sqlite3_open/GRDB/SQLite.swift/SQLCipher)"
         else
-            pass "No unmanaged SQL/wrapper open paths detected"
+            pass "No unmanaged SQL open / unsupported wrapper paths detected"
+        fi
+        if app_grep "FMDatabase\|FMDatabaseQueue\|FMDB" --include="*.swift" --include="*.m" --include="*.mm" --include="*.h" --include="*.c"; then
+            warn "FMDB surface still present — require Dynamics SQLite full linkage (see Phase 7 ABI check); open-only sqlite3enc bridges are insufficient"
         fi
         if app_grep "sqlite3enc_open\|sqlite3enc_open_v2\|sqlite3enc\.h" --include="*.swift" --include="*.m" --include="*.mm" --include="*.h" --include="*.c"; then
             pass "Encrypted sqlite3enc APIs detected"
@@ -2839,6 +2845,26 @@ PY
         if app_grep "import GD_C\.SecureStore\.SQLite" --include="*.swift"; then
             warn "Swift direct import of GD_C.SecureStore.SQLite detected; verify compatibility with current integration mode"
         fi
+        # ABI / linkage invariant (scans Modules/SPM even when APP_EXCLUDE_ROOTS
+        # hides library trees from app_grep). Encrypted handles + system
+        # libsqlite3 → device SIGSEGV on sqlite3_exec.
+        local sql_link_out sql_link_rc
+        set +e
+        sql_link_out=$(python3 "$SCRIPT_DIR/lib/check-sql-linkage.py" --project-root "$PROJECT_ROOT" 2>/dev/null)
+        sql_link_rc=$?
+        set -e
+        if [[ -n "$sql_link_out" ]]; then
+            while IFS= read -r line; do
+                case "$line" in
+                    PASS:*) pass "${line#PASS:}" ;;
+                    WARN:*) warn "${line#WARN:}" ;;
+                    FAIL:*) fail "${line#FAIL:}" ;;
+                    SKIP:*) skip "${line#SKIP:}" ;;
+                esac
+            done <<< "$sql_link_out"
+        elif [[ "$sql_link_rc" -ne 0 ]]; then
+            warn "SQL linkage checker returned no output (rc=$sql_link_rc)"
+        fi
         echo ""
     fi
 
@@ -2846,7 +2872,7 @@ PY
         record_phase "5d-storage-final-closure"
         echo -e "${BOLD}Phase 5d: Storage Final Closure${NC}"
         run_storage_contract_check "final" "Final storage closure"
-        if app_grep "sqlite3_open\(|sqlite3_open_v2\(|FMDB\|GRDB\|import SQLite\|SQLCipher\|sqlite3_key" --include="*.swift" --include="*.m" --include="*.mm" --include="*.h" --include="*.c"; then
+        if app_grep "sqlite3_open\(|sqlite3_open_v2\(|GRDB\|import SQLite\|SQLCipher\|sqlite3_key" --include="*.swift" --include="*.m" --include="*.mm" --include="*.h" --include="*.c"; then
             fail "Storage final closure failed: unmanaged SQL surfaces still present"
         fi
         if app_grep "@Model\|ModelContainer\|ModelContext\|@Query\|#Predicate" --include="*.swift"; then
@@ -3474,6 +3500,32 @@ if share_in_project and not share_flagged and not mentions_share_extension(repor
     )
 elif share_in_project and not share_flagged:
     warnings.append("Share Extension in target-map should appear in report unsupportedFeatures")
+
+# First-activate / SQL runtime smoke: when secureSql or authorization is
+# applicable, pending runtime evidence cannot be "go" — require go-with-risks
+# or no-go and an explicit blocking/risk note about first Dynamics activate.
+runtime = report.get("runtimeEvidenceStatus") if isinstance(report.get("runtimeEvidenceStatus"), dict) else {}
+runtime_ver = str(runtime.get("runtimeVerification") or "").strip().lower()
+rr = report.get("releaseReadiness") if isinstance(report.get("releaseReadiness"), dict) else {}
+rec = str(rr.get("recommendation") or "").strip()
+needs_first_activate = bool({"secureSql", "authorization"} & applicable_domains)
+if needs_first_activate and runtime_ver in {"", "pending", "unavailable"}:
+    if rec == "go":
+        errors.append(
+            "secureSql/authorization applicable with runtimeVerification pending/unavailable: "
+            "releaseReadiness.recommendation cannot be 'go' until first Dynamics activate smoke "
+            "(post-auth root install + sqlite3enc open/exec) is recorded; use go-with-risks or no-go"
+        )
+    else:
+        notes = runtime.get("notes") if isinstance(runtime.get("notes"), list) else []
+        blocking = rr.get("blockingItems") if isinstance(rr.get("blockingItems"), list) else []
+        blob = " ".join(str(x) for x in list(notes) + list(blocking)).lower()
+        if "first" not in blob and "activat" not in blob and "runtime" not in blob and "device" not in blob:
+            warnings.append(
+                "secureSql/authorization applicable but runtimeVerification is pending/unavailable — "
+                "document first Dynamics activate smoke (root install + SQL open/exec) in "
+                "runtimeEvidenceStatus.notes or releaseReadiness.blockingItems"
+            )
 
 if errors:
     for e in errors:

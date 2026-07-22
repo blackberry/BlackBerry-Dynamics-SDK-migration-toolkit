@@ -95,6 +95,12 @@ STORED_PROP_SHARED_RE = re.compile(
     r"(?m)^[ \t]*(?:(?:public|internal|private|fileprivate|open)\s+)*(?:(?:lazy|weak|unowned)\s+)*"
     r"(?:let|var)\s+[A-Za-z_]\w*\s*(?::[^=\n]+)?=\s*[^\n]*\.shared\b"
 )
+CALLABLE_OR_ACCESSOR_START_RE = re.compile(
+    r"(?m)^[ \t]*(?:(?:public|internal|private|fileprivate|open|override|final|static|class)\s+)*"
+    r"(?:func|init|deinit|subscript)\b"
+    r"|^[ \t]*(?:(?:public|internal|private|fileprivate|open|override)\s+)*"
+    r"(?:var|let)\s+[A-Za-z_]\w*\s*(?::[^{=\n]+)?\s*\{"
+)
 UIKIT_TYPE_RE = re.compile(
     r"(?m)^\s*(?:(?:public|internal|private|fileprivate|open)\s+)*(?:final\s+)?"
     r"(?:class|struct)\s+([A-Za-z_]\w*)\s*:[^{]*\b(UIViewController|UIView|UITableViewCell|UICollectionViewCell)\b"
@@ -613,11 +619,29 @@ def link_shared_singleton_edges(symbols: Dict[str, Symbol]) -> None:
                     symbol.direct_edges.add(dest_id)
 
 
+def _is_inside_callable_or_accessor(stripped: str, pos: int) -> bool:
+    """True when pos sits inside a func/init/subscript or computed-property body.
+
+    Method-local `let x = Type.shared` must not be treated as a storyboard
+    stored-property hazard (false positive on deferred UIKit startups).
+    """
+    for match in CALLABLE_OR_ACCESSOR_START_RE.finditer(stripped):
+        if match.start() >= pos:
+            break
+        brace_open = stripped.find("{", match.end() - 1)
+        if brace_open == -1 or brace_open > pos:
+            continue
+        brace_close = find_matching_brace(stripped, brace_open)
+        if brace_close != -1 and brace_open < pos < brace_close:
+            return True
+    return False
+
+
 def collect_structural_hazards(
     file_data: Dict[str, Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
     """
-    NetNewsWire-class hazards that often bypass call-site inventory edges:
+    UIKit storyboard / early-attach hazards that often bypass call-site inventory edges:
     - UIViewController/UIView stored properties initialized via Type.shared
     - prefersStatusBarHidden / preferredStatusBarStyle force-unwrapping coordinators
     - try! on Dynamics/secure bootstrap APIs outside obvious auth handlers
@@ -662,6 +686,8 @@ def collect_structural_hazards(
             )
 
         for match in STORED_PROP_SHARED_RE.finditer(stripped):
+            if _is_inside_callable_or_accessor(stripped, match.start()):
+                continue
             line_no = line_for_pos(line_starts, match.start())
             in_uikit = False
             for tm in UIKIT_TYPE_RE.finditer(stripped):

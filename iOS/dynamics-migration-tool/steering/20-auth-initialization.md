@@ -533,6 +533,12 @@ asserts inside timeline VCs is not enough when the whole graph loads early.
 storyboard root that Dynamics may touch (`prefersStatusBarHidden`,
 `viewDidLoad`) must be optional and no-op when nil until post-auth install.
 
+**Wire before attach:** When installing the real root after
+`GDAppEventAuthorized`, assign coordinator / scene dependencies **before**
+setting `window.rootViewController`. Attaching first lets Dynamics Launcher
+or UIKit probe status-bar properties while the IUO is still nil → Swift
+runtime abort on first activate.
+
 Or for ObjC using `GDiOS.getWindow`:
 
 ```objc
@@ -604,6 +610,9 @@ whether that also needs deferral.
    the current RVC (`prefersStatusBarHidden`, etc.) before your
    `SceneCoordinator` exists. Use optional coordinators + placeholder root
    until first authorize.
+10. **Attach root before wiring coordinator** — setting
+    `window.rootViewController` and then assigning `root.coordinator`
+    races with Launcher/UIKit status-bar probes. Wire first, then attach.
 
 ---
 

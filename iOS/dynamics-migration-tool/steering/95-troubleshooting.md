@@ -28,15 +28,16 @@ Multi-target workspaces often embed a product on one target only.
    Dynamics frameworks and the app’s other embedded frameworks
 3. See Prompt 01 step **7a. Preserve Embed Frameworks**
 
-### Crash after validate pass — storyboard / idle unlock (NetNewsWire class)
+### Crash after validate pass — storyboard / idle unlock
 
 **Symptoms**: Full validate passes; app then crashes (a) on launch before
 authorize, (b) right after activation when Launcher attaches, or (c) after
 idle lock/unlock.
 
 **Typical causes**:
-1. Storyboard root / property initializers reach `AccountManager.shared` or
-   `try! GDFileManager` before `GDAppEventAuthorized`
+1. Storyboard root / property initializers reach a sensitive singleton
+   (for example `SessionManager.shared`) or `try! GDFileManager` before
+   `GDAppEventAuthorized`
 2. Dynamics Launcher probes RVC (`prefersStatusBarHidden`) while coordinator
    IUOs are still nil
 3. Idle unlock re-sends `authorized` and Phase 2 calls `start()` again on an
@@ -48,7 +49,7 @@ idle lock/unlock.
 3. Separate `didStartPostAuthorizationServices` one-shot flag from
    `isAuthorized`; never clear the one-shot on idle `notAuthorized`; make
    `start()` idempotent
-4. See `20-auth-initialization.md` Common Mistakes 7–9 and Prompt 03 Check 6
+4. See `20-auth-initialization.md` Common Mistakes 7–10 and Prompt 03 Checks 6–8
 
 ### Flutter app detected (out of scope this release)
 
@@ -550,6 +551,46 @@ Fix:
 - Using `sqlite3_open()` instead of `sqlite3enc_open()`
 - Database path not relative to secure container
 - Database access before authorization
+
+### SQLite / FMDB: SIGSEGV in `sqlite3_exec` after authorize (every launch)
+
+**Symptom:** Dynamics activation succeeds, then the first post-auth DB open
+crashes in `/usr/lib/libsqlite3.dylib` `sqlite3_exec` (often via FMDB
+`executeStatements` / `openAndSetUpDatabase`). Repeats on every launch until
+fixed.
+
+**Cause:** Open path used `sqlite3enc_open` (Dynamics), but FMDB/SQL module
+still linked system `libsqlite3` for exec/prepare/step. Encrypted handles are
+not ABI-compatible with system SQLite. Open-only function-pointer bridges are
+insufficient.
+
+**Fix:**
+1. Add iOS-only `BlackBerryDynamics` product dependency to the SQL/FMDB SPM
+   package / target
+2. Redirect headers to `#import <BlackBerryDynamics/GD_C/sqlite3.h>` +
+   `sqlite3enc.h` on iOS; keep system SQLite macOS-only if needed
+3. Confirm the built iOS framework links `@rpath/BlackBerryDynamics.framework`
+   and does **not** link system `libsqlite3`
+4. Prefer private ObjC headers beside FMDB `.m` sources (avoid public
+   `include/` without umbrella update)
+
+See `41-secure-storage-sql.md` and validator Phase 7 `check-sql-linkage.py`.
+
+### Auth: crash immediately after activation during post-auth root install
+
+**Symptom:** Swift runtime abort (`_swift_runtime_on_report`) on first
+Dynamics unlock while installing the real root VC.
+
+**Cause:** `window.rootViewController` assigned before wiring
+`coordinator` (IUO). Dynamics Launcher / UIKit probes
+`prefersStatusBarHidden` on attach.
+
+**Fix:**
+1. Make root VC coordinator optional; no-op status-bar paths when nil
+2. Wire coordinator **before** attaching root
+3. Optionally `loadViewIfNeeded()` after wire for safe column resolve
+
+See Prompt `03` Checks 7–8 and `20-auth-initialization.md`.
 
 ---
 

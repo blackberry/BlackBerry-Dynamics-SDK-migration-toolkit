@@ -51,7 +51,8 @@ https://docs.blackberry.com/en/blackberry-dynamics-sdk/15.x/blackberry-dynamics-
 |---|---|---|---|---|
 | Authorization | App launches and accesses secure data immediately | `GDiOS.authorize()` + defer to authorized callback | tier1 | Mandatory for all Dynamics apps |
 | Secure files | `FileManager`, `FileHandle`, stream file I/O for sensitive data | `GDFileManager`, `GDFileHandle`, `GDCReadStream`, `GDCWriteStream` | tier1 | Keep non-sensitive cache native if justified |
-| Secure SQLite | `sqlite3_open*` for sensitive DB | `sqlite3enc_open*` via `sqlite3enc.h` | tier1 | Paths must resolve inside secure container |
+| Secure SQLite | `sqlite3_open*` for sensitive DB | `sqlite3enc_open*` via Dynamics `sqlite3.h` + `sqlite3enc.h` (all `sqlite3_*` from Dynamics on iOS) | tier1 | Paths in secure container; never mix with system libsqlite3 |
+| FMDB | FMDB over `sqlite3_open` | Direct `sqlite3enc_*` **or** retain FMDB with full iOS Dynamics SQLite linkage | tier2 | Open-only bridges → SIGSEGV; see `41-secure-storage-sql.md` |
 | Secure Core Data | `NSPersistentStoreCoordinator` standard stack | `GDPersistentStoreCoordinator` | tier2 | Requires stack refactor, not pure import swap |
 | Secure networking (Foundation) | `URLSession`, `NSURLConnection` | Keep standard APIs; routed post-auth by `GDURLLoadingSystem` | tier1 | Do not replace with invented APIs; verify post-auth initiation |
 | Secure networking (direct sockets) | `NWConnection`, `CFSocket`, `NSStream`, `GCDAsyncSocket`, socket wrappers | `GDSocket` (or explicit blocker if safe migration cannot be proven) | tier1 | Host/port/TLS set in `GDSocket` init; `connect()` takes no args |

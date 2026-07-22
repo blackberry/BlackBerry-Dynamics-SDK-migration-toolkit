@@ -84,15 +84,46 @@ def template(platform: str, run_id: str) -> Dict[str, Any]:
                 "behavior": "authorization",
                 "status": "pending",
                 "preconditions": ["Device and UEM test environment available"],
-                "steps": ["Launch app", "Complete Dynamics authorization"],
-                "expectedResult": "App reaches authorized state without pre-auth secure API access.",
+                "steps": [
+                    "Launch app",
+                    "Complete Dynamics authorization / activation unlock",
+                    "Confirm post-auth root install (no crash on status-bar probe / nil coordinator IUO)",
+                ],
+                "expectedResult": (
+                    "App reaches authorized state; real root attaches after coordinator wire; "
+                    "no Swift runtime abort on prefersStatusBarHidden."
+                ),
                 "observedResult": "",
                 "evidenceReferences": [],
                 "timestamp": now_iso(),
                 "tester": {"type": "human", "name": ""},
                 "automationSource": None,
                 "blockerReason": "Not yet executed",
-            }
+            },
+            {
+                "testId": "runtime-secure-sql-001",
+                "behavior": "secure-storage",
+                "status": "pending",
+                "preconditions": [
+                    "Device/UEM available",
+                    "secureSql applicable (sqlite3enc / FMDB migration present)",
+                ],
+                "steps": [
+                    "Authorize once",
+                    "Trigger first post-auth database open (accounts / articles / error log)",
+                    "Force-quit and relaunch; authorize again",
+                ],
+                "expectedResult": (
+                    "Databases open via sqlite3enc without SIGSEGV in system libsqlite3 "
+                    "sqlite3_exec; no crash on subsequent launches."
+                ),
+                "observedResult": "",
+                "evidenceReferences": [],
+                "timestamp": now_iso(),
+                "tester": {"type": "human", "name": ""},
+                "automationSource": None,
+                "blockerReason": "Not yet executed — first-activate SQL smoke required when secureSql applicable",
+            },
         ],
     }
 
