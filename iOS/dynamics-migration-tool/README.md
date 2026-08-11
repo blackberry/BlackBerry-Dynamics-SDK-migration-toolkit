@@ -31,7 +31,7 @@ dynamics-migration-tool/
 │   ├── runtime-evidence.sh    # Structured runtime QA/UEM evidence helper
 │   ├── improvement-backlog.sh # Advisory learning-loop backlog helper
 │   ├── release-assessment.sh  # Benchmark/readiness assessment helper
-│   └── generate-tool-analysis-report.sh # Post-validation beta-feedback artifact generator
+│   └── generate-tool-analysis-report.sh # Post-validation toolkit-analysis artifact generator
 ├── migration-report-viewer.html # Visual HTML report viewer (auto-loads from output/)
 ├── output/                    # Generated migration report output directory
 │   └── migration-report.json  # Generated after running prompt 10

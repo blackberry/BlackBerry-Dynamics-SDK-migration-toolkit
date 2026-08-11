@@ -384,7 +384,7 @@ This writes:
 
 Purpose:
 - Capture migration friction/issues external developers hit while using the kit
-- Standardize beta feedback artifacts for maintainer triage
+- Standardize developer feedback artifacts for maintainer triage
 
 ---
 

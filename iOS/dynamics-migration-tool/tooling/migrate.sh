@@ -573,7 +573,7 @@ recorder-owned.
 Prompt 10 is the final acceptance gate. Follow prompt 10's order: write a
 schema-valid draft report after its prerequisite gate passes, run full
 validation, fix any failures with full-file overwrite, then record prompt 10
-completion. After prompt 10, generate the toolkit beta-feedback artifact with
+completion. After prompt 10, generate the toolkit analysis artifact with
 dynamics-migration-tool/tooling/generate-tool-analysis-report.sh.
 PROMPT
 }
@@ -641,6 +641,6 @@ echo -e "Record each prompt after validation with: ${BOLD}bash ./dynamics-migrat
 echo -e "  The recorder (record-prompt-execution.sh) is the only writer of bootstrap.json executedPrompts[]."
 echo -e "  It enforces prerequisite gates from check-prompt-map.json before marking a prompt complete."
 echo -e "Prompt 10 writes a schema-valid draft report, then runs full validation with: ${BOLD}bash ./dynamics-migration-tool/tooling/validate.sh${NC}"
-echo -e "Generate toolkit analysis report for beta feedback with: ${BOLD}bash ./dynamics-migration-tool/tooling/generate-tool-analysis-report.sh${NC}"
+echo -e "Generate toolkit analysis report for developer feedback with: ${BOLD}bash ./dynamics-migration-tool/tooling/generate-tool-analysis-report.sh${NC}"
 echo -e "  (writes dynamics-migration-tool/output/tool-analysis-report.json)"
 echo ""

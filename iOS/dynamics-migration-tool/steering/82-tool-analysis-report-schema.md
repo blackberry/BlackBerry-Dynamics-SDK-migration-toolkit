@@ -1,7 +1,7 @@
 # Steering: Toolkit Analysis Report Schema (Optional)
 
-This optional artifact is for internal migration-tool improvement during
-alpha/beta rollout.
+This optional artifact is for internal migration-tool improvement across
+active release cycles.
 
 Generate with:
 

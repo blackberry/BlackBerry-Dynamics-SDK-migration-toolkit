@@ -112,7 +112,7 @@ your-app-dynamics/
 │   │   ├── record-prompt-execution.sh # Records prompt completion (only writer of executedPrompts[])
 │   │   ├── bootstrap.sh        # Used by prompt 00pre
 │   │   ├── loop-state.sh       # Retry/escalation telemetry helper
-│   │   └── generate-tool-analysis-report.sh # Beta-feedback artifact generator
+│   │   └── generate-tool-analysis-report.sh # Toolkit-analysis artifact generator
 │   ├── schemas/                # JSON schemas for bootstrap, report, and related artifacts
 │   ├── migration-report-viewer.html # Visual HTML report viewer (auto-loads JSON)
 │   ├── output/                 # Generated artifacts (bootstrap, analysis, report, …)
@@ -222,7 +222,7 @@ state files or validator output to bypass a gate.
 Prompt 10 is the final acceptance gate. Follow prompt 10's order: write a
 schema-valid draft report after its prerequisite gate passes, run full
 validation, fix any failures with full-file overwrite, then record prompt 10
-completion. After prompt 10, generate the toolkit beta-feedback artifact with
+completion. After prompt 10, generate the toolkit analysis artifact with
 dynamics-migration-tool/tooling/generate-tool-analysis-report.sh.
 ```
 
@@ -251,7 +251,7 @@ Your AI agent will:
 8. Generate `dynamics-migration-tool/output/migration-report.json`
    (schema **v2.1.0**), run full validation, and record Prompt 10
 9. Optionally generate a retrospective (Prompt 12)
-10. Generate the toolkit analysis report for beta feedback
+10. Generate the toolkit analysis report for developer feedback
 
 You stay in control — your AI agent shows you what it's changing at each step,
 and you can accept, reject, or ask questions at any point.
@@ -328,7 +328,7 @@ Use this recovery path before re-running the whole migration:
 
 ---
 
-## Step 5b: Toolkit Analysis Report (Required for Beta Feedback)
+## Step 5b: Toolkit Analysis Report (Required for Developer Feedback)
 
 Immediately after validation, generate the internal-tooling feedback artifact:
 
@@ -443,7 +443,7 @@ chmod +x dynamics-migration-tool/tooling/*.sh \
 # 4. Full validation (if not already done in Prompt 10)
 ./dynamics-migration-tool/tooling/validate.sh
 
-# 4b. Generate toolkit analysis report (required for beta feedback)
+# 4b. Generate toolkit analysis report (required for developer feedback)
 bash ./dynamics-migration-tool/tooling/generate-tool-analysis-report.sh
 
 # 5. Review changes

@@ -16,7 +16,7 @@ Files:
   Requires `apisReplaced[].catalogRow` (referencing
   `contracts/api-catalog.v1.0.0.json`), plus top-level `runId` and
   `provenance`. This is the only migration-report schema bundled with
-  the Android toolkit (v2.0.0 was removed pre-GA).
+  the Android toolkit (v2.0.0 was removed before 1.0.0).
 - `module-map.schema.v1.0.0.json` — validates
   `dynamics-migration-tool/output/module-map.json` (the project-shape
   artifact emitted by `bootstrap.sh` and consumed by every prompt and
