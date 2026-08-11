@@ -968,7 +968,7 @@ and the `releaseReadiness.recommendation` must be `"no-go"`.
   storage count when `secureFileStorage` is deferred.
 - **Do NOT** describe a remaining external-storage write as
   "intentional export boundary, deferred" in `manualTodos[]`. That
-  phrasing was permitted by the 0.3.0-beta.1 tool and is the exact
+  phrasing was permitted by the 0.3.0 tool and is the exact
   failure mode that allowed public MediaStore / external-storage writes
   to ship under a "deferred export boundary" label. The
   current tool requires either elimination of the call-site or an

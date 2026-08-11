@@ -75,7 +75,7 @@ def _parse_iso(v):
         return None
 
 now = datetime.now(timezone.utc)
-# backgroundAuthorize is waivable from 0.3.0-beta.2 onward — Dynamics
+# backgroundAuthorize is waivable from 0.3.0 onward — Dynamics
 # SDK 14.1+ (including 15.0) made the API generally available but still opt-in at both
 # the app and UEM levels. Discovery (processModel.backgroundEntryPoints[])
 # produces CANDIDATES; prompt 03c captures per-candidate developer

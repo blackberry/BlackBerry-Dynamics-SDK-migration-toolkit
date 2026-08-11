@@ -610,7 +610,7 @@ fi
 
 # Reset security-blocker log at the start of each validation run so a prior
 # failed Phase 4 scan cannot leave stale rows that force a false no-go on
-# a later clean run (PassVault retrospective).
+# a later clean run.
 SEC_BLOCKERS_LOG="$TOOL_DIR/output/.security-blockers.log"
 mkdir -p "$TOOL_DIR/output" 2>/dev/null || true
 : > "$SEC_BLOCKERS_LOG" 2>/dev/null || true

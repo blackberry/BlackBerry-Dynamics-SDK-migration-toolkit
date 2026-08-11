@@ -2,19 +2,34 @@
 
 All notable changes that are part of public Android toolkit releases are
 documented in this file. Versioning follows
-[Semantic Versioning](https://semver.org/). Pre-release suffixes
-(`-beta.N`) track beta releases; the toolkit has not yet reached `1.0.0`.
+[Semantic Versioning](https://semver.org/). CI and Nexus publish build
+stamps as `MAJOR.MINOR.PATCH.<N>`, while the component line remains
+`MAJOR.MINOR.PATCH`.
 
-The toolkit has not been GA released; schema and CLI behavior may change
-between pre-release cuts. Run each toolkit version end-to-end against a
+Run each toolkit version end-to-end against a
 fresh project and avoid mid-run upgrades.
 
 ---
 
-## [0.1.0-beta.1] — 2026-07-14
+## [1.0.0] — 2026-08-10
 
-First public Android beta. Lockstep toolkit version with iOS
-(`0.1.0-beta.1`). Targets Dynamics SDK **15.0** (`15.0.8513.64`).
+General-availability release for the Android toolkit. Lockstep component
+version with iOS (`1.0.0`) targeting Dynamics SDK **15.0**
+(`15.0.8513.64`).
+
+### Changed
+
+- Promoted toolkit component versioning to the `1.0.0` line for production
+  release tracking (`1.0.0.<N>` in Jenkins/Nexus builds).
+- Removed legacy release framing from public migration guidance and
+  maintainer release documentation.
+
+---
+
+## [0.1.0] — 2026-07-14
+
+Initial public Android toolkit release. Targets Dynamics SDK **15.0**
+(`15.0.8513.64`).
 
 ### Added
 

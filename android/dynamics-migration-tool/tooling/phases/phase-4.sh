@@ -311,7 +311,7 @@ fi
 # audit-only and must NOT be able to silence a security blocker.
 # Annotating an external-storage line with the marker was the exact
 # workaround that allowed MediaStore / public-storage writes to ship
-# under a "deferred / export boundary" label in 0.3.0-beta.1 — that
+# under a "deferred / export boundary" label in 0.3.0 — that
 # suppression path is now closed for the externalStorage domain.
 
 # (a) High-level Android external-storage APIs — both writes and

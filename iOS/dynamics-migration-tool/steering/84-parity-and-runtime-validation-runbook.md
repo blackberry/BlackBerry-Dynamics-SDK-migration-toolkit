@@ -1,6 +1,6 @@
 # Steering: iOS Parity and Runtime Validation Runbook
 
-Use this runbook to execute remaining pre-release validation activities.
+Use this runbook to execute remaining release validation activities.
 
 ## Agent Parity Suite
 
