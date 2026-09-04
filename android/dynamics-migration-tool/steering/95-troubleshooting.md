@@ -766,6 +766,27 @@ to miss when a Java `TransferFileService` helper still owns the chooser.
 
 See `60-icc-transferfileservice.md` § "Compose-First Provider Chooser".
 
+### ClassCastException: GDAppCompatEditText cannot be cast to GDEditText
+
+**Symptoms**: Crash on inflating or binding an `<EditText>` (group-name
+dialog, PIN field, contact form). Stack includes `findViewById` or
+AndroidAnnotations `@ViewById`.
+
+**Cause**: The app theme sets `viewInflaterClass` to
+`GDAppCompatViewInflater`, so XML `<EditText>` becomes
+`GDAppCompatEditText`. That class does not extend `GDEditText`. Code
+that types or casts the view as `GDEditText` crashes.
+
+**Fix**: Bind inflated widgets as `EditText` / `TextView`. Keep
+`GDEditText` only for `new GDEditText(...)` or XML that uses the fully
+qualified `com.good.gd.widget.GDEditText` tag. Scan:
+
+```bash
+rg 'GDEditText' -g '*.java' -g '*.kt' -n
+```
+
+See `45-secure-ui-widgets.md` § "Do not cast inflated views to GDEditText".
+
 ### DLP Policies Not Enforced on System Copy/Paste Action Bar
 
 **Symptoms**: Programmatic clipboard operations are DLP-enforced (the

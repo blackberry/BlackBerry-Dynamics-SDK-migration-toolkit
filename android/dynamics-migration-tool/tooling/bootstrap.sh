@@ -476,20 +476,77 @@ if [ "$PROBE_OK" = true ]; then
     echo "7. Network probe (resolving Dynamics SDK via Gradle)"
     echo "-----------------------------------------"
     DEPS_LOG="$(mktemp -t bootstrap-deps.XXXXXX)"
-    # Prefer the primary-app-module dependencies path; fall back to :dependencies.
-    if ./gradlew "${GRADLE_PRIMARY_TARGET}:dependencies" --configuration debugRuntimeClasspath \
-            > "$DEPS_LOG" 2>&1; then
-        SDK_PROBE_COMMAND="./gradlew ${GRADLE_PRIMARY_TARGET}:dependencies --configuration debugRuntimeClasspath"
-        :
-    elif ./gradlew :dependencies --configuration debugRuntimeClasspath \
+    # Product-flavor apps do not expose plain debugRuntimeClasspath — they use
+    # <flavor>DebugRuntimeClasspath. Discover those configs, prefer ones matching
+    # the primary module name, then fall back to unflavored debugRuntimeClasspath
+    # and finally root :dependencies.
+    RUNTIME_CFG_INIT="$(mktemp -t bootstrap-runtime-cfgs.XXXXXX.gradle)"
+    cat > "$RUNTIME_CFG_INIT" <<'EOF'
+gradle.projectsEvaluated {
+    def target = System.getProperty('bootstrap.primaryTarget')
+    def p = (target == null || target.trim().isEmpty()) ? null : rootProject.findProject(target)
+    if (p == null) { println 'BOOTSTRAP_DEBUG_RUNTIME_CONFIGS='; return }
+    def names = p.configurations.names.findAll { it.endsWith('DebugRuntimeClasspath') }.sort()
+    println 'BOOTSTRAP_DEBUG_RUNTIME_CONFIGS=' + names.join(',')
+}
+EOF
+    RUNTIME_CFG_LIST="$(./gradlew -I "$RUNTIME_CFG_INIT" \
+        -Dbootstrap.primaryTarget="$GRADLE_PRIMARY_TARGET" \
+        help -q 2>/dev/null \
+        | sed -n 's/^BOOTSTRAP_DEBUG_RUNTIME_CONFIGS=//p' | tail -1 || true)"
+    rm -f "$RUNTIME_CFG_INIT"
+
+    CANDIDATE_CFGS=""
+    if [ -n "$RUNTIME_CFG_LIST" ]; then
+        IFS=',' read -r -a _discovered_cfgs <<< "$RUNTIME_CFG_LIST"
+        for _cfg in "${_discovered_cfgs[@]}"; do
+            case "$_cfg" in
+                "${PRIMARY_NAME}"DebugRuntimeClasspath|"${PRIMARY_NAME}"*DebugRuntimeClasspath)
+                    CANDIDATE_CFGS="${CANDIDATE_CFGS} ${_cfg}"
+                    ;;
+            esac
+        done
+        for _cfg in "${_discovered_cfgs[@]}"; do
+            case " ${CANDIDATE_CFGS} " in
+                *" ${_cfg} "*) ;;
+                *) CANDIDATE_CFGS="${CANDIDATE_CFGS} ${_cfg}" ;;
+            esac
+        done
+    fi
+    case " ${CANDIDATE_CFGS} " in
+        *" debugRuntimeClasspath "*) ;;
+        *) CANDIDATE_CFGS="${CANDIDATE_CFGS} debugRuntimeClasspath" ;;
+    esac
+
+    DEPS_RESOLVED=false
+    RESOLVED_RUNTIME_CFG=""
+    RESOLVE_SCOPE=""
+    for _cfg in $CANDIDATE_CFGS; do
+        if ./gradlew "${GRADLE_PRIMARY_TARGET}:dependencies" --configuration "$_cfg" \
+                > "$DEPS_LOG" 2>&1; then
+            SDK_PROBE_COMMAND="./gradlew ${GRADLE_PRIMARY_TARGET}:dependencies --configuration ${_cfg}"
+            RESOLVED_RUNTIME_CFG="$_cfg"
+            RESOLVE_SCOPE="module"
+            DEPS_RESOLVED=true
+            break
+        fi
+    done
+    if [ "$DEPS_RESOLVED" = false ] && ./gradlew :dependencies --configuration debugRuntimeClasspath \
             > "$DEPS_LOG" 2>&1; then
         SDK_PROBE_COMMAND="./gradlew :dependencies --configuration debugRuntimeClasspath"
-        :
-    else
+        RESOLVED_RUNTIME_CFG="debugRuntimeClasspath"
+        RESOLVE_SCOPE="root"
+        DEPS_RESOLVED=true
+    fi
+    if [ "$DEPS_RESOLVED" = false ]; then
         probe_fail "Gradle dependency resolution failed — last 30 lines below"
         echo "--- gradle output (tail) ---" >&2
         tail -30 "$DEPS_LOG" >&2
         echo "--- end gradle output ---" >&2
+    elif [ "$RESOLVE_SCOPE" = "root" ]; then
+        SDK_PROBE_COMMAND_DESCRIPTION="Resolved the Dynamics SDK from root project ${RESOLVED_RUNTIME_CFG} via Gradle."
+    elif [ -n "$RESOLVED_RUNTIME_CFG" ]; then
+        SDK_PROBE_COMMAND_DESCRIPTION="Resolved the Dynamics SDK from ${PRIMARY_NAME} ${RESOLVED_RUNTIME_CFG} via Gradle."
     fi
 
     if [ "$PROBE_OK" = true ]; then
@@ -497,7 +554,11 @@ if [ "$PROBE_OK" = true ]; then
             | sort -u | head -1 || true)"
         if [ -n "$RESOLVED_SDK_ARTIFACT" ]; then
             RESOLVED_SDK_VERSION="${RESOLVED_SDK_ARTIFACT##*:}"
-            SDK_PROBE_COMMAND_DESCRIPTION="Resolved Dynamics SDK $RESOLVED_SDK_VERSION from ${PRIMARY_NAME} debugRuntimeClasspath via Gradle."
+            if [ "$RESOLVE_SCOPE" = "root" ]; then
+                SDK_PROBE_COMMAND_DESCRIPTION="Resolved Dynamics SDK $RESOLVED_SDK_VERSION from root project ${RESOLVED_RUNTIME_CFG:-debugRuntimeClasspath} via Gradle."
+            else
+                SDK_PROBE_COMMAND_DESCRIPTION="Resolved Dynamics SDK $RESOLVED_SDK_VERSION from ${PRIMARY_NAME} ${RESOLVED_RUNTIME_CFG:-debugRuntimeClasspath} via Gradle."
+            fi
             probe_pass "Resolved Dynamics SDK: $RESOLVED_SDK_ARTIFACT"
         else
             probe_warn "No Dynamics artifact found in app runtimeClasspath yet (fresh project before prompt 01 is expected). Attempting bootstrap fallback resolver."

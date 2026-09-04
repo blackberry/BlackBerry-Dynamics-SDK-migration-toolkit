@@ -261,10 +261,36 @@ function row(label, value) {
     '<td style="padding:0.6rem 1rem;border-bottom:1px solid #eee;">'+value+'</td></tr>';
 }
 
+// Canonical lookup used by both platform viewers so a given JSON document
+// renders the same Run ID / Bootstrap Timestamp in either HTML file.
+// Real reports populate only one family:
+//   Android: top-level runId + provenance.bootstrapGeneratedAt
+//   iOS:     runProvenance.runId + runProvenance.bootstrapTimestamp
+// If both families are present, Android fields win.
+function resolveRunId(d) {
+  d = d || {};
+  var pv = d.provenance || {};
+  var rp = d.runProvenance || {};
+  return d.runId || pv.runId || rp.runId || '';
+}
+
+function resolveBootstrapTimestamp(d) {
+  d = d || {};
+  var pv = d.provenance || {};
+  var rp = d.runProvenance || {};
+  return pv.bootstrapGeneratedAt || rp.bootstrapTimestamp || '';
+}
+
 function renderReport(d) {
+  // Schema-tolerant on purpose: render known sections when present. Unlike
+  // the iOS viewer, this file does not reject reports whose schemaVersion
+  // is not exactly 2.1.0.
   document.getElementById('loadSection').style.display = 'none';
+  var runId = resolveRunId(d);
+  var bootstrapTs = resolveBootstrapTimestamp(d);
   var meta = document.getElementById('headerMeta');
   meta.innerHTML = (d.project ? esc(d.project.name) + ' &middot; ' + esc(d.project.package) : '') +
+    (runId ? ' &middot; Run ' + esc(runId) : '') +
     (d.generatedAt ? ' &middot; Generated ' + new Date(d.generatedAt).toLocaleString() : '') +
     (d.schemaVersion ? ' &middot; Schema v' + esc(d.schemaVersion) : '') +
     (d.toolkit && d.toolkit.version ? ' &middot; Toolkit v' + esc(d.toolkit.version) : '');
@@ -295,6 +321,18 @@ function renderReport(d) {
     html += summaryTile('Release Readiness', readinessBadge(d.releaseReadiness.recommendation || 'unknown'));
   }
   html += '</div>';
+
+  if (runId || bootstrapTs || d.toolkit) {
+    var tk = d.toolkit || {};
+    var provenance = '<table style="width:100%;border-collapse:collapse;">';
+    provenance += row('Run ID', '<code>' + esc(runId) + '</code>');
+    provenance += row('Bootstrap Timestamp', esc(bootstrapTs));
+    provenance += row('Toolkit Version', esc(tk.version || (d.provenance && d.provenance.toolkitVersion) || (d.runProvenance && d.runProvenance.toolkitVersion) || ''));
+    provenance += row('Toolkit Schema', esc(tk.reportSchemaVersion || ''));
+    if (d.provenance && d.provenance.catalogVersion) provenance += row('Catalog Version', esc(d.provenance.catalogVersion));
+    provenance += '</table>';
+    html += card('Run Provenance', provenance);
+  }
 
   // Coverage
   if (d.coverage) {

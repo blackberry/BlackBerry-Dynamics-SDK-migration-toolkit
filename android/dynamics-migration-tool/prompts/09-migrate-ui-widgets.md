@@ -322,9 +322,14 @@ common migration-kit gap — `validate.sh` Phase 8 flags remaining
 import android.widget.EditText;
 EditText passwordField = findViewById(R.id.passwordField);
 
-// After
+// After — if XML was changed to <com.good.gd.widget.GDEditText>
 import com.good.gd.widget.GDEditText;
 GDEditText passwordField = findViewById(R.id.passwordField);
+
+// After — if the theme uses GDAppCompatViewInflater (XML stays <EditText>)
+// GDAppCompatEditText does NOT extend GDEditText. Bind as EditText.
+import android.widget.EditText;
+EditText passwordField = findViewById(R.id.passwordField);
 ```
 
 ### Java — MaterialTextView → GDTextView (same pattern)

@@ -11,6 +11,16 @@ fresh project and avoid mid-run upgrades.
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- `migration-report-viewer.html` now renders **Run ID** and **Bootstrap Timestamp**
+  from Android report fields (`runId`, `provenance.bootstrapGeneratedAt`) instead
+  of looking only for the iOS `runProvenance` block (GD-69851).
+
+---
+
 ## [1.0.0] — 2026-08-10
 
 General-availability release for the Android toolkit. Lockstep component
