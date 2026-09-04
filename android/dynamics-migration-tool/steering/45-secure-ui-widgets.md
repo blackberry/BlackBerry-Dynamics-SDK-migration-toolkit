@@ -199,9 +199,14 @@ rg 'import\s+com\.google\.android\.material\.textview\.MaterialTextView\b' app/s
 EditText passwordField = (EditText) view.findViewById(R.id.passwordField);
 TextView dataView = (TextView) view.findViewById(R.id.sensitiveData);
 
-// NEW  
+// NEW — only if XML uses <com.good.gd.widget.GDEditText> / GDTextView
 GDEditText passwordField = (GDEditText) view.findViewById(R.id.passwordField);
 GDTextView dataView = (GDTextView) view.findViewById(R.id.sensitiveData);
+
+// NEW — if the theme uses GDAppCompatViewInflater (XML stays <EditText>)
+// GDAppCompatEditText does NOT extend GDEditText. Bind as EditText / TextView.
+EditText passwordField = view.findViewById(R.id.passwordField);
+TextView dataView = view.findViewById(R.id.sensitiveData);
 ```
 
 ### API Compatibility
@@ -295,6 +300,34 @@ at inflation time with their GDAppCompat equivalents:
 | `AutoCompleteTextView` | `GDAppCompatAutoCompleteTextView` |
 | `MultiAutoCompleteTextView` | `GDAppCompatMultiAutoCompleteTextView` |
 | `SearchView` | `GDAppCompatSearchView` |
+
+### IMPORTANT: Do not cast inflated views to `GDEditText` / `GDTextView`
+
+`GDAppCompatEditText` does **not** extend `GDEditText` (same for
+`GDAppCompatTextView` vs `GDTextView`). After `viewInflaterClass` is
+set, XML `<EditText>` inflates as `GDAppCompatEditText`. Binding or
+casting that view to `GDEditText` throws:
+
+```text
+java.lang.ClassCastException: com.good.gd.widget.GDAppCompatEditText
+    cannot be cast to com.good.gd.widget.GDEditText
+```
+
+Bind inflated views as the Android base type. DLP still applies because
+the inflater already substituted the widget:
+
+```java
+// WRONG — ClassCastException when viewInflaterClass is installed
+GDEditText nameField = view.findViewById(R.id.et_chat_name);
+
+// RIGHT
+EditText nameField = view.findViewById(R.id.et_chat_name);
+```
+
+Use `GDEditText` / `GDTextView` only for `new GDEditText(context)` or
+XML that names that class explicitly (not `<EditText>`). Scan for
+`(GDEditText)`, `@ViewById GDEditText`, and `as GDEditText` on inflated
+views.
 
 This approach is simpler than manual replacement and applies to ALL
 widgets of the covered types — which matches the all-or-nothing

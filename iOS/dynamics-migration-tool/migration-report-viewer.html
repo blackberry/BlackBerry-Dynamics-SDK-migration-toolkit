@@ -201,6 +201,26 @@ function row(label, value) {
     '<td style="padding:0.6rem 1rem;border-bottom:1px solid #eee;">'+value+'</td></tr>';
 }
 
+// Canonical lookup used by both platform viewers so a given JSON document
+// renders the same Run ID / Bootstrap Timestamp in either HTML file.
+// Real reports populate only one family:
+//   Android: top-level runId + provenance.bootstrapGeneratedAt
+//   iOS:     runProvenance.runId + runProvenance.bootstrapTimestamp
+// If both families are present, Android fields win.
+function resolveRunId(d) {
+  d = d || {};
+  var pv = d.provenance || {};
+  var rp = d.runProvenance || {};
+  return d.runId || pv.runId || rp.runId || '';
+}
+
+function resolveBootstrapTimestamp(d) {
+  d = d || {};
+  var pv = d.provenance || {};
+  var rp = d.runProvenance || {};
+  return pv.bootstrapGeneratedAt || rp.bootstrapTimestamp || '';
+}
+
 function renderReport(d) {
   document.getElementById('loadSection').style.display = 'none';
   if ((d.schemaVersion || '') !== '2.1.0') {
@@ -216,8 +236,10 @@ function renderReport(d) {
     return;
   }
   var meta = document.getElementById('headerMeta');
+  var runId = resolveRunId(d);
+  var bootstrapTs = resolveBootstrapTimestamp(d);
   meta.innerHTML = (d.project ? esc(d.project.name) + ' &middot; ' + esc(d.project.bundleIdentifier || d.project.package) : '') +
-    (d.runProvenance && d.runProvenance.runId ? ' &middot; Run ' + esc(d.runProvenance.runId) : '') +
+    (runId ? ' &middot; Run ' + esc(runId) : '') +
     (d.generatedAt ? ' &middot; Generated ' + new Date(d.generatedAt).toLocaleString() : '') +
     (d.schemaVersion ? ' &middot; Schema v' + esc(d.schemaVersion) : '') +
     (d.toolkit && d.toolkit.version ? ' &middot; Toolkit v' + esc(d.toolkit.version) : '');
@@ -249,13 +271,12 @@ function renderReport(d) {
   }
   html += '</div>';
 
-  if (d.runProvenance || d.toolkit) {
-    var rp = d.runProvenance || {};
+  if (runId || bootstrapTs || d.toolkit) {
     var tk = d.toolkit || {};
     var provenance = '<table style="width:100%;border-collapse:collapse;">';
-    provenance += row('Run ID', '<code>' + esc(rp.runId || '') + '</code>');
-    provenance += row('Bootstrap Timestamp', esc(rp.bootstrapTimestamp || ''));
-    provenance += row('Toolkit Version', esc((tk.version || rp.toolkitVersion || '')));
+    provenance += row('Run ID', '<code>' + esc(runId) + '</code>');
+    provenance += row('Bootstrap Timestamp', esc(bootstrapTs));
+    provenance += row('Toolkit Version', esc(tk.version || (d.runProvenance && d.runProvenance.toolkitVersion) || (d.provenance && d.provenance.toolkitVersion) || ''));
     provenance += row('Toolkit Schema', esc(tk.reportSchemaVersion || ''));
     provenance += '</table>';
     html += card('Run Provenance', provenance);
