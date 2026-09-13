@@ -125,6 +125,20 @@ For the other two, both must be acknowledged before proceeding.
 > "yes to all" question. The working-tree check in step 4 is a
 > **separate** decision and must NOT be silently rolled into this block.
 
+### 3b. Install model (mandate — not a bootstrap attestation)
+
+Tell the developer the following. Do **not** add a new
+`attestations.*` field or other unknown `bootstrap.json` key. Do **not**
+ask whether to preserve leftover on-device data.
+
+> This Dynamics conversion is always a **fresh install**
+> (`steering/18-fresh-dynamics-install.md`). The agent will replace
+> runtime storage APIs (SharedPreferences → secure container files,
+> SQLite → Dynamics SQLite, `java.io.File` → `com.good.gd.file.File`).
+> It will **not** copy SharedPreferences XML, SQLCipher databases, or
+> sandbox files from a previously installed non-Dynamics package. There
+> is no leftover-data transfer path in this kit.
+
 ### 4. Git Baseline and Working-Tree Check (Standalone — Not Part of Step 3 Bulk Block)
 
 The Android migration recorder depends on Git to compute validation deltas

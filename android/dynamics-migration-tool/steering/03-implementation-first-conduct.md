@@ -80,7 +80,8 @@ in order:
    domain's steering for an existing solution:
    - SQL → `templates/sql/raw/`, `templates/sql/room-bridge/`
    - SharedPreferences → `SecurePreferencesHelper` pattern in
-     `42-secure-storage-sharedpreferences.md`
+     `42-secure-storage-sharedpreferences.md`. Do **not** add
+     `SecurePrefsMigration` (`18-fresh-dynamics-install.md`).
    - Compose clipboard → `templates/clipboard/GDClipboardAdapter.kt`
    - Compose ICC chooser → `templates/icc/GDICCProviderShareDialog.kt`
    - Stream-layer reads/writes → the `SecureFileIO` helper pattern in

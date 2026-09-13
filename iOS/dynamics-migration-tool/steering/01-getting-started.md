@@ -34,7 +34,8 @@ APIs. This means:
 - `FileHandle` → `GDFileHandle` for encrypted file handle access
 - `NSPersistentStoreCoordinator` → `GDPersistentStoreCoordinator` for Core Data
 - `sqlite3_open()` → `sqlite3enc_open()` for raw SQLite
-- `UserDefaults` for sensitive data → secure file storage
+- `UserDefaults` for sensitive data → secure file storage (no leftover
+  UserDefaults copy; `18-fresh-dynamics-install.md`)
 
 ### Secure Networking
 
@@ -190,6 +191,8 @@ Before Prompt 10, review:
 - `12-capability-and-support-model.md` — canonical tier/support reference: app complexity tiers (A/B/C), domain support levels (1/2/3), capability matrix, and glossary
 - `13-unsupported-feature-detection-matrix.md` — what to flag as unsupported/partial
 - `14-api-provenance-and-replacement-catalog.md` — deterministic native-to-Dynamics mapping
+- `15-redundant-feature-removal.md` — features superseded by Dynamics
+- `18-fresh-dynamics-install.md` — mandate: a Dynamics conversion is always a fresh install; leftover-data transfer is out of scope
 - `16-supported-app-tiers.md` — *(redirect stub — merged into 12-capability-and-support-model.md)*
 - `81-migration-report-contract.md` — mandatory report quality gates
 - `82-tool-analysis-report-schema.md` — optional tool analysis report schema (internal feedback)

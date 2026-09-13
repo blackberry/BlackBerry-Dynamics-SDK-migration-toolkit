@@ -444,6 +444,9 @@ The Dynamics container encrypts all data at rest; running both is redundant and 
 SQLCipher passphrase may not be available before `onAuthorized()`.
 
 See `15-redundant-feature-removal.md` (Category 3) for the full SQLCipher removal procedure.
+A Dynamics conversion is always a fresh install
+(`18-fresh-dynamics-install.md`): remove SQLCipher and wire Dynamics
+SQLite. Do not add a rekey/copy helper.
 
 **Wire the factory unconditionally** after SQLCipher is removed:
 

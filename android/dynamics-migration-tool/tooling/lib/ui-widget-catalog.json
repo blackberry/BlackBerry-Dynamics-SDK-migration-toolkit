@@ -1,0 +1,317 @@
+{
+  "schemaVersion": "1.0.0",
+  "catalogVersion": "1.0.0",
+  "sdkVersionVerified": "15.0.8513.64",
+  "lastUpdated": "2026-09-10",
+  "provenance": {
+    "widgetPackageReference": "https://developer.blackberry.com/files/blackberry-dynamics/android/namespacecom_1_1good_1_1gd_1_1widget.html",
+    "clipboardReference": "https://developer.blackberry.com/files/blackberry-dynamics/android/classcom_1_1good_1_1gd_1_1content_1_1_clipboard_manager.html",
+    "uiRestrictionsReference": "https://developer.blackberry.com/files/blackberry-dynamics/android/_app_user_interface_restrictions.html",
+    "screenCaptureReference": "https://developer.blackberry.com/files/blackberry-dynamics/android/screencapturecontrol.html"
+  },
+  "lanes": {
+    "appcompat_inflater": {
+      "id": "appcompat_inflater",
+      "description": "Theme installs com.good.gd.app.GDAppCompatViewInflater. Keep standard/AppCompat XML tags, migrate custom class parents, and bind inflated views as Android base/AppCompat types."
+    },
+    "explicit_gd_widgets": {
+      "id": "explicit_gd_widgets",
+      "description": "No GDAppCompatViewInflater. Replace covered XML/programmatic widgets with explicit com.good.gd.widget.GD* classes and bind compatible GD types."
+    }
+  },
+  "replaceRows": [
+    {
+      "id": "widget-java-001",
+      "sourceKinds": [
+        "android.widget.EditText",
+        "EditText"
+      ],
+      "supportsInflaterLane": true,
+      "inflaterLaneReplacement": "com.good.gd.widget.GDAppCompatEditText",
+      "explicitLaneReplacement": "com.good.gd.widget.GDEditText",
+      "customParentReplacement": "com.good.gd.widget.GDAppCompatEditText",
+      "safeBindingTypes": [
+        "android.widget.EditText",
+        "android.view.View"
+      ]
+    },
+    {
+      "id": "widget-java-002",
+      "sourceKinds": [
+        "android.widget.TextView",
+        "TextView"
+      ],
+      "supportsInflaterLane": true,
+      "inflaterLaneReplacement": "com.good.gd.widget.GDAppCompatTextView",
+      "explicitLaneReplacement": "com.good.gd.widget.GDTextView",
+      "customParentReplacement": "com.good.gd.widget.GDAppCompatTextView",
+      "safeBindingTypes": [
+        "android.widget.TextView",
+        "android.view.View"
+      ]
+    },
+    {
+      "id": "widget-java-003",
+      "sourceKinds": [
+        "android.widget.AutoCompleteTextView",
+        "AutoCompleteTextView"
+      ],
+      "supportsInflaterLane": true,
+      "inflaterLaneReplacement": "com.good.gd.widget.GDAppCompatAutoCompleteTextView",
+      "explicitLaneReplacement": "com.good.gd.widget.GDAutoCompleteTextView",
+      "customParentReplacement": "com.good.gd.widget.GDAppCompatAutoCompleteTextView",
+      "safeBindingTypes": [
+        "android.widget.AutoCompleteTextView",
+        "android.view.View"
+      ]
+    },
+    {
+      "id": "widget-java-004",
+      "sourceKinds": [
+        "android.widget.MultiAutoCompleteTextView",
+        "MultiAutoCompleteTextView"
+      ],
+      "supportsInflaterLane": true,
+      "inflaterLaneReplacement": "com.good.gd.widget.GDAppCompatMultiAutoCompleteTextView",
+      "explicitLaneReplacement": "com.good.gd.widget.GDMultiAutoCompleteTextView",
+      "customParentReplacement": "com.good.gd.widget.GDAppCompatMultiAutoCompleteTextView",
+      "safeBindingTypes": [
+        "android.widget.MultiAutoCompleteTextView",
+        "android.view.View"
+      ]
+    },
+    {
+      "id": "widget-java-005",
+      "sourceKinds": [
+        "android.widget.SearchView",
+        "SearchView"
+      ],
+      "supportsInflaterLane": false,
+      "inflaterLaneReplacement": null,
+      "explicitLaneReplacement": "com.good.gd.widget.GDSearchView",
+      "customParentReplacement": "com.good.gd.widget.GDSearchView",
+      "safeBindingTypes": [
+        "com.good.gd.widget.GDSearchView",
+        "android.widget.SearchView",
+        "android.view.View"
+      ],
+      "notes": "Naked <SearchView> is not substituted by GDAppCompatViewInflater. Use androidx.appcompat.widget.SearchView in AppCompat XML."
+    },
+    {
+      "id": "widget-java-006",
+      "sourceKinds": [
+        "androidx.appcompat.widget.SearchView"
+      ],
+      "supportsInflaterLane": true,
+      "inflaterLaneReplacement": "com.good.gd.widget.GDAppCompatSearchView",
+      "explicitLaneReplacement": "com.good.gd.widget.GDAppCompatSearchView",
+      "customParentReplacement": "com.good.gd.widget.GDAppCompatSearchView",
+      "safeBindingTypes": [
+        "androidx.appcompat.widget.SearchView",
+        "android.view.View"
+      ]
+    },
+    {
+      "id": "widget-java-007",
+      "sourceKinds": [
+        "androidx.appcompat.widget.AppCompatEditText"
+      ],
+      "supportsInflaterLane": true,
+      "inflaterLaneReplacement": "com.good.gd.widget.GDAppCompatEditText",
+      "explicitLaneReplacement": "com.good.gd.widget.GDAppCompatEditText",
+      "customParentReplacement": "com.good.gd.widget.GDAppCompatEditText",
+      "safeBindingTypes": [
+        "androidx.appcompat.widget.AppCompatEditText",
+        "android.widget.EditText",
+        "android.view.View"
+      ]
+    },
+    {
+      "id": "widget-java-008",
+      "sourceKinds": [
+        "androidx.appcompat.widget.AppCompatTextView"
+      ],
+      "supportsInflaterLane": true,
+      "inflaterLaneReplacement": "com.good.gd.widget.GDAppCompatTextView",
+      "explicitLaneReplacement": "com.good.gd.widget.GDAppCompatTextView",
+      "customParentReplacement": "com.good.gd.widget.GDAppCompatTextView",
+      "safeBindingTypes": [
+        "androidx.appcompat.widget.AppCompatTextView",
+        "android.widget.TextView",
+        "android.view.View"
+      ]
+    },
+    {
+      "id": "widget-java-009",
+      "sourceKinds": [
+        "android.widget.CheckedTextView",
+        "CheckedTextView",
+        "androidx.appcompat.widget.AppCompatCheckedTextView"
+      ],
+      "supportsInflaterLane": true,
+      "inflaterLaneReplacement": "com.good.gd.widget.GDAppCompatCheckedTextView",
+      "explicitLaneReplacement": "com.good.gd.widget.GDAppCompatCheckedTextView",
+      "customParentReplacement": "com.good.gd.widget.GDAppCompatCheckedTextView",
+      "safeBindingTypes": [
+        "androidx.appcompat.widget.AppCompatCheckedTextView",
+        "android.widget.CheckedTextView",
+        "android.view.View"
+      ]
+    },
+    {
+      "id": "widget-java-010",
+      "sourceKinds": [
+        "androidx.appcompat.widget.AppCompatAutoCompleteTextView"
+      ],
+      "supportsInflaterLane": true,
+      "inflaterLaneReplacement": "com.good.gd.widget.GDAppCompatAutoCompleteTextView",
+      "explicitLaneReplacement": "com.good.gd.widget.GDAppCompatAutoCompleteTextView",
+      "customParentReplacement": "com.good.gd.widget.GDAppCompatAutoCompleteTextView",
+      "safeBindingTypes": [
+        "androidx.appcompat.widget.AppCompatAutoCompleteTextView",
+        "android.widget.AutoCompleteTextView",
+        "android.view.View"
+      ]
+    },
+    {
+      "id": "widget-java-011",
+      "sourceKinds": [
+        "androidx.appcompat.widget.AppCompatMultiAutoCompleteTextView"
+      ],
+      "supportsInflaterLane": true,
+      "inflaterLaneReplacement": "com.good.gd.widget.GDAppCompatMultiAutoCompleteTextView",
+      "explicitLaneReplacement": "com.good.gd.widget.GDAppCompatMultiAutoCompleteTextView",
+      "customParentReplacement": "com.good.gd.widget.GDAppCompatMultiAutoCompleteTextView",
+      "safeBindingTypes": [
+        "androidx.appcompat.widget.AppCompatMultiAutoCompleteTextView",
+        "android.widget.MultiAutoCompleteTextView",
+        "android.view.View"
+      ]
+    },
+    {
+      "id": "widget-java-012",
+      "sourceKinds": [
+        "com.google.android.material.textview.MaterialTextView"
+      ],
+      "supportsInflaterLane": true,
+      "inflaterLaneReplacement": "com.good.gd.widget.GDAppCompatTextView",
+      "explicitLaneReplacement": "com.good.gd.widget.GDTextView",
+      "customParentReplacement": null,
+      "safeBindingTypes": [
+        "android.widget.TextView",
+        "androidx.appcompat.widget.AppCompatTextView",
+        "android.view.View"
+      ],
+      "notes": "Inflater lane should normalize XML tag to TextView so GDAppCompatViewInflater can substitute."
+    },
+    {
+      "id": "widget-java-013",
+      "sourceKinds": [
+        "com.google.android.material.textfield.TextInputEditText"
+      ],
+      "supportsInflaterLane": true,
+      "inflaterLaneReplacement": "com.good.gd.widget.GDTextInputEditText",
+      "explicitLaneReplacement": "com.good.gd.widget.GDTextInputEditText",
+      "customParentReplacement": "com.good.gd.widget.GDTextInputEditText",
+      "safeBindingTypes": [
+        "com.google.android.material.textfield.TextInputEditText",
+        "android.widget.EditText",
+        "android.view.View"
+      ],
+      "notes": "Must remain inside TextInputLayout parent."
+    }
+  ],
+  "keepNativeRows": [
+    {
+      "id": "keep-native-001",
+      "widgets": [
+        "android.widget.Button",
+        "android.widget.ImageButton",
+        "android.widget.CheckBox",
+        "android.widget.RadioButton",
+        "android.widget.Switch",
+        "android.widget.ToggleButton",
+        "androidx.appcompat.widget.SwitchCompat",
+        "com.google.android.material.button.MaterialButton",
+        "com.google.android.material.button.MaterialButtonToggleGroup",
+        "com.google.android.material.chip.Chip",
+        "com.google.android.material.chip.ChipGroup"
+      ],
+      "reason": "No Dynamics secure widget equivalent in SDK 15."
+    },
+    {
+      "id": "keep-native-002",
+      "widgets": [
+        "com.google.android.material.textfield.TextInputLayout",
+        "com.google.android.material.textfield.MaterialAutoCompleteTextView",
+        "ExposedDropdownMenu"
+      ],
+      "reason": "Only TextInputEditText has a Dynamics equivalent (GDTextInputEditText). ExposedDropdownMenu stays Material."
+    },
+    {
+      "id": "keep-native-003",
+      "widgets": [
+        "androidx.preference.EditTextPreference",
+        "androidx.preference.Preference",
+        "androidx.preference.PreferenceFragmentCompat"
+      ],
+      "reason": "No public GDEditTextPreference class in SDK 15.0.8513.64."
+    },
+    {
+      "id": "keep-native-004",
+      "widgets": [
+        "androidx.compose.material.Text",
+        "androidx.compose.material.TextField",
+        "androidx.compose.material.OutlinedTextField",
+        "androidx.compose.foundation.text.BasicTextField",
+        "androidx.compose.material3.Text",
+        "androidx.compose.material3.TextField",
+        "androidx.compose.material3.OutlinedTextField"
+      ],
+      "reason": "No Compose-native Dynamics widget equivalents. Migrate clipboard paths only."
+    }
+  ],
+  "programmaticConstructors": {
+    "inflaterLane": {
+      "TextView": "com.good.gd.widget.GDAppCompatTextView",
+      "EditText": "com.good.gd.widget.GDAppCompatEditText",
+      "CheckedTextView": "com.good.gd.widget.GDAppCompatCheckedTextView",
+      "AutoCompleteTextView": "com.good.gd.widget.GDAppCompatAutoCompleteTextView",
+      "MultiAutoCompleteTextView": "com.good.gd.widget.GDAppCompatMultiAutoCompleteTextView",
+      "SearchView": "com.good.gd.widget.GDAppCompatSearchView",
+      "TextInputEditText": "com.good.gd.widget.GDTextInputEditText"
+    },
+    "explicitLane": {
+      "TextView": "com.good.gd.widget.GDTextView",
+      "EditText": "com.good.gd.widget.GDEditText",
+      "CheckedTextView": "com.good.gd.widget.GDAppCompatCheckedTextView",
+      "AutoCompleteTextView": "com.good.gd.widget.GDAutoCompleteTextView",
+      "MultiAutoCompleteTextView": "com.good.gd.widget.GDMultiAutoCompleteTextView",
+      "SearchView": "com.good.gd.widget.GDSearchView",
+      "TextInputEditText": "com.good.gd.widget.GDTextInputEditText"
+    }
+  },
+  "inventoryKinds": [
+    "TextInputEditText",
+    "AppCompatMultiAutoCompleteTextView",
+    "AppCompatAutoCompleteTextView",
+    "AppCompatCheckedTextView",
+    "CheckedTextView",
+    "AppCompatSearchView",
+    "AppCompatEditText",
+    "AppCompatTextView",
+    "MultiAutoCompleteTextView",
+    "AutoCompleteTextView",
+    "MaterialTextView",
+    "SearchView",
+    "EditText",
+    "TextView"
+  ],
+  "hardRules": [
+    "Do not rewrite project FQCN custom XML tags to GD widgets. Migrate the custom class parent.",
+    "Do not mix inflater lane with explicit GDTextView/GDEditText XML tags in the same app.",
+    "In AppCompat inflater lane, naked <SearchView> is unsupported: use androidx.appcompat.widget.SearchView tag.",
+    "setOnReceiveContentListener is unsupported on GD widgets.",
+    "WebView migration is owned by prompt 07 and targets com.blackberry.bbwebview.BBWebView."
+  ]
+}

@@ -330,24 +330,24 @@
     {
       "id": "widget-java-001",
       "sourceApi": "android.widget.EditText",
-      "dynamicsApi": "com.good.gd.widget.GDEditText",
+      "dynamicsApi": "Lane A (AppCompat inflater): com.good.gd.widget.GDAppCompatEditText; Lane B (explicit): com.good.gd.widget.GDEditText",
       "domain": "secureUiWidgets",
       "tier": "tier2",
       "supportStatus": "supported",
       "docUrl": "https://developers.blackberry.com/us/en/resources/api-reference.html",
       "samplePath": null,
-      "notes": "Every covered call site, not just sensitive ones — see 45-secure-ui-widgets.md. Custom subclasses often manual."
+      "notes": "Lane-aware migration. In inflater lane bind as EditText, not GDEditText."
     },
     {
       "id": "widget-java-002",
       "sourceApi": "android.widget.TextView / MaterialTextView",
-      "dynamicsApi": "com.good.gd.widget.GDTextView",
+      "dynamicsApi": "Lane A (AppCompat inflater): com.good.gd.widget.GDAppCompatTextView (normalize MaterialTextView tag to TextView); Lane B (explicit): com.good.gd.widget.GDTextView",
       "domain": "secureUiWidgets",
       "tier": "tier2",
       "supportStatus": "supported",
       "docUrl": "https://developers.blackberry.com/us/en/resources/api-reference.html",
       "samplePath": null,
-      "notes": "Every covered call site. MaterialTextView requires Java/Kotlin binding type to change to GDTextView."
+      "notes": "Do not cast inflater-lane bindings to GDTextView. MaterialTextView mismatches are runtime ClassCastException risks."
     },
     {
       "id": "widget-java-003",
@@ -374,13 +374,13 @@
     {
       "id": "widget-java-005",
       "sourceApi": "android.widget.SearchView / androidx.appcompat.widget.SearchView",
-      "dynamicsApi": "com.good.gd.widget.GDSearchView / com.good.gd.widget.GDAppCompatSearchView",
+      "dynamicsApi": "android.widget.SearchView -> com.good.gd.widget.GDSearchView; androidx.appcompat.widget.SearchView -> com.good.gd.widget.GDAppCompatSearchView",
       "domain": "secureUiWidgets",
       "tier": "tier2",
       "supportStatus": "supported",
       "docUrl": "https://developers.blackberry.com/us/en/resources/api-reference.html",
       "samplePath": null,
-      "notes": "Pick the AppCompat variant if app uses AppCompat-themed activities"
+      "notes": "In AppCompat inflater lane, XML must use full androidx.appcompat.widget.SearchView tag."
     },
     {
       "id": "widget-java-006",
@@ -438,15 +438,37 @@
       "notes": null
     },
     {
+      "id": "widget-java-011",
+      "sourceApi": "com.google.android.material.textfield.TextInputEditText",
+      "dynamicsApi": "com.good.gd.widget.GDTextInputEditText",
+      "domain": "secureUiWidgets",
+      "tier": "tier2",
+      "supportStatus": "supported",
+      "docUrl": "https://developer.blackberry.com/files/blackberry-dynamics/android/namespacecom_1_1good_1_1gd_1_1widget.html",
+      "samplePath": null,
+      "notes": "Lane A: GDAppCompatViewInflater substitutes TextInputEditText. Lane B: replace explicitly. Parent remains TextInputLayout."
+    },
+    {
       "id": "clipboard-java-001",
       "sourceApi": "android.content.ClipboardManager",
       "dynamicsApi": "com.good.gd.content.ClipboardManager",
-      "domain": "secureUiWidgets",
+      "domain": "secureClipboard",
       "tier": "tier2",
       "supportStatus": "supported",
       "docUrl": "https://developers.blackberry.com/us/en/resources/api-reference.html",
       "samplePath": null,
       "notes": "DLP checks mandatory"
+    },
+    {
+      "id": "clipboard-java-004",
+      "sourceApi": "View.startDragAndDrop / startDrag carrying app ClipData payload",
+      "dynamicsApi": "com.good.gd.content.ClipboardManager.startDragAndDrop(...) and getClipData(DragEvent)",
+      "domain": "secureClipboard",
+      "tier": "tier2",
+      "supportStatus": "supported",
+      "docUrl": "https://developer.blackberry.com/files/blackberry-dynamics/android/classcom_1_1good_1_1gd_1_1content_1_1_clipboard_manager.html",
+      "samplePath": null,
+      "notes": "Route app drag/drop payload through Dynamics clipboard to preserve DLP handling."
     },
     {
       "id": "clipboard-compose-001",

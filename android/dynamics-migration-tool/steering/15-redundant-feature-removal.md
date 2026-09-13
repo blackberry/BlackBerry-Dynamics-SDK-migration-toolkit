@@ -221,14 +221,10 @@ During Prompt 00 analysis, flag:
    enable/disable database encryption, remove it (Dynamics always
    encrypts)
 
-7. **Handle data migration** — if the app has existing SQLCipher-encrypted
-   data on user devices, you need a one-time migration:
-   - Open the old database with SQLCipher (using the stored passphrase)
-   - Export data
-   - Import into the new Dynamics-encrypted database
-   - Delete the old encrypted database file
-   - This migration must happen after `onAuthorized()` since it needs
-     both the old passphrase and the Dynamics container to be unlocked
+7. **Do not copy leftover SQLCipher data** — a Dynamics conversion is
+   always a fresh install (`18-fresh-dynamics-install.md`). Remove
+   SQLCipher and open Dynamics SQLite. Do **not** invent an export/import
+   helper for a previous installation's database.
 
 ### Migration Comment
 

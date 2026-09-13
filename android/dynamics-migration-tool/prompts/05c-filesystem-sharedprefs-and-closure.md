@@ -29,12 +29,15 @@ well-defined, mechanical migration:
 1. **Create `SecurePreferencesHelper`** (or equivalent) using
    `com.good.gd.file.FileOutputStream` / `FileInputStream` to read and
    write key-value pairs under a `secure_prefs/` directory in the GD
-   container. See the full template in
-   `steering/42-secure-storage-sharedpreferences.md`.
-2. **Create `SecurePrefsMigration`** — a one-time migration helper
-   called from `onAuthorized()` that copies legacy values from
-   `SharedPreferences` into secure storage and removes them from the
-   legacy store.
+   container. **Copy** `templates/file/SecurePreferencesHelper.kt` (or
+   follow `steering/42-secure-storage-sharedpreferences.md`). The helper
+   **must** fail-closed on `GDNotAuthorizedError` (reads return empty
+   without caching; writes are no-ops). Do not gate helper I/O on
+   `isContainerAuthorized` — idle lock is not the same as unauthorized.
+2. **Do not create `SecurePrefsMigration`.** A Dynamics conversion is
+   always a fresh install (`steering/18-fresh-dynamics-install.md`).
+   There is no leftover-data transfer path. If such a helper already
+   exists, delete it.
 3. **Replace all steady-state reads and writes**
    from `getSharedPreferences(...)` / `PreferenceManager` /
    `EncryptedSharedPreferences` to `SecurePreferencesHelper`.
@@ -59,17 +62,21 @@ Any read/write through `SecurePreferencesHelper` (or equivalent
 `com.good.gd.file.*` prefs storage) on those paths must be deferred with
 `runOnAuthorized(...)`, `authorized.observe(...)`, or
 `isContainerAuthorized` — the same two-phase rule as Room/file access.
-Leaving prefs I/O in Phase 1 causes `GDNotAuthorizedError` on cold start.
-Phase 11 enforces `[AUTH-PREF-001]`.
+This includes Kotlin property getters (`preferences.theme.value`,
+`isLockEnabled`) and `object` helper calls (`SecurePreferencesHelper.getString`)
+with no constructor parentheses. Leaving prefs I/O in Phase 1 causes
+`GDNotAuthorizedError` on cold start. Helper-level fail-closed is
+defense in depth; it does not replace call-site deferral (otherwise
+defaults get cached as stored values). Phase 11 enforces `[AUTH-PREF-001]`.
 
 Requirements:
 
 - provide both write and read secure implementations
-- include one-time upgrade migration from existing SharedPreferences values
+- do **not** add a leftover SharedPreferences copy helper
+  (`steering/18-fresh-dynamics-install.md`)
 - remove `EncryptedSharedPreferences` for data-at-rest use cases (redundant)
-- after migration, legacy `SharedPreferences` access may remain only in the
-  explicit one-time upgrade helper; steady-state runtime code must
-  read and write via secure storage instead
+- after migration, steady-state runtime code must read and write via
+  secure storage; **zero** SharedPreferences call sites may remain
 
 ### 2. Final Domain Completeness Review
 
@@ -104,10 +111,9 @@ full-file overwrite.
 For `SharedPreferences`-backed call sites, `status: "migrated"` is allowed
 **only** when the original steady-state runtime path no longer uses
 `getSharedPreferences(...)`, `PreferenceManager.getDefaultSharedPreferences()`,
-or `EncryptedSharedPreferences`. A one-time migration helper may still read the
-legacy store, but the active runtime path must now go
-through secure storage. Do not mark a call site `migrated` just because it was
-reviewed or added to the ledger.
+or `EncryptedSharedPreferences`. That means **zero** SharedPreferences
+call sites. Do not add a leftover-data copy helper. Do not mark a call
+site `migrated` just because it was reviewed or added to the ledger.
 
 Required field names (matched by `record-prompt-execution.sh` and the
 bundled schema
@@ -199,11 +205,9 @@ PY
 ```
 
 Before recording completion, manually verify every
-`SharedPreferences` call site is either:
-
-- removed from the steady-state runtime path, or
-- isolated to a one-time migration helper that copies legacy values into
-  secure storage and deletes them from `SharedPreferences`
+`SharedPreferences` call site is removed from the runtime path.
+Do not isolate leftover reads in a copy helper
+(`steering/18-fresh-dynamics-install.md`).
 
 Before invoking the recorder below, run the scoped diagnostic for prompt 05c
 (Phase 4 + Phase 10 API audit). If it reports remnants such as "External
@@ -246,7 +250,7 @@ Do not proceed to ICC or prompt 10 while treating independent-evidence inventory
 ## Output
 
 - SharedPreferences migration summary
-- One-time migration path summary
+- Confirmation that leftover-data copy helpers were not added (`18-fresh-dynamics-install.md`)
 - **`dynamics-migration-tool/output/migration-plan-state.json` updated**
   with the canonical top-level shape (`schemaVersion`, `runId`,
   `egressFeatureDecisions[]`, `dispositions[]`) and merged

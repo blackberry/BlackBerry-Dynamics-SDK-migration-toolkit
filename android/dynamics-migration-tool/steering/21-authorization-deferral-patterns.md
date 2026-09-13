@@ -466,10 +466,11 @@ fun Context.getPrivateDataDirectory(): File {
 
 ### Key Points
 
-- The function returns a `File` path reference even before authorization.
-  This is safe because the `File` object is just a path wrapper — no I/O
-  happens until someone reads/writes through it.
-- The `ensureDirectory()` call (which does actual I/O) is guarded.
+- The `com.good.gd.file.File` **constructor itself** calls into native code
+  and throws `GDNotAuthorizedError` before `onAuthorized()`. It is not a
+  path wrapper. Do not construct a GD `File` in a pre-auth fallback.
+- Guard `mkdir`/`exists` **and** the GD `File(...)` call, or defer the
+  caller (adapter `setupAdapter`) until authorization.
 - Callers that do actual I/O through this path are themselves guarded by
   one of the patterns above.
 
@@ -529,18 +530,14 @@ private fun createAdapter() {
 **Alternative — guard the utility function itself (Pattern 7):**
 
 ```kotlin
-// If the adapter is needed for layout measurement pre-auth, guard the
-// utility function and provide a fallback path:
-fun ContextWrapper.getPrivateAttachmentsRoot(): File {
-    return if (MyApplication.isContainerAuthorized) {
-        val root = GDFile("attachments")
-        if (!root.exists()) root.mkdir()
-        root
-    } else {
-        // Return a non-GD placeholder path; adapter won't load images
-        // until post-auth refresh triggers
-        File(filesDir, "attachments")
-    }
+// Do not construct com.good.gd.file.File before onAuthorized() — the
+// constructor throws GDNotAuthorizedError. Return null (adapter already
+// accepts a nullable imageRoot) or defer the caller as above.
+fun ContextWrapper.getPrivateAttachmentsRoot(): File? {
+    if (!MyApplication.isContainerAuthorized) return null
+    val root = File("attachments")
+    if (!root.exists()) root.mkdir()
+    return root
 }
 ```
 
@@ -829,18 +826,34 @@ Safe alternatives when a value is required only after auth:
 - Observe `authorized` / call `runOnAuthorized` before the first
   `getString` / `putString` on the secure prefs helper
 - Guard utility functions with `isContainerAuthorized`
-- Keep one-time legacy `SharedPreferences` → secure migration inside
-  `onAuthorized()` only (see `42-secure-storage-sharedpreferences.md`)
+- Do not add leftover SharedPreferences copy helpers; replace runtime
+  prefs with `SecurePreferencesHelper` after `onAuthorized()`
+  (`18-fresh-dynamics-install.md`, `42-secure-storage-sharedpreferences.md`)
 
 ### Key Points
 
 - Mere construction of a prefs helper is often safe; **get/put methods**
-  that open `com.good.gd.file.FileInputStream` / `FileOutputStream` are not
+  that open `com.good.gd.file.File` / `FileInputStream` / `FileOutputStream`
+  are not. Kotlin `object` helpers (`SecurePreferencesHelper.getString(`
+  with no constructor parentheses) are the same I/O as Java
+  `new SecurePreferencesHelper().getString(`.
+- Preference **property getters** are prefs I/O even without `(`:
+  `preferences.theme.value`, `prefs.getFreshValue()`, `preferences.isLockEnabled`
 - Shared base Activities are part of the launch graph — audit them, not
   only the concrete launcher Activity
+- Copy `templates/file/SecurePreferencesHelper.kt` (fail-closed). The
+  helper must swallow `GDNotAuthorizedError` / `*NotAuthorized*` on
+  read (empty/default, **do not cache**) and write (no-op). Do **not**
+  gate helper I/O on `isContainerAuthorized` — idle `onLocked()` flips
+  that flag while GD File still works
+- Call-site deferral remains required so Phase-1 code does not cache
+  defaults as if they were stored values; refresh prefs after
+  `onAuthorized()`
 - Phase 11 enforces `[AUTH-PREF-001]` for Activity/Application
   `onCreate` / `onStart` / `onResume` reachability into GD file or
-  secure-prefs I/O (including cross-class repository → helper chains)
+  secure-prefs I/O (including object-style helpers, `.value` chains,
+  and `if (!isContainerAuthorized) return` remainder-of-method masking,
+  including multi-line `{ log; return }` braces)
 
 ---
 
@@ -950,7 +963,11 @@ override fun onCreateOptionsMenu(menu: Menu): Boolean {
 - Phase 11 enforces `[AUTH-UI-004]` when an Activity both defers UI init
   (`runOnAuthorized` / `initializeAuthorizedUi` / `setupNavigation` /
   `onDynamicsAuthorized`) and uses those deferred fields in lifecycle
-  **or menu** methods without a ready/null/`isInitialized` guard
+  **or menu** methods without a ready/null/`isInitialized` guard.
+  It also fails when Phase-2 init calls a LiveData/prefs `observe`
+  helper that uses those fields **before** `setupNavigation()` assigns
+  them — after activation that init often runs from `onPostResume`, so
+  `observe()` dispatches the current value immediately.
 
 ---
 

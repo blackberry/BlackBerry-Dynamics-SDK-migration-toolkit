@@ -7,6 +7,12 @@ application to a Dynamics-enabled application.
 The process is the same for any **native** iOS app — UIKit or SwiftUI, Swift or
 Objective-C, CocoaPods or Swift Package Manager.
 
+**Install model (mandate):** a Dynamics conversion is always a **fresh
+install**. The agent replaces runtime storage APIs and does **not** copy
+data from a previously installed non-Dynamics app (`UserDefaults` plists,
+SQLCipher databases, sandbox files). There is no leftover-data transfer
+option. See `steering/18-fresh-dynamics-install.md`.
+
 **Not in scope for this toolkit release:** Flutter (and similar unofficial
 hybrid hosts). Prompt `00pre` detects Flutter and stops Dynamics code
 migration — there is no official BlackBerry Dynamics Flutter SDK. Use a

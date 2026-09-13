@@ -146,8 +146,8 @@ Background Authorize (public overload only — no no-arg form):
 | Secure networking | `HttpURLConnection`, raw socket, plain OkHttp | `GDHttpClient`, `GDSocket`, `BBCustomInterceptor` | tier1 | Keep transport under Dynamics control |
 | Secure WebView | `android.webkit.WebView` enterprise data | `BBWebView` family | tier2 | Validate JS bridge and upload behavior |
 | ICC / sharing | generic `ACTION_SEND` for secure enterprise payloads | `GDService` / `GDServiceClient` flows | tier2 | Keep external sharing as explicit TODO |
-| Secure widgets — text input | `android.widget.EditText` (every covered call site, not just "sensitive" ones — see `45-secure-ui-widgets.md`) | `com.good.gd.widget.GDEditText` | tier2 | Custom subclasses often manual |
-| Secure widgets — text display | `android.widget.TextView` / `MaterialTextView` (every covered call site) | `com.good.gd.widget.GDTextView` | tier2 | `MaterialTextView` requires Java/Kotlin binding type to change to `GDTextView` |
+| Secure widgets — text input | `android.widget.EditText` (every covered call site, not just "sensitive" ones — see `45-secure-ui-widgets.md`) | Lane A: `GDAppCompatViewInflater` => `GDAppCompatEditText`; Lane B: `com.good.gd.widget.GDEditText` | tier2 | In inflater lane bind as `EditText`, not `GDEditText`; custom subclasses migrate parent class |
+| Secure widgets — text display | `android.widget.TextView` / `MaterialTextView` (every covered call site) | Lane A: `GDAppCompatViewInflater` => `GDAppCompatTextView`; Lane B: `com.good.gd.widget.GDTextView` | tier2 | In inflater lane normalize `MaterialTextView` to `TextView`; avoid mixed lane cast mismatches |
 | Secure widgets — autocomplete | `android.widget.AutoCompleteTextView` | `com.good.gd.widget.GDAutoCompleteTextView` | tier2 | Drop-in replacement |
 | Secure widgets — multi-autocomplete | `android.widget.MultiAutoCompleteTextView` | `com.good.gd.widget.GDMultiAutoCompleteTextView` | tier2 | Drop-in replacement |
 | Secure widgets — search | `android.widget.SearchView` / `androidx.appcompat.widget.SearchView` | `com.good.gd.widget.GDSearchView` / `com.good.gd.widget.GDAppCompatSearchView` | tier2 | Pick the AppCompat variant if app uses AppCompat-themed activities |
@@ -156,13 +156,16 @@ Background Authorize (public overload only — no no-arg form):
 | Secure widgets — AppCompat checked text | `androidx.appcompat.widget.AppCompatCheckedTextView` | `com.good.gd.widget.GDAppCompatCheckedTextView` | tier2 | |
 | Secure widgets — AppCompat autocomplete | `androidx.appcompat.widget.AppCompatAutoCompleteTextView` | `com.good.gd.widget.GDAppCompatAutoCompleteTextView` | tier2 | |
 | Secure widgets — AppCompat multi-autocomplete | `androidx.appcompat.widget.AppCompatMultiAutoCompleteTextView` | `com.good.gd.widget.GDAppCompatMultiAutoCompleteTextView` | tier2 | |
+| Secure widgets — Material text input | `com.google.android.material.textfield.TextInputEditText` | `com.good.gd.widget.GDTextInputEditText` | tier2 | Lane A: inflater substitution; Lane B: explicit replacement; keep parent `TextInputLayout` |
 | Secure clipboard | `android.content.ClipboardManager` | `com.good.gd.content.ClipboardManager` | tier2 | DLP checks mandatory |
+| Secure clipboard drag/drop | `View.startDragAndDrop(...)` / `startDrag(...)` with app payload | `com.good.gd.content.ClipboardManager.startDragAndDrop(...)` + `getClipData(DragEvent)` | tier2 | Use Dynamics clipboard routing for drag/drop payload protection |
 | Secure clipboard (Compose interim) | `androidx.compose.ui.platform.LocalClipboardManager` | `__APP_PACKAGE__.GDClipboardAdapter` (kit template; routes through `com.good.gd.content.ClipboardManager`) | tier2 | Stop-gap until official Compose-native Dynamics clipboard APIs exist; catalog row `clipboard-compose-001` |
 | Secure clipboard (Compose interim) | `androidx.compose.ui.platform.LocalClipboard` | `__APP_PACKAGE__.GDClipboardAdapter` | tier2 | Same interim adapter pattern; catalog row `clipboard-compose-002` |
 | Secure clipboard (Compose interim) | `androidx.compose.ui.platform.ClipboardManager` / `Clipboard` / `ClipEntry` usage in `@Composable` code | `GDClipboardAdapter` plain-text `setPlainText` / `getPlainText` where deterministic | tier2 | Rich `ClipEntry` payloads may require manual remediation; catalog row `clipboard-compose-003` |
 | ICC chooser (Compose) | `MaterialAlertDialogBuilder` / `AlertDialog.Builder` for ICC provider list in `@Composable` screens | `GDICCProviderShareDialog` (kit template) + existing `sendFiles` / `GDServiceClient.sendTo` | tier2 | UX-layer only; catalog row `icc-compose-001` |
 | ICC chooser (Compose) | `TransferFileService.showShareChooser(Activity, …)` from `@Composable` entry points | Compose state + `GDICCProviderShareDialog` + `sendFiles` on selection | tier2 | catalog row `icc-compose-002` |
 | Policy management | unmanaged restrictions access | `GDAndroid.getApplicationPolicy()` | tier2 | Validate policy keys and defaults |
+| UI keep-native (no Dynamics equivalent) | `Button`, `MaterialButton`, `CheckBox`, `Switch`, `Chip`, `ChipGroup`, `Preference*`, Compose text fields | Keep native and record residual risk/manual follow-up | tier2 | Do not invent GD widget replacements for unsupported classes |
 
 > **WebView note**: `android.webkit.WebView` migrates to
 > `com.blackberry.bbwebview.BBWebView` (already listed above). The

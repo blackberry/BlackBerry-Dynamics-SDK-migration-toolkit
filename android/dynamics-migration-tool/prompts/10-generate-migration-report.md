@@ -462,7 +462,9 @@ for the canonical table):
   `UninitializedPropertyAccessException` on fields created only in
   `initializeAuthorizedUi` / `setupNavigation` / `runOnAuthorized`.
   Validator: `[AUTH-UI-004]`. Fix: Pattern 14 (ready/`isInitialized`
-  lifecycle **and menu** guards, Phase-2 nav-before-observe order,
+  lifecycle **and menu** guards, Phase-2 nav-before-observe order —
+  `setupNavigation()` before any LiveData/prefs `observe` that uses
+  `navController`, especially when init runs from `onPostResume`,
   `invalidateOptionsMenu()` after auth).
 - `duplicateActivityInit` — duplicate `activityInit(this)` calls in an
   Activity inheritance chain (e.g. `GD Monitor Fragment already inserted`).

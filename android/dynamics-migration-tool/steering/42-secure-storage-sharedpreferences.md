@@ -31,8 +31,8 @@ rg "SharedPreferences|getSharedPreferences|PreferenceManager" \
 For each usage, identify:
 - The preference file name (`PREFS_NAME`)
 - The keys stored
-- Whether the call site is **steady-state runtime persistence** or an
-  explicit **one-time migration helper**
+- That the call site is **steady-state runtime persistence** to replace
+  (`18-fresh-dynamics-install.md` — leftover-data copy helpers are forbidden)
 
 The validator no longer infers risk from preference-file names, key names,
 or nearby identifier text. A `SharedPreferences` API call is in-scope
@@ -61,18 +61,17 @@ must migrate, including:
 if the app persists it through `SharedPreferences`, move that steady-state
 path into Dynamics secure storage.
 
-### Allowed Legacy Exception: One-Time Migration Helper
+### Forbidden: leftover SharedPreferences copy helpers
 
-Legacy `SharedPreferences` access may remain only inside an explicit
-one-time migration helper that:
+Do **not** add `SecurePrefsMigration` or any helper that reads leftover
+`SharedPreferences` XML and copies values into the container
+(`18-fresh-dynamics-install.md`). A Dynamics conversion is always a
+fresh install. Phase 4 fails any remaining `getSharedPreferences` /
+`PreferenceManager` / `EncryptedSharedPreferences` call site.
 
-1. runs after `onAuthorized()`,
-2. reads the old preference value,
-3. writes the replacement value into secure storage, and
-4. removes or clears the legacy preference entry.
-
-Any remaining steady-state runtime reads/writes are a **high-priority
-`manualTodo`** and must be addressed before production deployment.
+Any remaining runtime reads/writes are a **high-priority `manualTodo`**
+and must be replaced with `SecurePreferencesHelper` before production
+deployment.
 
 ---
 
@@ -92,12 +91,10 @@ The correct approach is to:
 
 1. Write preference values as individual files inside the Dynamics
    secure filesystem, under a dedicated directory (e.g., `secure_prefs/`).
-2. Provide a one-time migration helper that copies existing
-   `SharedPreferences` values into secure storage on first authorized launch,
-   then removes them from `SharedPreferences`.
-3. Move steady-state reads and writes to the secure helper. After migration,
-   legacy `SharedPreferences` access may remain only in the explicit one-time
-   upgrade path, not in the runtime auth/session code path.
+2. Move all reads and writes to the secure helper. After the swap,
+   **zero** `SharedPreferences` call sites may remain
+   (`18-fresh-dynamics-install.md`). Do not create `SecurePrefsMigration`
+   or any leftover-data copy helper.
 
 ### Secure Preferences Helper Pattern
 
@@ -166,59 +163,32 @@ public final class SecurePreferencesHelper {
 }
 ```
 
-### One-Time Migration Helper
+### Fail-closed I/O (mandatory)
 
-On the first authorized launch after migration, copy legacy values from
-`SharedPreferences` into the secure container and then remove them:
+Constructing `com.good.gd.file.File` before `onAuthorized()` throws
+`GDNotAuthorizedError` (the NDK bridge may surface as
+`GDNotAuthorizedErrorBridge`). Kotlin apps often implement the helper as
+an `object` (`SecurePreferencesHelper.getString(` with no constructor
+parentheses). Wrap load/persist so:
 
-```java
-// [BB_DYNAMICS-MIGRATION] One-time migration of legacy SharedPreferences values
-// into the Dynamics secure container. Run once after onAuthorized().
-public class SecurePrefsMigration {
+- **Reads** return empty/default and **do not cache** that empty object
+- **Writes** are no-ops until the container is authorized
+- After `onAuthorized()`, call `invalidateMemoryCache()` / preference
+  `refresh()` so any Phase-1 default is not treated as a stored value
 
-    private static final String MIGRATION_DONE_KEY = "secure_prefs_migration_v1_done";
+Do **not** skip I/O solely because `Application.isContainerAuthorized` is
+false. Idle `onLocked()` typically clears that flag while GD File still
+works (biometric lock, theme). Catch the SDK not-authorized error
+instead. Copy `templates/file/SecurePreferencesHelper.kt`. Call-site
+deferral (Pattern 13) is still required.
 
-    public static void runIfNeeded(
-            Context context,
-            SecurePreferencesHelper securePrefs) throws StorageException {
+### Forbidden leftover-data copy helper
 
-        // Guard: only run once
-        if (securePrefs.contains(MIGRATION_DONE_KEY)) {
-            return;
-        }
-
-        // Migrate auth token example
-        SharedPreferences authPrefs = context.getSharedPreferences(
-                "secure_camera_auth", Context.MODE_PRIVATE);
-        String token = authPrefs.getString("bearer_token", null);
-        if (token != null) {
-            securePrefs.putString("bearer_token", token);
-            authPrefs.edit().remove("bearer_token").apply();
-        }
-
-        // Add additional legacy preference keys here following the same pattern...
-
-        // Mark migration complete
-        securePrefs.putString(MIGRATION_DONE_KEY, "true");
-    }
-}
-```
-
-Call `SecurePrefsMigration.runIfNeeded()` from `onAuthorized()` before
-any code that reads secure preferences:
-
-```java
-@Override
-public void onAuthorized() {
-    isContainerAuthorized = true;
-    authorized.postValue(true);
-    try {
-        SecurePrefsMigration.runIfNeeded(this, securePrefs);
-    } catch (StorageException e) {
-        Log.e(TAG, "Secure prefs migration failed", e);
-    }
-}
-```
+Do **not** create `SecurePrefsMigration` or any helper that reads leftover
+`SharedPreferences` and writes them into the container
+(`18-fresh-dynamics-install.md`). If a previous kit version added such a
+class, delete it and replace leftover call sites with
+`SecurePreferencesHelper`.
 
 ---
 
@@ -239,9 +209,9 @@ to:
 String token = securePrefs.getString("bearer_token");
 ```
 
-The original `SharedPreferences` read is allowed to survive only inside the
-one-time migration helper. If the app still performs steady-state reads or
-writes against `getSharedPreferences("auth" ...)`, `PreferenceManager`, or
+The original `SharedPreferences` read is not a closed runtime path. Remove
+it. If the app still performs reads or writes against
+`getSharedPreferences("auth" ...)`, `PreferenceManager`, or
 `EncryptedSharedPreferences`, the call site is **not** closed and must not be
 marked `migrated` in `migration-plan-state.json`.
 
@@ -264,17 +234,16 @@ pattern.
 ## Migration Checklist
 
 - [ ] Audit all `SharedPreferences` files and keys (run the `rg` command above)
-- [ ] For each `SharedPreferences` file, implement `SecurePreferencesHelper` storage (or equivalent GD-backed helper)
-- [ ] Implement one-time migration helper and call it from `onAuthorized()`
-- [ ] Verify steady-state reads and writes no longer use `SharedPreferences`
-- [ ] Keep legacy `SharedPreferences` access only inside the one-time migration helper
+- [ ] For each `SharedPreferences` file, implement `SecurePreferencesHelper` storage from `templates/file/SecurePreferencesHelper.kt` (fail-closed on `GDNotAuthorizedError`; do not gate on idle-lock `isContainerAuthorized`)
+- [ ] Do not create a leftover `SharedPreferences` copy helper (`18-fresh-dynamics-install.md`)
+- [ ] Verify reads and writes no longer use `SharedPreferences`
 - [ ] **Defer** every launch-path / base-Activity secure-prefs read/write until
       `runOnAuthorized` / `authorized` / `isContainerAuthorized` (Phase 11
       `[AUTH-PREF-001]` — theme, settings, unlock material, FLAG_SECURE, etc.)
 - [ ] Verify all preference-backed call sites use secure storage post-migration
 - [ ] Remove `EncryptedSharedPreferences` if present
 - [ ] Document any unresolved runtime `SharedPreferences` usage in `manualTodos` with `severity: "P1"` and the appropriate `blocking` value
-- [ ] Test the migration path: fresh install, then upgrade from pre-migration data
+- [ ] Test the fresh-install path (required). Do not test leftover-data transfer from a pre-Dynamics install
 - [ ] Cold-start smoke: launch Activity must not throw `GDNotAuthorizedError` from prefs helpers before Dynamics authorize UI
 
 ---

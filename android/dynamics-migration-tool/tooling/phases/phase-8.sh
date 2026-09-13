@@ -23,7 +23,9 @@
 # non-default location).
 GD_WIDGET_PATHS="$SRC_DIR_MM/"
 for res in $MM_IN_SCOPE_RES_DIRS; do
-    [ -d "$res/layout" ] && GD_WIDGET_PATHS="$GD_WIDGET_PATHS $res/layout/"
+    for layout_dir in "$res"/layout*; do
+        [ -d "$layout_dir" ] && GD_WIDGET_PATHS="$GD_WIDGET_PATHS $layout_dir/"
+    done
 done
 # shellcheck disable=SC2086
 GD_ET=$(count_noncomment_ere_hits "GDEditText" $GD_WIDGET_PATHS)
@@ -33,35 +35,98 @@ GD_TV=$(count_noncomment_ere_hits "GDTextView" $GD_WIDGET_PATHS)
 [ "$GD_ET" -gt 0 ] && check_pass "GDEditText used ($GD_ET)" || check_pass "GDEditText not found (not applicable in this app)"
 [ "$GD_TV" -gt 0 ] && check_pass "GDTextView used ($GD_TV)" || check_pass "GDTextView not found (not applicable in this app)"
 
-# Direct-replacement widget family coverage. For each widget in the
-# Dynamics direct-replacement family, report whether the GD class is
-# present (informational) and whether the corresponding standard /
-# AppCompat / Material class is still referenced in app sources or
-# layouts. Standard-class remnants are routed through fail_or_defer
-# under the `secureUiWidgets` domain so deferral still applies (the
-# domain is not in the non-waivable list); they fail by default.
-#
-# For each family entry we record:
-#   - the GD class name
-#   - the standard XML element name (matched in res/layout/*)
-#   - the fully-qualified standard class name (matched in src/*.java|kt)
-#   - the unqualified type token used for `findViewById` bindings
+# Lane-aware UI surface scan (catalog-backed)
+UI_WIDGET_LANE="explicit_gd_widgets"
+UI_SURFACE_SCAN="$SCRIPT_DIR/lib/ui-surface-scan.py"
+if [ -f "$UI_SURFACE_SCAN" ]; then
+    UI_SCAN_ROOTS=()
+    if [ -n "$MM_IN_SCOPE_SOURCE_ROOTS" ]; then
+        while IFS= read -r _sroot; do
+            [ -n "$_sroot" ] && UI_SCAN_ROOTS+=("$_sroot")
+        done <<EOF
+$MM_IN_SCOPE_SOURCE_ROOTS
+EOF
+    fi
+    if [ "${#UI_SCAN_ROOTS[@]}" -eq 0 ] && [ -n "$SRC_DIR_MM" ]; then
+        UI_SCAN_ROOTS+=("$SRC_DIR_MM")
+    fi
+    if [ "${#UI_SCAN_ROOTS[@]}" -eq 0 ]; then
+        check_warn "No in-scope source roots — ui-surface-scan skipped"
+    else
+        export MM_IN_SCOPE_RES_DIRS
+        UI_SCAN_RESULT="$(python3 "$UI_SURFACE_SCAN" "${UI_SCAN_ROOTS[@]}" 2>/dev/null || true)"
+        _ui_scan_entry() {
+            local key="$1"
+            printf "%s\n" "$UI_SCAN_RESULT" | awk -F= -v k="$key" '$1==k{print $2; exit}'
+        }
+        _ui_scan_handle() {
+            local key="$1" domain="$2" label="$3"
+            local entry status detail
+            entry="$(_ui_scan_entry "$key")"
+            [ -z "$entry" ] && { check_warn "$label scan returned no result"; return; }
+            status="${entry%%|*}"
+            detail="${entry#*|}"
+            [ "$entry" = "$status" ] && detail=""
+            case "$status" in
+                FAIL)
+                    fail_or_defer "$domain" "$label failed${detail:+: $detail}"
+                    ;;
+                PASS)
+                    check_pass "$label passed${detail:+: $detail}"
+                    ;;
+                NA)
+                    check_pass "$label not applicable"
+                    ;;
+                *)
+                    check_warn "$label returned unexpected status: ${entry}"
+                    ;;
+            esac
+            if [ "$key" = "UI_LANE" ] && [ "$status" = "PASS" ] && [ -n "$detail" ]; then
+                UI_WIDGET_LANE="$detail"
+            fi
+        }
+
+        _ui_scan_handle "UI_LANE" "secureUiWidgets" "UI lane consistency"
+        # Always honor the scanner's effective lane, including mixed-lane FAIL
+        # (inflater is present; leftover standard tags must not be treated as Lane B remnants).
+        _UI_EFFECTIVE_LANE="$(_ui_scan_entry UI_EFFECTIVE_LANE)"
+        if [ -n "$_UI_EFFECTIVE_LANE" ] && [ "$_UI_EFFECTIVE_LANE" != "NA" ]; then
+            UI_WIDGET_LANE="$_UI_EFFECTIVE_LANE"
+        fi
+        _ui_scan_handle "UI_BIND_001" "secureUiWidgets" "UI binding compatibility"
+        _ui_scan_handle "UI_CHILD_001" "secureUiWidgets" "UI mixed-sibling child cast safety"
+        _ui_scan_handle "UI_CUSTOM_001" "secureUiWidgets" "UI custom-tag migration safety"
+        _ui_scan_handle "UI_PROG_001" "secureUiWidgets" "Programmatic widget migration coverage"
+        _ui_scan_handle "UI_SEARCH_001" "secureUiWidgets" "SearchView lane compatibility"
+        _ui_scan_handle "UI_TIN_001" "secureUiWidgets" "TextInputEditText migration coverage"
+        _ui_scan_handle "UI_REMOTE_001" "secureUiWidgets" "RemoteViews GD widget safety"
+        _ui_scan_handle "UI_DRAG_001" "secureClipboard" "Secure drag/drop clipboard routing"
+    fi
+else
+    check_warn "ui-surface-scan.py missing — lane-aware UI checks skipped"
+fi
+
+# Direct-replacement widget family coverage. Explicit lane requires
+# standard/AppCompat remnants to be removed. In AppCompat inflater lane,
+# those remnants are expected and scanner checks enforce consistency.
 WIDGET_FAMILY_SPECS=(
     # gd_class|xml_tags|fqn_imports|binding_tokens
+    # XML-only remnants for EditText/TextView (imports of android.widget.* remain
+    # valid Lane B bind types).
+    "GDEditText|EditText||EditText"
+    "GDTextView|TextView,com.google.android.material.textview.MaterialTextView||TextView"
     "GDAutoCompleteTextView|AutoCompleteTextView|android.widget.AutoCompleteTextView|AutoCompleteTextView"
     "GDMultiAutoCompleteTextView|MultiAutoCompleteTextView|android.widget.MultiAutoCompleteTextView|MultiAutoCompleteTextView"
     "GDSearchView|SearchView|android.widget.SearchView,androidx.appcompat.widget.SearchView|SearchView"
     "GDAppCompatEditText|androidx.appcompat.widget.AppCompatEditText|androidx.appcompat.widget.AppCompatEditText|AppCompatEditText"
     "GDAppCompatTextView|androidx.appcompat.widget.AppCompatTextView|androidx.appcompat.widget.AppCompatTextView|AppCompatTextView"
-    "GDAppCompatCheckedTextView|androidx.appcompat.widget.AppCompatCheckedTextView|androidx.appcompat.widget.AppCompatCheckedTextView|AppCompatCheckedTextView"
+    "GDAppCompatCheckedTextView|CheckedTextView,android.widget.CheckedTextView,androidx.appcompat.widget.AppCompatCheckedTextView|androidx.appcompat.widget.AppCompatCheckedTextView|AppCompatCheckedTextView"
     "GDAppCompatAutoCompleteTextView|androidx.appcompat.widget.AppCompatAutoCompleteTextView|androidx.appcompat.widget.AppCompatAutoCompleteTextView|AppCompatAutoCompleteTextView"
     "GDAppCompatMultiAutoCompleteTextView|androidx.appcompat.widget.AppCompatMultiAutoCompleteTextView|androidx.appcompat.widget.AppCompatMultiAutoCompleteTextView|AppCompatMultiAutoCompleteTextView"
     "GDAppCompatSearchView|androidx.appcompat.widget.SearchView|androidx.appcompat.widget.SearchView|SearchView"
+    "GDTextInputEditText|com.google.android.material.textfield.TextInputEditText|com.google.android.material.textfield.TextInputEditText|TextInputEditText"
 )
 
-# Helper: count occurrences of a class/element token in widget paths,
-# stripping migration audit/comment noise so [BB_DYNAMICS-MIGRATION]
-# tag-only lines don't trigger false positives.
 _widget_count_token() {
     local token="$1"
     # shellcheck disable=SC2086
@@ -77,19 +142,11 @@ for spec in "${WIDGET_FAMILY_SPECS[@]}"; do
     FQN_IMPORTS="${rest%%|*}"
     BINDING_TOKEN="${rest##*|}"
 
-    # GD class usage (informational)
     # shellcheck disable=SC2086
     GD_HITS=$(count_noncomment_ere_hits "com\\.good\\.gd\\.widget\\.${GD_CLASS}" $GD_WIDGET_PATHS)
 
-    # Remaining standard / AppCompat / Material references in this family.
-    # Two signals:
-    #  1. XML tag still using the standard element (in res/layout/*.xml).
-    #  2. Java/Kotlin imports of the standard fully-qualified class.
     XML_HITS=0
     for tag in ${XML_TAGS//,/ }; do
-        # XML element forms: <Tag ...> or <Tag/> or fully-qualified like
-        # <android.widget.AutoCompleteTextView ...>. We match both the
-        # short and long forms; comments are stripped by strip_audit_noise.
         H=$(_widget_count_token "<${tag}[[:space:]/>]" || true)
         XML_HITS=$((XML_HITS + ${H:-0}))
     done
@@ -103,9 +160,18 @@ for spec in "${WIDGET_FAMILY_SPECS[@]}"; do
     REMAINING=$((XML_HITS + IMPORT_HITS))
     WIDGET_FAMILY_REMAINING_TOTAL=$((WIDGET_FAMILY_REMAINING_TOTAL + REMAINING))
 
+    if [ "$UI_WIDGET_LANE" = "appcompat_inflater" ]; then
+        if [ "$REMAINING" -gt 0 ]; then
+            check_pass "Widget family (inflater lane): $BINDING_TOKEN standard/AppCompat remnants expected ($REMAINING: xml=$XML_HITS, imports=$IMPORT_HITS)"
+        else
+            check_pass "Widget family (inflater lane): $BINDING_TOKEN not present"
+        fi
+        continue
+    fi
+
     if [ "$GD_HITS" -gt 0 ]; then
         if [ "$REMAINING" -gt 0 ]; then
-            fail_or_defer "secureUiWidgets" "Direct-replacement widget family: $GD_CLASS is in use ($GD_HITS) but standard equivalents still remain ($REMAINING: xml=$XML_HITS, imports=$IMPORT_HITS) — every covered call site must migrate to com.good.gd.widget.$GD_CLASS (prompt 09 / steering 45). Per-call-site sensitivity rationale is not accepted; defer secureUiWidgets in bootstrap.json if migration is not possible."
+            fail_or_defer "secureUiWidgets" "Direct-replacement widget family: $GD_CLASS is in use ($GD_HITS) but standard equivalents still remain ($REMAINING: xml=$XML_HITS, imports=$IMPORT_HITS) — classify call sites and finish migration or defer secureUiWidgets."
         else
             check_pass "Widget family: $GD_CLASS used ($GD_HITS); no standard remnants"
         fi
@@ -116,31 +182,17 @@ for spec in "${WIDGET_FAMILY_SPECS[@]}"; do
             check_pass "Widget family: $GD_CLASS not applicable in this app"
         fi
     fi
-
-    # Binding-mismatch detection (same idea as MaterialTextView/GDTextView):
-    # if any layout XML in this app already declares the GD widget AND
-    # Java/Kotlin code still binds the result of findViewById to the
-    # standard / AppCompat type, runtime ClassCastException is guaranteed.
-    if [ "$GD_HITS" -gt 0 ] && [ "$BINDING_TOKEN" != "SearchView" ]; then
-        # SearchView is intentionally skipped: AppCompat SearchView and
-        # android.widget.SearchView are different fully-qualified types
-        # and binding type can legitimately match the XML element class.
-        BIND_HITS=$(count_noncomment_ere_hits "findViewById\\([^)]*\\)[[:space:]]*as[[:space:]]+${BINDING_TOKEN}\\b|\\(${BINDING_TOKEN}\\)[[:space:]]*findViewById|\\b${BINDING_TOKEN}[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*=[[:space:]]*findViewById" "$SRC_DIR_MM/")
-        if [ "${BIND_HITS:-0}" -gt 0 ]; then
-            fail_or_defer "secureUiWidgets" "findViewById binding type ${BINDING_TOKEN} remains while layouts declare com.good.gd.widget.${GD_CLASS} ($BIND_HITS) — runtime ClassCastException; change Java/Kotlin binding type to com.good.gd.widget.${GD_CLASS} (prompt 09 / steering 45)"
-        fi
-    fi
 done
 
-if [ "$WIDGET_FAMILY_REMAINING_TOTAL" -eq 0 ]; then
+if [ "$UI_WIDGET_LANE" != "appcompat_inflater" ] && [ "$WIDGET_FAMILY_REMAINING_TOTAL" -eq 0 ]; then
     check_pass "Direct-replacement widget family fully covered (no standard/AppCompat/Material remnants)"
 fi
 
-# MaterialTextView in Java/Kotlin while layouts use GDTextView → ClassCastException at inflation
-MAT_TV_BINDINGS=$(count_noncomment_ere_hits "import[[:space:]]+com\\.google\\.android\\.material\\.textview\\.MaterialTextView|\\bMaterialTextView[[:space:]]+[A-Za-z_][A-Za-z0-9_]*\\b|\\([[:space:]]*MaterialTextView[[:space:]]*\\)" "$SRC_DIR_MM/")
-if [ "$GD_TV" -gt 0 ]; then
+# MaterialTextView binding mismatch remains a hard runtime crash in explicit lane.
+if [ "$UI_WIDGET_LANE" != "appcompat_inflater" ] && [ "$GD_TV" -gt 0 ]; then
+    MAT_TV_BINDINGS=$(count_noncomment_ere_hits "import[[:space:]]+com\\.google\\.android\\.material\\.textview\\.MaterialTextView|\\bMaterialTextView[[:space:]]+[A-Za-z_][A-Za-z0-9_]*\\b|\\([[:space:]]*MaterialTextView[[:space:]]*\\)" "$SRC_DIR_MM/")
     if [ "${MAT_TV_BINDINGS:-0}" -gt 0 ]; then
-        fail_or_defer "secureUiWidgets" "MaterialTextView references remain ($MAT_TV_BINDINGS) while layouts use GDTextView — runtime ClassCastException; replace with com.good.gd.widget.GDTextView for migrated ids (prompt 09)"
+        fail_or_defer "secureUiWidgets" "MaterialTextView references remain ($MAT_TV_BINDINGS) while layouts use GDTextView — runtime ClassCastException; replace migrated bindings."
     else
         check_pass "No MaterialTextView vs GDTextView binding mismatch"
     fi
@@ -240,6 +292,7 @@ WIDGET_BASE_PAIRS=(
     # still real in legacy code).
     "AutoCompleteTextView|GDAutoCompleteTextView"
     "MultiAutoCompleteTextView|GDMultiAutoCompleteTextView"
+    "TextInputEditText|GDTextInputEditText"
 )
 for pair in "${WIDGET_BASE_PAIRS[@]}"; do
     BASE_CLASS="${pair%%|*}"

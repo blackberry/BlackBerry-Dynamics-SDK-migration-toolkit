@@ -376,7 +376,9 @@ factory reachable from those pre-auth paths may instantiate or touch
 `com.good.gd.file.*`, secure SQL/database access, policy/config reads,
 secure clipboard APIs, or secure networking APIs before authorization.
 The same rule applies to **method-body** secure-preferences I/O
-(`SecurePreferencesHelper.getString` / `putString` and equivalents): do not
+(`SecurePreferencesHelper.getString` / `putString`, Kotlin `object`
+helpers with no constructor parentheses, and preference property getters
+such as `preferences.theme.value` / `isLockEnabled`): do not
 call them from Activity/Application `onCreate` / `onStart` / `onResume`
 before authorization even when the helper constructor itself is clean.
 Phase 11 enforces constructor reachability as `[AUTH-CTOR-001]` /

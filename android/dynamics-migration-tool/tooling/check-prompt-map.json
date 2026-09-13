@@ -108,7 +108,7 @@
     },
     "09": {
       "phases": ["8"],
-      "description": "Secure UI widgets (GDEditText / GDTextView) and secureClipboard (platform + Compose GDClipboardAdapter)",
+      "description": "Catalog-driven secure UI widgets (inflater lane or explicit GD lane), TextInputEditText, and secureClipboard (platform + drag/drop + Compose GDClipboardAdapter)",
       "requires": [
         { "kind": "domainClosed", "domain": "authorization" }
       ]
@@ -299,7 +299,7 @@
         "requiredForFinal": true
       },
       "8": {
-        "title": "Secure UI widgets (GDEditText/GDTextView) + clipboard/DLP",
+        "title": "Secure UI widgets (catalog lanes + clipboard/DLP)",
         "domains": ["secureUiWidgets", "secureClipboard"],
         "severity": "critical",
         "alwaysRun": true,

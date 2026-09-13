@@ -167,6 +167,10 @@ let prefsPath = docsURL.appendingPathComponent("prefs.json").path
 GDFileManager.default.createFile(atPath: prefsPath, contents: jsonData, attributes: nil)
 ```
 
+Do **not** add a one-time `UserDefaults` → container copy
+(`18-fresh-dynamics-install.md`). A Dynamics conversion is always a
+fresh install.
+
 **Keep in UserDefaults**: Non-sensitive UI preferences, feature flags,
 onboarding state, theme preferences — anything that doesn't contain
 PII, credentials, or business data.

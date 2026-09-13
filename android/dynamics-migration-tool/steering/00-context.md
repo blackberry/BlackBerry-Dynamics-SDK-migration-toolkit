@@ -102,6 +102,9 @@ steering file.
   implement the `SecurePreferencesHelper` pattern; a manual developer
   confronted with external-storage writes would migrate them to
   in-container paths or remove the feature. **You must do the same.**
+  Do **not** invent a one-time SharedPreferences / SQLCipher / `filesDir`
+  copy helper (`18-fresh-dynamics-install.md`). There is no leftover-data
+  transfer path.
   Only stop when the replacement literally does not exist in the
   Dynamics SDK (no cataloged API) *and* you have already exhausted the
   redesign options from `steering/40-secure-file-storage.md` §7.

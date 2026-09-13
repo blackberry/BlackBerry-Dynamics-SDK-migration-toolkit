@@ -110,7 +110,7 @@ Use this checklist to track BlackBerry Dynamics integration progress.
   - [ ] Replace `FileProvider` sharing with non-Dynamics apps with ICC (`GDServiceClient.sendTo`) or remove
   - [ ] Remove "save to device" / "export to SD card" features (replace with in-container storage or one-shot SAF export)
 - [ ] **Implement** `SecurePreferencesHelper` for SharedPreferences persistence (see `42-secure-storage-sharedpreferences.md`)
-- [ ] **Implement** one-time SharedPreferences migration helper called from `onAuthorized()`
+- [ ] **Do not** add a leftover SharedPreferences copy helper (`18-fresh-dynamics-install.md`)
 - [ ] Replace native POSIX file I/O (`fopen`, `open`, etc.) with `GD_fopen`, `GD_UNISTD_open` equivalents
 - [ ] Test file read/write operations
 - [ ] Verify data encryption
@@ -131,10 +131,11 @@ Use this checklist to track BlackBerry Dynamics integration progress.
 - [ ] Verify app behavior under different policies
 
 ## Phase 8: Secure UI Widgets
-- [ ] Inventory **every** covered standard/AppCompat/Material text/search widget (sensitivity is recorded but does not gate migration — see steering 45)
-- [ ] Replace with GDEditText and GDTextView
-- [ ] Update XML layouts
-- [ ] Update Java/Kotlin code
+- [ ] Inventory **every** covered standard/AppCompat/Material text/search widget from `tooling/lib/ui-widget-catalog.json` `replaceRows[]` (sensitivity is recorded but does not gate migration — see steering 45)
+- [ ] Choose one lane and keep it: Lane A (`GDAppCompatViewInflater`, keep standard XML tags) or Lane B (explicit `GD*` XML). Do not mix.
+- [ ] If the app is already Lane B, finish Lane B — do not install the inflater on top of `GDTextView`/`GDEditText` tags
+- [ ] Keep `keepNativeRows[]` widgets native (`Button`, `Chip`, `TextInputLayout`, Preferences, Compose text, …)
+- [ ] Update Java/Kotlin bindings to the catalog safe bind types (Lane A: Android/AppCompat base types, never `GDTextView`/`GDEditText`)
 - [ ] Migrate custom EditText/TextView subclasses: change root parent class from `AppCompatEditText`/`AppCompatTextView` to `GDAppCompatEditText`/`GDAppCompatTextView`
 - [ ] Verify no custom subclasses still extend `AppCompatEditText`/`AppCompatTextView` (`rg "AppCompatEditText|AppCompatTextView" -g "*.java" -g "*.kt" -n app/src/main/java/ | rg "class "`)
 - [ ] Migrate platform clipboard: replace `android.content.ClipboardManager` with `com.good.gd.content.ClipboardManager`

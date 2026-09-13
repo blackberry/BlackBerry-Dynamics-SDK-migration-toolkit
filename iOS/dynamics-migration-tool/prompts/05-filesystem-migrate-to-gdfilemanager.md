@@ -98,8 +98,11 @@ let output = GDCWriteStream(file: outputPath)
 ### 4. Migrate UserDefaults Sensitive Data
 
 Move sensitive data from `UserDefaults` to secure file storage. For each
-key migrated, provide both **write** and **read** implementations and
-include a **one-time migration** to move existing data on upgrade:
+key migrated, provide both **write** and **read** implementations.
+
+A Dynamics conversion is always a **fresh install**
+(`steering/18-fresh-dynamics-install.md`). Do **not** add
+`migrateFromUserDefaults` or any leftover UserDefaults copy helper.
 
 ```swift
 // [BB_DYNAMICS-MIGRATION] Moved sensitive data from UserDefaults to secure storage
@@ -125,29 +128,11 @@ struct SecurePrefs {
         guard let data = GDFileManager.default.contents(atPath: path) else { return nil }
         return String(data: data, encoding: .utf8)
     }
-
-    /// One-time migration from UserDefaults — call once in onAuthorized.
-    static func migrateFromUserDefaults(keys: [String]) {
-        for key in keys {
-            if let existing = UserDefaults.standard.string(forKey: key) {
-                set(existing, forKey: key)
-                UserDefaults.standard.removeObject(forKey: key)
-            }
-        }
-    }
 }
 
-// Usage — call migrateFromUserDefaults once on first post-auth launch:
-// SecurePrefs.migrateFromUserDefaults(keys: ["authToken", "sessionID"])
 // SecurePrefs.set(token, forKey: "authToken")
 // let token = SecurePrefs.string(forKey: "authToken")
 ```
-
-**Important**: Call `migrateFromUserDefaults` once, post-authorization, on
-the first upgrade. Without it, existing users retain their old UserDefaults
-value which is still readable by any code still referencing `UserDefaults`.
-Add a separate migration-done flag in UserDefaults (non-sensitive, `Bool`)
-to avoid re-running.
 
 Keep non-sensitive preferences in `UserDefaults` (theme, UI state, etc.).
 
@@ -269,6 +254,7 @@ Prompt-scoped validation phases for this prompt are:
 - `FileHandle` replaced with `GDFileHandle`
 - Streams replaced with `GDCReadStream`/`GDCWriteStream`
 - Sensitive `UserDefaults` migrated to secure storage
+- No leftover `UserDefaults` copy helper (`18-fresh-dynamics-install.md`)
 - Temp file patterns addressed
 - No generated dependency on `GDFileManager.default.temporaryDirectory`
 - Secure temp runtime probe result recorded (pass/fail with fallback TODOs if needed)

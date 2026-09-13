@@ -6,6 +6,12 @@ application to a Dynamics-enabled application.
 
 The process is the same for any Android app.
 
+**Install model (mandate):** a Dynamics conversion is always a **fresh
+install**. The agent replaces runtime storage APIs and does **not** copy
+data from a previously installed non-Dynamics app (SharedPreferences XML,
+SQLCipher databases, sandbox files). There is no leftover-data transfer
+option. See `steering/18-fresh-dynamics-install.md`.
+
 ---
 
 ## What You Need Before Starting
@@ -635,7 +641,7 @@ output but doesn't block the migration.
 | File Storage | `GDFileSystem` used for sensitive file operations; `Context.openFile*` removed; direct `new java.io.File(...)` outside cache paths fails; `File.createTempFile(...)` fails (plaintext temp file leak) |
 | SQL Database | `com.good.gd.database.sqlite` used; `android.database.sqlite` removed; `androidx.room.*` wired through a `SupportSQLiteOpenHelper.Factory` backed by `com.good.gd.database.sqlite.*` — Room without a Dynamics bridge factory fails |
 | Networking | `GDHttpClient`/`GDSocket` used; `HttpURLConnection`, `java.net.Socket`, `org.apache.http.*` removed; `okhttp3.*` clients must wire `BBCustomInterceptor` or `BBCookieJar`; `retrofit2.*` similarly fails when its underlying OkHttp client is un-intercepted |
-| UI Widgets | Every covered standard/AppCompat/Material text & search widget migrated to `com.good.gd.widget.*`; secure `ClipboardManager`; custom `EditText`/`TextView` subclasses must extend the matching `GDAppCompat*` parent. Exceptions require a `secureUiWidgets` deferral. |
+| UI Widgets | Catalog-driven lane migration: either AppCompat inflater lane (`GDAppCompatViewInflater`) or explicit GD widget lane, with type-safe bindings; includes `TextInputEditText` and secure clipboard/drag-drop routing. Unsupported widgets in `keepNativeRows[]` stay native with residual-risk documentation. |
 | ICC / Sharing | No `ACTION_SEND` / `Intent.createChooser` / `FileProvider.getUriForFile` data leakage; `GDServiceClient.sendTo` used for cross-container sharing |
 | Build | Project compiles with `./gradlew assembleDebug` |
 | Authorization Guard | No secure API access in `onCreate()` before `onAuthorized()` |
