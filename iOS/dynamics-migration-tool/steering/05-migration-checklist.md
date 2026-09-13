@@ -115,6 +115,7 @@ Use this checklist to track migration progress. Each phase maps to a prompt.
 - [ ] `InputStream` replaced with `GDCReadStream`
 - [ ] `OutputStream` replaced with `GDCWriteStream`
 - [ ] `UserDefaults` for sensitive data migrated to secure file storage
+- [ ] Do not add `migrateFromUserDefaults` (`18-fresh-dynamics-install.md`)
 - [ ] Temp file patterns identified and replaced with in-memory processing
 - [ ] No generated use of `GDFileManager.default.temporaryDirectory`
 - [ ] Secure temp strategy uses container-backed path (`.cachesDirectory` or `.documentDirectory` + app temp subdirectory)

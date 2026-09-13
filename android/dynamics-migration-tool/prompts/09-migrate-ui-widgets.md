@@ -5,22 +5,21 @@ require the Dynamics SDK to be initialized and the authorization lifecycle
 in place.
 
 ## Goal
-Replace **every** usage of the covered standard / AppCompat / Material
-text and search widget family in app-controlled UI with its BlackBerry
-Dynamics equivalent so DLP enforcement (clipboard, screenshot, paste,
-share, autofill) cannot be bypassed at the widget level.
+Apply the toolkit's production UI widget catalog so every supported
+text/search input surface is migrated with type-safe Dynamics behavior,
+and unsupported widgets remain native with explicit residual-risk
+documentation. Preserve DLP enforcement for clipboard/drag paths and
+avoid migration-introduced cast crashes.
 
 ### Migration Rule (NON-NEGOTIABLE)
 
-All covered standard / AppCompat / Material text and search widgets in
-app-controlled UI **must** migrate to their `com.good.gd.widget.*`
-equivalent. There is no local "non-sensitive label" escape: the
-copy/paste action bar, screenshot interception, and DLP hooks live on
-the widget class, not on the data flowing through it, so even a static
-label can participate in selection / copy / share / suggestions.
+All widgets listed under `tooling/lib/ui-widget-catalog.json` `replaceRows[]`
+must migrate according to their lane rule (`appcompat_inflater` or
+`explicit_gd_widgets`). `keepNativeRows[]` entries stay native and are
+tracked as residual risk/manual follow-up; do not invent GD replacements.
 
-The **only** valid way to leave a covered widget unmigrated is for the
-developer to record a domain-level deferral in
+The **only** valid way to leave a `replaceRows[]` call site unmigrated is for
+the developer to record a domain-level deferral in
 `bootstrap.json.deferredDomains[]` for `secureUiWidgets` (see
 `steering/79-migration-plan-state-and-call-site-closure.md` and
 `steering/21-authorization-deferral-patterns.md`). Per-call-site
@@ -163,188 +162,184 @@ python3 -c "import json; json.load(open('dynamics-migration-tool/output/migratio
 
 ---
 
-1. **Identify all secure-widget-family usage**
-   Inventory every occurrence of the direct-replacement widget family
-   (each one has a 1:1 GD equivalent — see `45-secure-ui-widgets.md`):
-   - Standard Android: `EditText`, `TextView`, `AutoCompleteTextView`,
-     `MultiAutoCompleteTextView`, `SearchView`.
-   - AndroidX AppCompat: `AppCompatEditText`, `AppCompatTextView`,
-     `AppCompatCheckedTextView`, `AppCompatAutoCompleteTextView`,
-     `AppCompatMultiAutoCompleteTextView`,
-     `androidx.appcompat.widget.SearchView`.
-   - Material Components: `MaterialTextView`.
-   Search Java/Kotlin code AND XML layout files. Also enumerate
-   custom subclasses that extend any of these bases (these need
-   parent-class migration to the GD equivalent — see step 5b).
+1. **Detect migration lane before editing UI**
+   Choose one lane for this app and keep it consistent:
+   - **Lane A (default for modern apps):** AppCompat theme with
+     `viewInflaterClass=com.good.gd.app.GDAppCompatViewInflater`.
+   - **Lane B (legacy/no inflater):** explicit `com.good.gd.widget.GD*`
+     widget classes in XML/programmatic construction.
 
-   Use explicit source scans aligned to validator Phase 8:
+   Detect lane:
 
    ```bash
-   rg 'import\s+android\.widget\.(EditText|TextView|AutoCompleteTextView|MultiAutoCompleteTextView|SearchView)\b' app/src/main/java app/src/main/kotlin
-   rg 'import\s+androidx\.appcompat\.widget\.(AppCompatEditText|AppCompatTextView|AppCompatCheckedTextView|AppCompatAutoCompleteTextView|AppCompatMultiAutoCompleteTextView|SearchView)\b' app/src/main/java app/src/main/kotlin
-   rg 'import\s+com\.google\.android\.material\.textview\.MaterialTextView\b' app/src/main/java app/src/main/kotlin
-   rg '<\s*(EditText|TextView|AutoCompleteTextView|MultiAutoCompleteTextView|SearchView|androidx\.appcompat\.widget\.(AppCompatEditText|AppCompatTextView|AppCompatCheckedTextView|AppCompatAutoCompleteTextView|AppCompatMultiAutoCompleteTextView|SearchView)|com\.google\.android\.material\.textview\.MaterialTextView)\b' app/src/main/res
+   rg 'viewInflaterClass' ${in_scope_res_dirs}
+   rg 'GDAppCompatViewInflater' ${in_scope_res_dirs}
+   rg 'com\\.good\\.gd\\.widget\\.GD(TextView|EditText)\\b' ${in_scope_res_dirs}
    ```
 
-   > **Out of scope here**: `android.webkit.WebView` migration is
-   > handled by prompt `07` and `50-webview-bbwebview.md`. The only
-   > supported WebView migration target is
-   > `com.blackberry.bbwebview.BBWebView`. **Do not** introduce
-   > `com.good.gd.widget.GDWebView` — it is deprecated/legacy.
+   **Already-migrated apps:** if layouts already use explicit `GDTextView` /
+   `GDEditText` (Lane B) and there is no inflater, **finish Lane B**. Do not
+   install `GDAppCompatViewInflater` on top of those tags. New AppCompat
+   migrations still prefer Lane A.
 
-2. **Record data sensitivity (reporting only — does NOT gate migration)**
-   The migration rule above is unconditional for the covered widget
-   family. Sensitivity classification is recorded in the UI widget
-   inventory table (and the migration report) so reviewers can see
-   what each call site carries, but it is **not** used to decide
-   whether to migrate. Use these buckets when filling in the
-   inventory:
-   - Sensitive: Passwords, PII, business data, credentials
-   - Semi-sensitive: User-generated content, messages
-   - Decorative / static: UI chrome, public copy, brand text
+   **Do not mix lanes.** If inflater is enabled and explicit `GDTextView` /
+   `GDEditText` XML tags still exist, normalize to one lane before continuing.
 
-3. **Replace every covered widget**
-   Apply the deterministic mapping below for **every** covered
-   standard / AppCompat / Material widget in app-controlled UI:
-
-   | Standard / AppCompat / Material | BlackBerry Dynamics |
-   |---|---|
-   | `android.widget.EditText` | `com.good.gd.widget.GDEditText` |
-   | `android.widget.TextView` | `com.good.gd.widget.GDTextView` |
-   | `android.widget.AutoCompleteTextView` | `com.good.gd.widget.GDAutoCompleteTextView` |
-   | `android.widget.MultiAutoCompleteTextView` | `com.good.gd.widget.GDMultiAutoCompleteTextView` |
-   | `android.widget.SearchView` / `androidx.appcompat.widget.SearchView` | `com.good.gd.widget.GDSearchView` (or `GDAppCompatSearchView` for AppCompat-themed activities) |
-   | `androidx.appcompat.widget.AppCompatEditText` | `com.good.gd.widget.GDAppCompatEditText` |
-   | `androidx.appcompat.widget.AppCompatTextView` | `com.good.gd.widget.GDAppCompatTextView` |
-   | `androidx.appcompat.widget.AppCompatCheckedTextView` | `com.good.gd.widget.GDAppCompatCheckedTextView` |
-   | `androidx.appcompat.widget.AppCompatAutoCompleteTextView` | `com.good.gd.widget.GDAppCompatAutoCompleteTextView` |
-   | `androidx.appcompat.widget.AppCompatMultiAutoCompleteTextView` | `com.good.gd.widget.GDAppCompatMultiAutoCompleteTextView` |
-   | `com.google.android.material.textview.MaterialTextView` | `com.good.gd.widget.GDTextView` |
-
-   Every match in the covered family migrates. The only accepted
-   escape is a developer-signed deferral of the `secureUiWidgets`
-   domain in `bootstrap.json.deferredDomains[]` — local "this label
-   looks static" rationale is **not** accepted by the validator and
-   must not be used to skip a call site.
-
-4. **Update XML layouts**
-   - Change widget class names in layout files
-   - Keep all existing attributes
-   - Verify layout preview still works
-
-5. **Update Java/Kotlin code**
-   - Update import statements
-   - Update variable types
-   - When XML used `MaterialTextView`, change code to `GDTextView` — not only `android.widget.TextView`
-   - API is compatible - no logic changes needed
-
-5a. **Verify source-level imports and bindings are fully migrated (MANDATORY)**
-   Run these checks and resolve every hit before recording prompt completion:
+2. **Run catalog-based UI scan (MANDATORY)**
+   Use the toolkit scanner backed by
+   `tooling/lib/ui-widget-catalog.json`:
 
    ```bash
-   rg 'import\s+android\.widget\.(AutoCompleteTextView|MultiAutoCompleteTextView|SearchView)\b' app/src/main/java app/src/main/kotlin
-   rg 'import\s+androidx\.appcompat\.widget\.(AppCompatEditText|AppCompatTextView|AppCompatCheckedTextView|AppCompatAutoCompleteTextView|AppCompatMultiAutoCompleteTextView|SearchView)\b' app/src/main/java app/src/main/kotlin
-   rg 'import\s+com\.google\.android\.material\.textview\.MaterialTextView\b' app/src/main/java app/src/main/kotlin
-   rg 'findViewById\([^)]*\)\s*(as\s+(EditText|TextView|AutoCompleteTextView|MultiAutoCompleteTextView|AppCompatEditText|AppCompatTextView|AppCompatCheckedTextView|AppCompatAutoCompleteTextView|AppCompatMultiAutoCompleteTextView|MaterialTextView)|:\s*(EditText|TextView|AutoCompleteTextView|MultiAutoCompleteTextView|AppCompatEditText|AppCompatTextView|AppCompatCheckedTextView|AppCompatAutoCompleteTextView|AppCompatMultiAutoCompleteTextView|MaterialTextView)\b)' app/src/main/java app/src/main/kotlin
+   python3 dynamics-migration-tool/tooling/lib/ui-surface-scan.py ${in_scope_main_src}
+   ```
+
+   Resolve all `FAIL` checks:
+   - `UI_LANE`, `UI_BIND_001`, `UI_CHILD_001`, `UI_CUSTOM_001`,
+     `UI_PROG_001`, `UI_SEARCH_001`, `UI_TIN_001`, `UI_REMOTE_001`,
+     `UI_DRAG_001`.
+
+3. **Apply catalog dispositions**
+   Follow the catalog exactly:
+   - `replaceRows[]` => migrate call sites to Dynamics class or inflater lane rule.
+   - `keepNativeRows[]` => keep native class (record residual risk, no forced rewrite).
+
+   Appcompat lane specifics:
+   - Keep `<TextView>` / `<EditText>` / AppCompat XML tags.
+   - Bind inflated views as Android/AppCompat base types, not `GDTextView` /
+     `GDEditText`.
+   - `SearchView`: use `androidx.appcompat.widget.SearchView` FQCN in XML.
+   - `MaterialTextView`: normalize XML tag to `<TextView>` so inflater substitution applies.
+
+   Explicit lane specifics:
+   - Replace covered tags with explicit `com.good.gd.widget.GD*` tags.
+   - Update Java/Kotlin binding types to match inflated GD class.
+
+4. **Custom views and mixed siblings**
+   - Never rewrite project custom XML tags (`com.example.HighlightableTextView`)
+     to `GDTextView`/`GDEditText`.
+   - Migrate the custom class parent to matching `GDAppCompat*` / `GD*`.
+   - If a ViewGroup mixes custom widgets with GD siblings, avoid homogeneous casts:
+
+   ```kotlin
+   // NOT OK
+   linearLayout.children.forEach { it as HighlightableTextView }
+
+   // OK
+   linearLayout.children.filterIsInstance<HighlightableTextView>().forEach { ... }
+   ```
+
+5. **Programmatic widget construction**
+   Migrate constructors too; inflater does not cover programmatic creation:
+   - Lane A: construct `GDAppCompat*` classes (and `GDTextInputEditText`).
+   - Lane B: construct explicit `GD*` classes.
+   - Compose `AndroidView { ... }` factories are included in this requirement.
+
+6. **Record sensitivity and residual risk**
+   Sensitivity buckets (reporting only):
+   - Sensitive, Semi-sensitive, Decorative/static.
+
+   KEEP_NATIVE classes (no Dynamics equivalent) remain native and must be
+   documented as residual risk / manual follow-up in the report; do not
+   invent a GD class replacement.
+
+7. **Test UI behavior**
+   - Inflate and navigate screens that host migrated widgets.
+   - Verify no cast crashes in adapters/view holders.
+   - Verify copy/paste and drag/drop behavior follows policy expectations.
+   - Run prompt-scoped validator:
+
+   ```bash
    bash dynamics-migration-tool/tooling/validate.sh --check-prompt 09
    ```
-
-   Any remaining hits indicate prompt 09 is not closure-ready.
-
-5b. **Compose-first apps (MANDATORY review)**
-   - If the app is primarily Jetpack Compose and has little/no XML widget usage,
-     do not force artificial XML rewrites.
-   - Focus prompt 09 outcomes on:
-     - **secure clipboard migration** — platform APIs **and** Compose clipboard
-       (see § "Jetpack Compose Clipboard" below)
-     - classification of sensitive text-entry surfaces and documented residual risk
-     - any custom Android View bridges used inside Compose (`AndroidView`, custom views)
-   - For Compose-only text fields where no direct Dynamics widget equivalent is used,
-     record explicit rationale in `coverage.secureUiWidgets.details` and `manualTodos`.
-   - Compose clipboard is **not** satisfied by migrating widgets alone or by
-     marking `secureClipboard` not-applicable when only Compose locals are used.
-
-6. **Test UI functionality**
-   - Verify all widgets display correctly
-   - Test user input and data display
-   - Verify screenshot protection (if applicable)
 
 ---
 
 ## Widget Mapping
 
-See step 3 above for the full direct-replacement table. `MaterialTextView`
-is binding-compatible at the XML level but **not** at the Java/Kotlin
-binding type level — see the next subsection. `com.good.gd.widget.GDWebView`
-is **not** in this mapping: WebView migration is owned exclusively by
-prompt `07` and targets `com.blackberry.bbwebview.BBWebView`.
+Use `tooling/lib/ui-widget-catalog.json` as the only mapping source.
+Do not invent additional replacements.
 
-### Material Components — mandatory Java/Kotlin bind step
+| Native/AppCompat/Material source | Lane A (`GDAppCompatViewInflater`) | Lane B (explicit GD tags/classes) |
+|---|---|---|
+| `TextView` | keep `<TextView>`; inflates as `GDAppCompatTextView` | replace with `GDTextView` |
+| `EditText` | keep `<EditText>`; inflates as `GDAppCompatEditText` | replace with `GDEditText` |
+| `AutoCompleteTextView` | keep standard/AppCompat tag; inflates as `GDAppCompatAutoCompleteTextView` | replace with `GDAutoCompleteTextView` |
+| `MultiAutoCompleteTextView` | keep standard/AppCompat tag; inflates as `GDAppCompatMultiAutoCompleteTextView` | replace with `GDMultiAutoCompleteTextView` |
+| `androidx.appcompat.widget.SearchView` | keep FQCN tag; inflates as `GDAppCompatSearchView` | use `GDAppCompatSearchView` |
+| `android.widget.SearchView` | not auto-substituted in Lane A; migrate to AppCompat FQCN tag first | replace with `GDSearchView` |
+| `MaterialTextView` | normalize to `<TextView>` so inflater substitutes securely | replace with `GDTextView` |
+| `CheckedTextView` / `AppCompatCheckedTextView` | keep tag; inflates as `GDAppCompatCheckedTextView` | use `GDAppCompatCheckedTextView` |
+| `TextInputEditText` | keep `TextInputEditText` tag; inflater creates `GDTextInputEditText` | replace with `GDTextInputEditText` |
 
-Material Design `MaterialTextView` is **not** assignment-compatible with
-`GDTextView`. If you change the XML tag to `<com.good.gd.widget.GDTextView>`
-(handling the same `@+id/...`), you **must** update every Java/Kotlin binding:
-imports, field/local types, and method parameters that referenced
-`MaterialTextView` for that id.
+KEEP_NATIVE (no Dynamics equivalent in SDK 15): leave native and record residual risk
+(`manualTodos[]` / coverage notes): `Button`, `MaterialButton`, `ImageButton`,
+`CheckBox`, `RadioButton`, `Switch`, `Chip`, `ChipGroup`, `TextInputLayout`,
+`MaterialAutoCompleteTextView`, `ExposedDropdownMenu`, `Preference*`, Compose text fields,
+and other widgets listed under `keepNativeRows[]`.
 
-Skipping this step produces a **runtime** failure after Dynamics activation:
-
-`java.lang.ClassCastException: com.good.gd.widget.GDTextView cannot be cast to com.google.android.material.textview.MaterialTextView`
-
-Layout-only migration (XML updated, code left on `MaterialTextView`) is a
-common migration-kit gap — `validate.sh` Phase 8 flags remaining
-`MaterialTextView` references when layouts contain `GDTextView`.
-
----
+WebView remains out of scope for this prompt: migrate in prompt `07` to
+`com.blackberry.bbwebview.BBWebView`.
 
 ## Example Changes
 
-### XML Layout
+### Lane A (AppCompat inflater)
+
 ```xml
-<!-- Before -->
+<!-- Keep standard tag; inflater substitutes at runtime -->
 <EditText
     android:id="@+id/passwordField"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:inputType="textPassword" />
+    android:layout_height="wrap_content" />
+```
 
-<!-- After -->
+```xml
+<!-- AppCompat SearchView must use FQCN in XML -->
+<androidx.appcompat.widget.SearchView
+    android:id="@+id/search"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content" />
+```
+
+```java
+// Bind as Android/AppCompat base type in inflater lane
+import android.widget.EditText;
+EditText passwordField = findViewById(R.id.passwordField);
+```
+
+### Lane B (explicit GD)
+
+```xml
 <com.good.gd.widget.GDEditText
     android:id="@+id/passwordField"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:inputType="textPassword" />
+    android:layout_height="wrap_content" />
 ```
 
-### Java Code
 ```java
-// Before
-import android.widget.EditText;
-EditText passwordField = findViewById(R.id.passwordField);
-
-// After — if XML was changed to <com.good.gd.widget.GDEditText>
 import com.good.gd.widget.GDEditText;
 GDEditText passwordField = findViewById(R.id.passwordField);
-
-// After — if the theme uses GDAppCompatViewInflater (XML stays <EditText>)
-// GDAppCompatEditText does NOT extend GDEditText. Bind as EditText.
-import android.widget.EditText;
-EditText passwordField = findViewById(R.id.passwordField);
 ```
 
-### Java — MaterialTextView → GDTextView (same pattern)
+### Custom view safety
 
-```java
-// Before (layout used MaterialTextView; after migration layout uses GDTextView)
-import com.google.android.material.textview.MaterialTextView;
-MaterialTextView detail = view.findViewById(R.id.resolution_detail_text);
-
-// After — type must match inflated widget class
-import com.good.gd.widget.GDTextView;
-GDTextView detail = view.findViewById(R.id.resolution_detail_text);
+```kotlin
+// Keep custom XML tag; migrate the class parent to GDAppCompatTextView.
+linearLayout.children
+    .filterIsInstance<HighlightableTextView>()
+    .forEach { it.setTextSize(TypedValue.COMPLEX_UNIT_SP, body) }
 ```
 
----
+### Material TextInput handling
+
+```xml
+<!-- Parent stays TextInputLayout -->
+<com.google.android.material.textfield.TextInputLayout ...>
+    <com.google.android.material.textfield.TextInputEditText ... />
+</com.google.android.material.textfield.TextInputLayout>
+```
+
+In Lane A, the inflater substitutes `TextInputEditText` with `GDTextInputEditText`.
+In Lane B, use explicit `<com.good.gd.widget.GDTextInputEditText .../>`.
 
 ## Output
 
@@ -370,49 +365,30 @@ GDTextView detail = view.findViewById(R.id.resolution_detail_text);
 
 ## When NOT to Replace
 
-The covered text/search widget family is an **all-or-nothing**
-migration. The only legitimate reasons to leave a covered widget
-unmigrated are:
+Use the catalog:
 
-- **Third-party / vendored UI you do not control** — e.g. a closed
-  source library inflating its own `EditText`. Record this as a
-  manual TODO and treat it as out of scope for app-controlled UI.
-  It does not satisfy the migration rule; the developer must still
-  defer the `secureUiWidgets` domain if any in-scope call site
-  remains standard.
-- **Domain-level deferral** of `secureUiWidgets` recorded by the
-  developer in `bootstrap.json.deferredDomains[]`. This is the
-  **only** sanctioned escape for app-controlled UI.
+- If widget is in `replaceRows[]`, migrate it.
+- If widget is in `keepNativeRows[]`, keep it native and capture residual risk
+  in report/manual todos.
 
-The following are **NOT** valid reasons to skip migration (the
-validator will reject them and they explicitly contradict the DLP
-threat model):
+Legitimate unmigrated covered call sites (from `replaceRows[]`) are limited to:
 
-- "This is just a static label / brand text / decorative chrome."
-- "This widget never holds sensitive data."
-- "This widget is read-only / not editable."
-- "We optimised this view for performance."
+- **Third-party / vendored UI you cannot edit**
+- **Developer-signed `secureUiWidgets` deferral** in `bootstrap.json`
 
-All of the above still participate in selection, long-press copy,
-share intents, and screenshot capture at the framework level.
+`keepNativeRows[]` items are not considered migration failures on their own.
+Do not force fake replacements for unsupported widgets.
 
 ---
 
 ## Critical Notes
 
-- Every covered standard / AppCompat / Material text/search widget
-  in app-controlled UI migrates to its `com.good.gd.widget.*`
-  equivalent. No per-call-site sensitivity escape.
-- API is compatible — minimal code changes required.
-- Test thoroughly to ensure UI functionality is preserved.
-- For widgets left unmigrated, the only acceptable record is a
-  developer-signed deferral of `secureUiWidgets` in
-  `bootstrap.json.deferredDomains[]`.
-- Compose-first apps satisfy this prompt by migrating clipboard
-  and any Android `View` bridges (`AndroidView`, custom views)
-  that wrap a covered widget; for Compose-only text fields with
-  no XML equivalent, record explicit rationale in
-  `coverage.secureUiWidgets.details` and `manualTodos`.
+- `ui-widget-catalog.json` is authoritative for replace/keep-native behavior.
+- Lane A and Lane B are both valid, but mixed-lane migrations are invalid.
+- Do not rewrite custom XML FQCN tags to GD widgets.
+- Programmatic constructors and Compose `AndroidView` wrappers are in scope.
+- Compose-only text widgets have no Dynamics equivalent; migrate clipboard and
+  record residual risk.
 
 ### Developer Deferral Stop (MANDATORY when any covered widget remains standard)
 
@@ -477,6 +453,8 @@ manual remediation.
 3. **Replace instance creation**
    - `ContextCompat.getSystemService(context, ClipboardManager::class.java)` → `ClipboardManager.getInstance(context)`
    - `context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager` → `ClipboardManager.getInstance(context)`
+   - Drag/drop start should route through `ClipboardManager.startDragAndDrop(...)`,
+     not direct `View.startDragAndDrop(...)` for app payloads.
 
 4. **Check utility/extension functions**
    - Apps commonly have `copyToClipBoard()`, `getLatestText()`, or
@@ -490,7 +468,7 @@ manual remediation.
 
 5b. **Migrate custom widget parent classes (MANDATORY)**
    - Find all custom subclasses across the full widget family:
-     `rg "AppCompatEditText|AppCompatTextView|AppCompatCheckedTextView|AppCompatAutoCompleteTextView|AppCompatMultiAutoCompleteTextView|AppCompatSearchView|AutoCompleteTextView|MultiAutoCompleteTextView|SearchView" -g "*.java" -g "*.kt" -n ${in_scope_main_src}`
+     `rg "AppCompatEditText|AppCompatTextView|AppCompatCheckedTextView|AppCompatAutoCompleteTextView|AppCompatMultiAutoCompleteTextView|AppCompatSearchView|AutoCompleteTextView|MultiAutoCompleteTextView|SearchView|TextInputEditText" -g "*.java" -g "*.kt" -n ${in_scope_main_src}`
    - Change the root parent class to the GD equivalent:
      - `AppCompatEditText` → `GDAppCompatEditText` (`com.good.gd.widget.GDAppCompatEditText`)
      - `AppCompatTextView` → `GDAppCompatTextView` (`com.good.gd.widget.GDAppCompatTextView`)
@@ -501,6 +479,7 @@ manual remediation.
      - `android.widget.AutoCompleteTextView` → `GDAutoCompleteTextView` (`com.good.gd.widget.GDAutoCompleteTextView`)
      - `android.widget.MultiAutoCompleteTextView` → `GDMultiAutoCompleteTextView` (`com.good.gd.widget.GDMultiAutoCompleteTextView`)
      - `android.widget.SearchView` → `GDSearchView` (`com.good.gd.widget.GDSearchView`)
+     - `com.google.android.material.textfield.TextInputEditText` → `GDTextInputEditText` (`com.good.gd.widget.GDTextInputEditText`)
    - Only change the root class in the inheritance chain — subclasses inherit automatically
    - This is MANDATORY because the system copy/paste action bar is handled
      at the widget level, not through the programmatic ClipboardManager

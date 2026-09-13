@@ -932,28 +932,9 @@ pref_context = re.compile(
     r'PreferenceManager\.getDefaultSharedPreferences\s*\(|'
     r'EncryptedSharedPreferences'
 )
-migration_terms = re.compile(r"(?i)\b(migration|migrate|migrated|upgrade|legacy|backfill)\b")
-secure_terms = re.compile(
-    r"(?i)\b("
-    r"securePrefs|SecurePreferencesHelper|SecureFileIO|secure storage|"
-    r"GDFileSystem|com\.good\.gd\.file|fileStore|openFileInput|openFileOutput"
-    r")\b"
-)
-cleanup_terms = re.compile(r"(?i)\b(remove|clear|delete)\s*\(")
-authorized_terms = re.compile(r"(?i)\bonAuthorized\b")
-
-
 def is_comment(line: str) -> bool:
     stripped = line.lstrip()
     return (not stripped) or stripped.startswith("//") or stripped.startswith("/*") or stripped.startswith("*")
-
-
-def explicit_migration_context(window: str) -> bool:
-    return (
-        migration_terms.search(window)
-        and secure_terms.search(window)
-        and (cleanup_terms.search(window) or authorized_terms.search(window))
-    )
 
 
 cwd = os.getcwd()
@@ -982,17 +963,15 @@ for dirpath, _, files in os.walk(src_root):
             window = "\n".join(window_lines)
             if not pref_context.search(window):
                 continue
-            if explicit_migration_context(window):
-                continue
             print(f"{rel}:{lineno}:{line.rstrip()}")
 PY
 )"
 if [ "${SHARED_PREFS_RUNTIME_USAGE:-0}" -gt 0 ]; then
     _CURRENT_PHASE="4"
-    fail_or_defer "secureFileStorage" "SharedPreferences runtime usage still present (${SHARED_PREFS_RUNTIME_USAGE}) — steady-state preference persistence remains outside the Dynamics container. SharedPreferences access is allowed only inside an explicit one-time migration helper that copies legacy values into secure storage and removes them." \
-        "Replace steady-state SharedPreferences persistence with SecurePreferencesHelper backed by com.good.gd.file.FileOutputStream/FileInputStream. Keep legacy SharedPreferences reads/writes only inside the explicit one-time migration helper after onAuthorized()."
+    fail_or_defer "secureFileStorage" "SharedPreferences runtime usage still present (${SHARED_PREFS_RUNTIME_USAGE}) — steady-state preference persistence remains outside the Dynamics container. A Dynamics conversion is always a fresh install; remove all SharedPreferences call sites. Do not wrap leftover reads in a copy helper." \
+        "Replace steady-state SharedPreferences persistence with SecurePreferencesHelper backed by com.good.gd.file.FileOutputStream/FileInputStream. Do not add a leftover-data copy helper (steering/18-fresh-dynamics-install.md)."
 else
-    check_pass "No SharedPreferences runtime usage detected outside explicit migration helpers"
+    check_pass "No SharedPreferences runtime usage detected"
 fi
 
 if [ "$TEMP_FILE_COUNT" -gt 0 ]; then

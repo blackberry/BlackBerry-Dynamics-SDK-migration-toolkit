@@ -209,9 +209,9 @@ Read ALL Java/Kotlin source files in the project. For each file, identify:
 - **SharedPreferences Runtime Usage**: `getSharedPreferences()`,
   `PreferenceManager.getDefaultSharedPreferences()`,
   `EncryptedSharedPreferences` — inventory every steady-state preference
-  persistence path and separate it from explicit one-time migration helpers.
-  Runtime `SharedPreferences` usage must be migrated to Dynamics secure
-  storage (see Prompt 05a/05b/05c).
+  persistence path. Do **not** plan a leftover `SharedPreferences` copy
+  helper (`18-fresh-dynamics-install.md`). Runtime `SharedPreferences`
+  usage must be migrated to Dynamics secure storage (see Prompt 05a/05b/05c).
 - **SQLite/Database**: `android.database.sqlite.SQLiteOpenHelper`,
   `SQLiteDatabase`, Room database (`@Database`, `Room.databaseBuilder()`),
   `ContentProvider` with database backing, SQLCipher or other encryption
@@ -455,9 +455,17 @@ migration regardless of whether the call site appears sensitive —
 sensitivity is recorded as inventory metadata only, not as a gate):
 - Every covered text/search widget tag: `EditText`, `TextView`,
   `AutoCompleteTextView`, `MultiAutoCompleteTextView`, `SearchView`,
-  their `AppCompat*` variants, and `MaterialTextView`. Note the
-  data each carries for the inventory column, but every match
-  migrates per `prompts/09-migrate-ui-widgets.md`.
+  their `AppCompat*` variants, `MaterialTextView`, and
+  `TextInputEditText` (see `tooling/lib/ui-widget-catalog.json`
+  `replaceRows[]` / `inventoryKinds[]`). The Prompt 00 recorder loads
+  that catalog at runtime — do not invent extra widget kinds, and do
+  not register `keepNativeRows[]` tags as replace call sites. Note the
+  data each carries for the inventory column and lane context; these
+  are replace targets per `prompts/09-migrate-ui-widgets.md`.
+- Catalog `keepNativeRows[]` widgets (`Button`, `Chip`, `Switch`,
+  `Preference*`, Compose text fields, etc.) as residual-risk inventory
+  entries only — do not register them as `secureUiWidgets` replace
+  call sites.
 - `WebView` widgets (handled by prompt `07`).
 - Custom `EditText`/`TextView`/etc. subclasses used in layouts —
   these need parent class migration (`GDAppCompatViewInflater`
@@ -475,8 +483,8 @@ sensitivity is recorded as inventory metadata only, not as a gate):
 Classify the data flowing through each API usage. Sensitivity drives
 migration **for storage / networking / sharing / sharedprefs domains**
 (filesystem, SharedPreferences, ICC, etc. — see prompts `05a`, `05c`,
-`08`). It is **reporting metadata only** for the covered UI widget
-family (prompt `09` / steering `45`): every covered widget migrates
+`08`). It is **reporting metadata only** for cataloged UI replacement
+rows (prompt `09` / steering `45`): every `replaceRows[]` widget migrates
 regardless of sensitivity.
 
 - **Sensitive**: Must be migrated to Dynamics secure APIs (credentials,

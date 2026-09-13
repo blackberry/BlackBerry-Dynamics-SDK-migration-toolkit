@@ -142,6 +142,20 @@ If the values are already detected from Info.plist (check `bootstrap.json`
 
 Record UEM values and provenance in `bootstrap.json.uemValues`.
 
+**1d. Install model (mandate — not a bootstrap attestation)**
+
+Tell the developer the following. Do **not** add a new attestation field
+or other unknown `bootstrap.json` key. Do **not** ask whether to preserve
+leftover on-device data.
+
+> This Dynamics conversion is always a **fresh install**
+> (`steering/18-fresh-dynamics-install.md`). The agent will replace
+> runtime storage APIs (sensitive `UserDefaults` → `GDFileManager`,
+> sandbox files → `GDFileManager`, SQLite → `sqlite3enc`). It will
+> **not** copy UserDefaults plists, SQLCipher databases, or sandbox
+> files from a previously installed non-Dynamics package. There is no
+> leftover-data transfer path in this kit.
+
 ### 2. Lifecycle discovery (manual analysis)
 
 Read the application source to identify lifecycle entry points and update

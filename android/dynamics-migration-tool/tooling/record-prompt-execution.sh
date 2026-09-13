@@ -919,30 +919,94 @@ def _project_root_from_bootstrap_path(path):
     return os.path.dirname(tool_dir)
 
 
-_WIDGET_KIND_PATTERNS = (
-    ("appcompatmultiautocompletetextview", "AppCompatMultiAutoCompleteTextView"),
-    ("appcompatautocompletetextview", "AppCompatAutoCompleteTextView"),
-    ("appcompatcheckedtextview", "AppCompatCheckedTextView"),
-    ("appcompatsearchview", "AppCompatSearchView"),
-    ("appcompatedittext", "AppCompatEditText"),
-    ("appcompattextview", "AppCompatTextView"),
-    ("multiautocompletetextview", "MultiAutoCompleteTextView"),
-    ("autocompletetextview", "AutoCompleteTextView"),
-    ("materialtextview", "MaterialTextView"),
-    ("searchview", "SearchView"),
-    ("edittext", "EditText"),
-    ("textview", "TextView"),
-)
+# Built at runtime from tooling/lib/ui-widget-catalog.json (replaceRows +
+# inventoryKinds, minus keepNativeRows). Longest needle first so
+# TextInputEditText is not classified as EditText.
+_WIDGET_KIND_PATTERNS = None
+_KEEP_NATIVE_SIMPLE = None
+
+
+def _widget_catalog_candidates():
+    paths = []
+    if check_map_path:
+        paths.append(
+            os.path.join(os.path.dirname(os.path.abspath(check_map_path)), "lib", "ui-widget-catalog.json")
+        )
+    if bootstrap_path:
+        tool_dir = os.path.dirname(os.path.dirname(os.path.abspath(bootstrap_path)))
+        paths.append(os.path.join(tool_dir, "tooling", "lib", "ui-widget-catalog.json"))
+    out = []
+    seen = set()
+    for path in paths:
+        if path and path not in seen:
+            seen.add(path)
+            out.append(path)
+    return out
+
+
+def _load_widget_kind_index():
+    global _WIDGET_KIND_PATTERNS, _KEEP_NATIVE_SIMPLE
+    if _WIDGET_KIND_PATTERNS is not None:
+        return
+    catalog = None
+    for path in _widget_catalog_candidates():
+        if os.path.isfile(path):
+            try:
+                catalog = _load_json(path)
+                break
+            except Exception:
+                catalog = None
+    keep = set()
+    kinds = []
+    seen = set()
+
+    def _add_kind(raw):
+        if not isinstance(raw, str) or not raw.strip():
+            return
+        simple = raw.rsplit(".", 1)[-1]
+        key = simple.lower()
+        if not key or key in seen or key.startswith("gd"):
+            return
+        if key in keep:
+            return
+        seen.add(key)
+        kinds.append(simple)
+
+    if isinstance(catalog, dict):
+        for row in catalog.get("keepNativeRows") or []:
+            if not isinstance(row, dict):
+                continue
+            for widget in row.get("widgets") or []:
+                if isinstance(widget, str) and widget.strip():
+                    keep.add(widget.rsplit(".", 1)[-1].lower())
+        for row in catalog.get("replaceRows") or []:
+            if not isinstance(row, dict):
+                continue
+            for source in row.get("sourceKinds") or []:
+                _add_kind(source)
+        for kind in catalog.get("inventoryKinds") or []:
+            _add_kind(kind)
+
+    kinds.sort(key=lambda s: (-len(s), s.lower()))
+    _WIDGET_KIND_PATTERNS = tuple((k.lower(), k) for k in kinds)
+    _KEEP_NATIVE_SIMPLE = keep
 
 
 def _normalize_widget_kind(value):
     if not isinstance(value, str):
         return None
+    _load_widget_kind_index()
     lowered = value.lower()
     # Ignore already-migrated Dynamics widget classes for Prompt-00 inventory.
-    if "com.good.gd.widget." in lowered or lowered.startswith("gd"):
+    if "com.good.gd.widget." in lowered or lowered.rsplit(".", 1)[-1].startswith("gd"):
         return None
-    for needle, canonical in _WIDGET_KIND_PATTERNS:
+    simple = lowered.rsplit(".", 1)[-1]
+    if simple in (_KEEP_NATIVE_SIMPLE or ()):
+        return None
+    for needle, canonical in _WIDGET_KIND_PATTERNS or ():
+        if simple == needle:
+            return canonical
+    for needle, canonical in _WIDGET_KIND_PATTERNS or ():
         if needle in lowered:
             return canonical
     return None
@@ -1050,6 +1114,13 @@ def _analysis_widget_inventory_closed(bootstrap_path, analysis_path):
         return False, f"invalid module-map.json: {exc}"
 
     project_root = _project_root_from_bootstrap_path(bootstrap_path)
+    _load_widget_kind_index()
+    if not _WIDGET_KIND_PATTERNS:
+        return (
+            False,
+            "ui-widget-catalog.json missing or has no replaceRows/inventoryKinds; "
+            "cannot validate Prompt 00 widget inventory",
+        )
     layout_counts = _collect_layout_widget_counts(module_map, project_root)
     if not layout_counts:
         return True, None

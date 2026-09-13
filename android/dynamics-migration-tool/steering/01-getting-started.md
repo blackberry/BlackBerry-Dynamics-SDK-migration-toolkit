@@ -17,7 +17,7 @@ The migration follows a structured approach:
 6. **Secure Databases** - Migrate SQLite/Room usage (most complex — do first)
 7. **Secure File Storage** - Migrate file I/O operations
 8. **Secure Networking** - Migrate HTTP, Socket, OkHttp/Retrofit
-9. **Secure UI Widgets** - Migrate every covered standard/AppCompat/Material text & search widget to its `com.good.gd.widget.*` equivalent (no per-call-site sensitivity escape; exceptions require `secureUiWidgets` deferral)
+9. **Secure UI Widgets** - Apply the catalog-driven lane model: migrate every `replaceRows[]` widget to its Dynamics equivalent (inflater lane or explicit lane), keep `keepNativeRows[]` widgets native with residual-risk documentation
 10. **Optional Features** - WebView, ICC, policy, etc.
 11. **Testing & Validation** - Comprehensive testing with UEM
 12. **Migration Report** - Generate machine-readable report and human-readable readme
@@ -41,11 +41,13 @@ The steering files are numbered to indicate the typical migration sequence:
 - **14-api-provenance-and-replacement-catalog.md** - Deterministic native-to-Dynamics API mapping
 - **15-redundant-feature-removal.md** - Features superseded by Dynamics (biometric lock, SQLCipher, app backup)
 - **16-supported-app-tiers.md** - *(redirect stub — merged into 12-capability-and-support-model.md)*
+- **18-fresh-dynamics-install.md** - Mandate: a Dynamics conversion is always a fresh install; leftover-data transfer is out of scope
 - **20-auth-initialization.md** - Initialize Dynamics and handle authorization
 - **21-authorization-deferral-patterns.md** - Patterns for deferring secure API access across ViewModels, Fragments, widgets, receivers, migrations
 - **30-secure-networking.md** - Migrate networking code (HTTP, Socket, OkHttp)
 - **40-secure-file-storage.md** - Canonical secure file storage guide (filesystem, stream-layer closure, storage layout redesign, native NDK file I/O)
 - **41-secure-storage-sql.md** - Migrate SQL databases
+- **42-secure-storage-sharedpreferences.md** - Replace runtime SharedPreferences with GD-backed `SecurePreferencesHelper` (no leftover-data copy helper; see 18)
 - **45-secure-ui-widgets.md** - Migrate every covered UI widget in the secure family (including AppCompat auto-substitution)
 - **50-webview-bbwebview.md** - Migrate WebView to BBWebView
 - **60-icc-transferfileservice.md** - Add ICC support (if applicable)
@@ -87,7 +89,7 @@ The prompt files provide specific task instructions, run in order:
 - **06-secure-networking-audit-and-migrate.md** - Audit and migrate networking
 - **07-webview-migrate-to-bbwebview.md** - Migrate WebView to BBWebView
 - **08-icc-add-transferfileservice.md** - Add ICC support (if applicable)
-- **09-migrate-ui-widgets.md** - Migrate every covered UI widget (all-or-nothing; deferrable as a domain)
+- **09-migrate-ui-widgets.md** - Catalog-driven UI migration: lane detection, type-safe widget replacement, and keep-native handling for unsupported widgets
 - **11-push-channel.md** - FCM metadata-only hardening and Dynamics Push Channel migration (before `03c`)
 - **03c-background-authorize.md** - Capture Background Authorize intent per push/job entry point (after `11`)
 - **10-generate-migration-report.md** - Generate machine-readable migration report and human-readable `Dynamics_Migration_Readme.md`

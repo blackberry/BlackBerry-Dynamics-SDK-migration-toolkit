@@ -46,6 +46,10 @@ steering file.
   helper, category, or wrapper, check whether the domain's steering file
   documents one. The validator phases and the migration report know about
   the kit's mechanisms; an invented parallel is invisible to them.
+- **Fresh install is mandatory.** Do not invent one-time
+  `UserDefaults` / SQLCipher / sandbox copy helpers
+  (`18-fresh-dynamics-install.md`). There is no leftover-data transfer
+  path. Steady-state replacements still apply.
 - **Make the smallest correct change.** Touch only the files the
   migration plan calls out. Do not reformat, restructure, rename, or
   "improve" adjacent code that the plan does not require.

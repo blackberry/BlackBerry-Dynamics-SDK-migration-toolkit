@@ -193,9 +193,12 @@ That search MUST return zero results.
 backup import using `SQLiteDatabase.openDatabase(path, ...)`), this is NOT
 the app's own database. Do not migrate it to Dynamics secure SQLite.
 
-**SQLCipher coexistence** — If the app uses SQLCipher for encryption, the
-Dynamics bridge factory should only be applied when SQLCipher is NOT active.
-Both provide encryption; applying both is redundant and may conflict.
+**SQLCipher coexistence** — If the app uses SQLCipher for encryption,
+remove it (see `steering/15-redundant-feature-removal.md`). Do **not**
+add a SQLCipher export/import helper
+(`steering/18-fresh-dynamics-install.md`). The Dynamics bridge factory
+should only be applied when SQLCipher is NOT active. Both provide
+encryption; applying both is redundant and may conflict.
 
 **`android.database.sqlite.SQLiteTransactionListener`** — The Room bridge
 adapter must import this Android type to satisfy Room's interface contract.

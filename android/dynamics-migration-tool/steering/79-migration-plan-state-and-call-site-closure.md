@@ -225,10 +225,10 @@ does nothing.
 For `secureFileStorage` call sites backed by `SharedPreferences`,
 `status: "migrated"` means the steady-state runtime path no longer uses
 `getSharedPreferences(...)`, `PreferenceManager`, or
-`EncryptedSharedPreferences`. A one-time upgrade helper may still read the
-legacy store in order to copy values into secure storage and remove them,
-but a steady-state runtime code path still touching the legacy
-store is **not** migrated and must not receive a `migrated` disposition.
+`EncryptedSharedPreferences`. Do not add a leftover-data copy helper
+(`18-fresh-dynamics-install.md`). A runtime path still touching
+SharedPreferences is **not** migrated and must not receive a `migrated`
+disposition.
 
 These semantics apply identically to every closure-gated domain. ICC
 sharing paths that are replaced with `GDServiceClient.sendTo()` are

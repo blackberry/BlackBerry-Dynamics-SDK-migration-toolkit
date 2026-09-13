@@ -228,8 +228,11 @@ as part of object construction, either:
 **Do not leave secure-prefs reads in Phase-1 lifecycle methods.** Theme,
 settings, PIN material, and similar preference reads that used to call
 `SharedPreferences` must not call the Dynamics-backed helper from
-`onCreate`/`onStart`/`onResume` until authorization. Validator:
-`[AUTH-PREF-001]`.
+`onCreate`/`onStart`/`onResume` until authorization — including Kotlin
+`preferences.theme.value` / `isLockEnabled` getters and
+`object SecurePreferencesHelper.getXxx(` (no constructor parentheses).
+Validator: `[AUTH-PREF-001]`. Copy `templates/file/SecurePreferencesHelper.kt`
+so the helper itself fail-closes on `GDNotAuthorizedError`.
 
 **Deferred-init UI contract (MANDATORY handoff to Prompt 03b)**: if any
 model/VM data source is deferred until authorization, follow Pattern 12
@@ -250,10 +253,14 @@ Pattern 14 in `steering/21-authorization-deferral-patterns.md`:
 
 1. Null/ready/`isInitialized` guards on lifecycle **and menu** methods
 2. Phase-2 order: navigation/controllers **before** LiveData/prefs observes
-   that use them
+   that use them. After first activation, `initializeAuthorizedUi()` often
+   runs from `onPostResume()`, so `observe()` dispatches immediately —
+   calling `setupMenu()` before `setupNavigation()` crashes with
+   `UninitializedPropertyAccessException` on `navController`.
 3. `invalidateOptionsMenu()` (and resume recovery) after Phase-2
 
-Validator: `[AUTH-UI-004]`.
+Validator: `[AUTH-UI-004]` (lifecycle/menu guards **and**
+observe-before-navigation order).
 
 **CRITICAL — lifecycle-safe UI initialization after authorization**
 

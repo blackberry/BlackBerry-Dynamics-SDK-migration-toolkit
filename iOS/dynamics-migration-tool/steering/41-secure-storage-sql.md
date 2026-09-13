@@ -285,13 +285,9 @@ decisioned migration task (not a blanket delete):
 
 1. Remove `SQLCipher` or `GRDB-SQLCipher` pod
 2. Remove passphrase management code
-3. Handle one-time data migration from SQLCipher to Dynamics when evidence
-   shows SQLCipher is redundant for the target data path:
-   - Open old database with SQLCipher + passphrase
-   - Export all data
-   - Import into new `sqlite3enc`-opened database
-   - Delete old encrypted database
-   - This must run post-authorization
+3. Do **not** copy leftover SQLCipher data
+   (`18-fresh-dynamics-install.md`). Remove SQLCipher and open with
+   `sqlite3enc`. Do not export/import a previous installation's database.
 
 If redundancy is not yet proven for a call site, keep it explicit
 `blocked`/`deferred` with rationale instead of removing cryptography by

@@ -116,9 +116,10 @@ During Prompt 00 analysis, flag:
 3. **Remove CryptoKit/CommonCrypto** for data-at-rest — keep only usage
    related to TLS, server communication signing, or business-logic crypto
 
-4. **Handle data migration** — if existing encrypted data needs migration,
-   implement a one-time migration path that decrypts with the old key and
-   writes to the Dynamics secure container (must run post-authorization)
+4. **Do not copy leftover encrypted data** — a Dynamics conversion is
+   always a fresh install (`18-fresh-dynamics-install.md`). Remove
+   SQLCipher / leftover data-at-rest crypto and write to the Dynamics
+   container. Do **not** invent an export/import helper.
 
 ### Migration Comment
 

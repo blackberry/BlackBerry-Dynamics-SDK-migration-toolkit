@@ -19,7 +19,7 @@ and module-map scope variable from the parent shell.
 | `phase-6.sh`            | `6`       | Secure networking + transport hardening.                                                                 |
 | `phase-6b.sh`           | `6b`      | WebView → `BBWebView` migration.                                                                         |
 | `phase-7.sh`            | `7`       | Policy management; WI-03 warn on uncached `getApplicationConfig`/`getApplicationPolicy` reads.           |
-| `phase-8.sh`            | `8`       | Secure UI widgets (`GDEditText`, `GDTextView`, `ClipboardManager`).                                      |
+| `phase-8.sh`            | `8`       | Secure UI widgets (catalog lane checks `UI_LANE`, `UI_BIND_001`, `UI_CHILD_001`, `UI_CUSTOM_001`, `UI_PROG_001`, `UI_SEARCH_001`, `UI_TIN_001`, `UI_REMOTE_001`, plus secure clipboard/drag checks). |
 | `phase-8b.sh`           | `8b`      | ICC / `TransferFileService` + chooser-bypass audit (secure-container-only).                              |
 | `phase-9.sh`            | `9`       | Gradle build evidence (artifact + build log).                                                            |
 | `phase-10.sh`           | `10`      | API audit (Dynamics call totals + suspicious survivors).                                                 |

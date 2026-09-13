@@ -220,8 +220,10 @@ whenever an Activity constructs instance fields only inside
 `setupNavigation` (or equivalent). Guard `onResume` / `onPause` /
 `onStop` / `onDestroy` **and** `onCreateOptionsMenu` /
 `onPrepareOptionsMenu` until those fields are ready; establish
-navigation/controllers before LiveData observes that use them; call
-`invalidateOptionsMenu()` after Phase-2. Validator: `[AUTH-UI-004]`.
+navigation/controllers before LiveData observes that use them (after
+activation this init runs from `onPostResume`, so `observe()` fires
+immediately); call `invalidateOptionsMenu()` after Phase-2. Validator:
+`[AUTH-UI-004]` (lifecycle/menu guards **and** observe-before-navigation).
 
 ### 4. Add databaseReady Signal and Publish the Startup State Machine
 

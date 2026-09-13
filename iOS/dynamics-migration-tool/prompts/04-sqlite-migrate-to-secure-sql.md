@@ -188,52 +188,9 @@ Dynamics-compatible GRDB fork at this time.
 If the app uses SQLCipher:
 - Remove SQLCipher pod/dependency
 - Remove passphrase management code
-- Implement a **one-time data migration** that runs **once** post-first
-  authorization on an upgraded install. The migration is irreversible —
-  implement a completion flag to prevent re-running.
-
-  **Migration skeleton** (runs once, post-authorization):
-  ```objc
-  // One-time SQLCipher → sqlite3enc migration
-  // Run this in onAuthorized, guarded by a flag stored in secure file
-  NSString *migrationFlag = [securePath stringByAppendingPathComponent:@"sqlcipher_migrated"];
-  if ([[GDFileManager defaultManager] fileExistsAtPath:migrationFlag]) {
-      return; // already migrated
-  }
-
-  // 1. Open the old SQLCipher database (use original passphrase)
-  sqlite3 *oldDB;
-  sqlite3_open([oldDBPath UTF8String], &oldDB);
-  const char *key = [passphrase UTF8String];
-  sqlite3_exec(oldDB, [[NSString stringWithFormat:@"PRAGMA key='%s'", key] UTF8String],
-               NULL, NULL, NULL);
-
-  // 2. Open the new sqlite3enc database
-  sqlite3 *newDB;
-  sqlite3enc_open([newDBPath UTF8String], SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE,
-                  NULL, &newDB);
-
-  // 3. Copy all tables using SQLite's backup API
-  sqlite3_backup *backup = sqlite3_backup_init(newDB, "main", oldDB, "main");
-  if (backup) {
-      sqlite3_backup_step(backup, -1); // -1 = copy all pages
-      sqlite3_backup_finish(backup);
-  }
-
-  // 4. Verify the new database
-  NSAssert(sqlite3_errcode(newDB) == SQLITE_OK, @"Migration verification failed");
-
-  // 5. Mark migration complete and remove old file
-  [[GDFileManager defaultManager] createFileAtPath:migrationFlag contents:nil attributes:nil];
-  sqlite3_close(oldDB);
-  sqlite3_close(newDB);
-  [[NSFileManager defaultManager] removeItemAtPath:oldDBPath error:nil];
-  ```
-
-  Add a `[MANUAL-TODO]` requiring the developer to:
-  - Confirm the SQLCipher passphrase retrieval mechanism
-  - Verify migration on a test device before releasing
-  - Confirm `oldDBPath` and `newDBPath` resolve to the correct file locations
+- Stop there. A Dynamics conversion is always a fresh install
+  (`steering/18-fresh-dynamics-install.md`). Do **not** invent a
+  SQLCipher export/import helper for a previous installation.
 
 ### 7. Verify Database Access Timing
 

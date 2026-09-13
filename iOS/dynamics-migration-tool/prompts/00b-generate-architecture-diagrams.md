@@ -551,7 +551,7 @@ Column rules:
 - `NWConnection` / `CFSocket` to `GDSocket`: API + delegate change
 - `UIPasteboard` to `GDNativePasteboardAccess`: API refactor
 - `UserDefaults` (sensitive keys) to `GDFileManager`: pattern change
-  (one-time migration)
+  (steady-state replacement; no leftover UserDefaults copy)
 
 ---
 

@@ -449,9 +449,15 @@ side-effect free; **get/put methods** perform container file I/O and
 require authorization.
 
 **Fix**: Defer those reads/writes with `runOnAuthorized` /
-`authorized.observe` / `isContainerAuthorized`. Re-run
-`validate.sh --check-prompt 03` (Phase 11) and confirm `[AUTH-PREF-001]`
-passes. See Pattern 13 in `21-authorization-deferral-patterns.md` and
+`authorized.observe` / `isContainerAuthorized`. Copy
+`templates/file/SecurePreferencesHelper.kt` so get/put fail-closed on
+`GDNotAuthorizedError` (empty read, no-op write, no cache) — do not gate
+the helper on `isContainerAuthorized` (idle `onLocked()` is not
+unauthorized). Re-run `validate.sh --check-prompt 03` (Phase 11) and
+confirm `[AUTH-PREF-001]` passes. The scanner must flag Kotlin
+`preferences.theme.value` / `isLockEnabled` and
+`SecurePreferencesHelper.getString(` (object style) on launch
+Activities. See Pattern 13 in `21-authorization-deferral-patterns.md` and
 prompt `05c` step 1b.
 
 ### GDNotAuthorizedError in ViewModel init Block
@@ -623,12 +629,39 @@ same `@id`. Inflation returns a `GDTextView` instance; assigning it to a
 1. For every layout id migrated to `GDTextView`, change bindings to
    `com.good.gd.widget.GDTextView` (imports, locals, fields, method parameters).
 2. Re-run validation: `validate.sh` Phase 8 fails if layouts contain
-   `GDTextView` while sources still reference `MaterialTextView` (waivable via
-   `secureUiWidgets` when intentionally mixing migrated and non-migrated
-   screens).
+   `GDTextView` while sources still reference `MaterialTextView`.
 
 See `09-migrate-ui-widgets.md` (Material Components section) and
 `45-secure-ui-widgets.md`.
+
+### ClassCastException: `GDTextView` cannot be cast to a custom `*TextView`
+
+**Symptoms**: First time the notes list / RecyclerView binds after
+activation (often when creating a note). Stack:
+
+```
+java.lang.ClassCastException: com.good.gd.widget.GDTextView cannot be
+cast to com.example.HighlightableTextView
+    at ...BaseNoteVH.<init>
+    at ...Adapter.onCreateViewHolder
+```
+
+**Cause**: Prompt 09 rewrote a leftover `<TextView>` sibling (for example
+`ItemsRemaining`) to `<com.good.gd.widget.GDTextView>` inside a
+ViewGroup whose other children are a **custom** TextView subclass.
+Kotlin still does `linearLayout.children.forEach { it as CustomTextView }`.
+`GDAppCompatViewInflater` does not apply to custom tags; mixed siblings
+are a type mismatch.
+
+**Fix**:
+1. Do **not** rewrite custom FQCN tags in XML. Change the custom class
+   parent to `GDAppCompatTextView` / `GDAppCompatEditText`.
+2. For leftover standard siblings, either keep them as the same custom
+   class or iterate with `filterIsInstance<CustomTextView>()` /
+   `instanceof` and bind the GD view by id.
+3. Phase 8 `[UI_CHILD_001]` fails this pattern.
+
+See `45-secure-ui-widgets.md` § mixed siblings and prompt 09 step 4.
 
 ### GD FileOutputStream/FileInputStream Fails on `/data/...` Paths
 
@@ -786,6 +819,32 @@ rg 'GDEditText' -g '*.java' -g '*.kt' -n
 ```
 
 See `45-secure-ui-widgets.md` § "Do not cast inflated views to GDEditText".
+
+### Mixed lane failure: `GDAppCompatViewInflater` + explicit `GDTextView` / `GDEditText` tags
+
+**Symptoms**: Prompt 09 completes with scattered cast crashes across different
+screens. Some screens behave like inflater substitution (`GDAppCompat*`), others
+inflate explicit `GDTextView`/`GDEditText`.
+
+**Cause**: The app mixes both migration lanes in one module: theme-level
+`viewInflaterClass` is enabled while layouts still declare explicit
+`com.good.gd.widget.GDTextView`/`GDEditText` tags. The resulting type graph is
+inconsistent and easy to break with shared binding helpers.
+
+**Fix**:
+1. Choose one lane per app/module:
+   - Lane A: inflater lane (recommended for AppCompat apps), or
+   - Lane B: explicit GD widget lane.
+2. If using Lane A, remove explicit GD text/edit tags and keep standard/AppCompat
+   tags (plus custom parent migration).
+3. If using Lane B, remove `viewInflaterClass` declarations.
+4. Re-run scanner:
+   ```bash
+   python3 dynamics-migration-tool/tooling/lib/ui-surface-scan.py <in-scope-src-roots>
+   ```
+   `UI_LANE=PASS` is required.
+
+See `45-secure-ui-widgets.md` and prompt `09`.
 
 ### DLP Policies Not Enforced on System Copy/Paste Action Bar
 
@@ -1153,3 +1212,50 @@ private fun setupMenu() {
 **Prevention (Prompt 03b)**: The deferral audit must scan for ALL methods
 in the main Activity that access the database — not just `onCreate()`.
 See Pattern 9 in `21-authorization-deferral-patterns.md`.
+
+---
+
+### UninitializedPropertyAccessException on navController after first activation
+
+**Symptoms**: Activation, password, and biometrics succeed. As soon as
+control returns to the app, `MainActivity` crashes:
+
+```
+java.lang.RuntimeException: Unable to resume activity {...MainActivity}
+Caused by: kotlin.UninitializedPropertyAccessException: lateinit property
+navController has not been initialized
+    at ...MainActivity.setupLabelsMenuItems()
+    at ...MainActivity.setupMenu$lambda$...
+    at androidx.lifecycle.LiveData.considerNotify()
+    at ...MainActivity.initializeAuthorizedUi()
+    at ...MainActivity.onPostResume()
+```
+
+**Cause**: Two-phase auth correctly moved `setupMenu()` / `setupNavigation()`
+into `initializeAuthorizedUi()`. After activation that method runs from
+`onPostResume()`, so the Activity is already `STARTED`/`RESUMED`.
+`LiveData.observe()` then dispatches the current value **immediately**.
+If `setupMenu()` (or any helper that `observe()`s preferences/DAO lists)
+runs **before** `setupNavigation()` assigns `navController`, the observer
+touches the lateinit field and crashes. The same `onCreate()` path on a
+later launch often does **not** crash, because `observe()` waits until
+`onStart()` — by which time navigation has already been assigned.
+
+**Fix**: In Phase-2 init, establish navigation/controllers before any
+LiveData/prefs observe that uses them:
+
+```kotlin
+private fun initializeAuthorizedUi(savedInstanceState: Bundle?) {
+    if (authorizedUiInitialized) return
+    setupFAB()
+    setupNavigation() // assign navController first
+    setupMenu()       // observe() may fire immediately here
+    setupActionMode()
+    authorizedUiInitialized = true
+    invalidateOptionsMenu()
+}
+```
+
+**Prevention**: Pattern 14 + `[AUTH-UI-004]` (observe-before-navigation).
+Do not treat a green lifecycle-guard scan as sufficient if Phase-2 call
+order is `setupMenu()` then `setupNavigation()`.
