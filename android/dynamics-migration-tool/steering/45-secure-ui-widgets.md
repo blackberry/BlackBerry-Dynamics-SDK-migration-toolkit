@@ -94,7 +94,7 @@ Re-runs on an app that already rewrote XML to `GDTextView`/`GDEditText` should
 dual-hierarchy `ClassCastException`. Lane A remains the default only for apps
 that still have standard/AppCompat XML tags.
 
-### Replacement table (SDK 15.0.8513.64)
+### Replacement table (SDK 15.1.8766.18)
 
 | Source | Lane A replacement behavior | Lane B replacement behavior |
 |---|---|---|

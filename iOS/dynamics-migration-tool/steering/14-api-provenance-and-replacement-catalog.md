@@ -6,12 +6,12 @@ with provenance to public documentation and the installed SDK.
 ## Source Provenance
 
 - Public API reference: `https://developer.blackberry.com/files/blackberry-dynamics/ios/`
-  (generated from the installed SDK headers; version 15.0.8513.67 at time of last review).
+  (generated from the installed SDK headers; version 15.1.8766.18 at time of last review).
 - Public development guide: BlackBerry Dynamics SDK for iOS documentation at
   `https://docs.blackberry.com/en/development-tools/blackberry-dynamics-sdk-ios/`.
 - Public samples: `https://github.com/blackberry/BlackBerry-Dynamics-iOS-Samples`.
 - Official SPM package: `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK`
-  (tag `15.0.0` ships SDK build `15.0.8513.67`; products `BlackBerryDynamics`
+  (tag `v15.1.18` ships SDK build `15.1.8766.18`; products `BlackBerryDynamics`
   + `GSEProvider`).
 - Installed SDK headers: headers present in `Pods/BlackBerryDynamics/` after
   `pod install`, in the SPM checkout after package resolution, or in the
@@ -25,25 +25,37 @@ and add a `manualTodo`.
 
 ## Target SDK release
 
-This toolkit revision targets **BlackBerry Dynamics SDK for iOS 15.0**
-(public API reference / CocoaPods build **15.0.8513.67**).
+This toolkit revision targets **BlackBerry Dynamics SDK for iOS 15.1**
+(public API reference / CocoaPods build **15.1.8766.18**).
 
 Release-note deltas that affect migration steering (not every app needs
 code changes):
 
+| Area | SDK 15.1 change | Migration action |
+|------|-----------------|------------------|
+| Minimum iOS | iOS 17 removed; **iOS 18+** required (iOS 27 supported) | Raise `IPHONEOS_DEPLOYMENT_TARGET` / `platform :ios` only if below 18.0; never lower a higher target |
+| Packaging | CocoaPods + official SPM tag `v15.1.18`; crypto via `GSEProvider.xcframework` | Use `pod 'BlackBerryDynamics', '~> 15.1'` **or** SPM URL `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK` (`15.1.18`) linking products `BlackBerryDynamics` + `GSEProvider` |
+| SwiftData | `GDSecureModelConfiguration` + `GDSecureModelContainer.create(...)` | Migrate `@Model` stores in Prompt 04c; do not rewrite to Core Data |
+| Siri / Apple Intelligence DLP | Screenshot restriction also blocks Siri AI from on-screen and selected text | Policy-driven; remove app-level screenshot hacks; verify UEM "Do not allow screenshots" |
+| TLS | TLS 1.3 with AES-GCM cipher suites (AES-CCM not supported) | No API swap; regress `GDURLLoadingSystem` / `URLSession` / `GDSocket` against TLS 1.3 endpoints |
+| Third-party libraries | SQLite, cURL, and OpenSSL updated | Regression for secure SQL and networking; no app API rename |
+
+SDK 15.0 deltas that remain in force (do not re-attribute them to 15.1):
+
 | Area | SDK 15.0 change | Migration action |
 |------|-----------------|------------------|
-| Packaging | CocoaPods + official SPM; crypto via `GSEProvider.xcframework` | Use `pod 'BlackBerryDynamics', '~> 15.0'` **or** SPM URL `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK` (`15.0.0`) linking products `BlackBerryDynamics` + `GSEProvider`; remove Certicom pair |
-| OpenSSL | Upgraded to OpenSSL 3.5.4 | Review any `GDCryptoPKCS7` / PKCS#7 call sites for stricter flag handling (`GDPKCS7_BINARY`, `GDPKCS7_DETACHED`) |
+| Packaging | CocoaPods + official SPM; crypto via `GSEProvider.xcframework` | Remove Certicom pair; keep GSEProvider |
+| OpenSSL | Upgraded to OpenSSL 3.5.4 (15.1 refreshes the library again) | Review any `GDCryptoPKCS7` / PKCS#7 call sites for stricter flag handling (`GDPKCS7_BINARY`, `GDPKCS7_DETACHED`) |
 | FIPS | Provider upgraded to FIPS 140-3 | Prefer AES-128/256-CBC over Triple-DES for S/MIME when FIPS is enabled; see `74-fips-compliance.md` |
 | SecureStorage | New activations use AES-GCM; existing stay AES-CBC | No app API swap; note in report if storage crypto posture matters |
 | Protect Mobile | Safe browsing / SMS URL scan removed | Remove Protect Mobile / SafeBrowsing API usage; do not migrate onto those APIs |
+| Networking | `GDHttpRequest` / `GDHttpRequestDelegate` deprecated in the 15.x API reference; removal is scheduled for SDK **16.0** | Never target these classes and never require them to be present; route HTTP through `GDURLLoadingSystem` by using `URLSession` / `NSURLConnection`, and rewrite any legacy `GDHttpRequest` call sites |
 | UEM profile | "Open files unencrypted in other selected non-Dynamics apps" | Policy-driven; keep outbound file transfer on Dynamics-controlled paths (AppKinetics / secured share) |
 | UEM profile | "Do not require authentication when securely receiving a file from an authenticated Dynamics app" | Policy-driven receive UX; do not invent app-level auth bypass — keep ICC receive on Dynamics service APIs |
 | Native share | Text share via native iOS share menu to BlackBerry Work | Optional product capability; still classify protected file/share flows per ICC/DLP rules |
 
 Official notes:
-https://docs.blackberry.com/en/blackberry-dynamics-sdk/15.x/blackberry-dynamics-sdk-for-ios/blackberry-dynamics-sdk-for-ios-release-notes/blackberry-dynamics-sdk-for-ios-version-15.0
+https://docs.blackberry.com/en/blackberry-dynamics-sdk/15.x/blackberry-dynamics-sdk-for-ios/blackberry-dynamics-sdk-for-ios-release-notes/blackberry-dynamics-sdk-for-ios-version-15.x
 
 ## Deterministic Replacement Rules
 
@@ -54,9 +66,11 @@ https://docs.blackberry.com/en/blackberry-dynamics-sdk/15.x/blackberry-dynamics-
 | Secure SQLite | `sqlite3_open*` for sensitive DB | `sqlite3enc_open*` via Dynamics `sqlite3.h` + `sqlite3enc.h` (all `sqlite3_*` from Dynamics on iOS) | tier1 | Paths in secure container; never mix with system libsqlite3 |
 | FMDB | FMDB over `sqlite3_open` | Direct `sqlite3enc_*` **or** retain FMDB with full iOS Dynamics SQLite linkage | tier2 | Open-only bridges → SIGSEGV; see `41-secure-storage-sql.md` |
 | Secure Core Data | `NSPersistentStoreCoordinator` standard stack | `GDPersistentStoreCoordinator` | tier2 | Requires stack refactor, not pure import swap |
+| Secure SwiftData | `ModelConfiguration` / `ModelContainer` for sensitive `@Model` stores | `GDSecureModelConfiguration` + `GDSecureModelContainer.create(_:migrationPlan:)` | tier2 | iOS 18+; factory only; post-auth; keep `@Model`/`@Query`/`ModelContext` |
 | Secure networking (Foundation) | `URLSession`, `NSURLConnection` | Keep standard APIs; routed post-auth by `GDURLLoadingSystem` | tier1 | Do not replace with invented APIs; verify post-auth initiation |
 | Secure networking (direct sockets) | `NWConnection`, `CFSocket`, `NSStream`, `GCDAsyncSocket`, socket wrappers | `GDSocket` (or explicit blocker if safe migration cannot be proven) | tier1 | Host/port/TLS set in `GDSocket` init; `connect()` takes no args |
 | Secure networking (background sessions) | `URLSessionConfiguration.background(...)`, background callbacks | Classification only in this tranche (foreground defer vs G12 blocker) | tier1 | Do not implement Background Authorize in Tranche 4 |
+| Secure networking (withdrawn HTTP class) | legacy `GDHttpRequest` / `GDHttpRequestDelegate` call sites | `URLSession` / `NSURLConnection` routed post-auth by `GDURLLoadingSystem` | tier2 | Deprecated in 15.x and dropped from SDK headers in 16.0 — never a replacement target; rewrite request, response, and delegate handling |
 | Web content | `WKWebView` enterprise flows | `WKWebView+GDNET` / `GDURLLoadingSystem.supportWKWebView` with lifecycle-safe init | tier2 | Local/custom/unsupported paths require explicit decision or blocker |
 | ICC / sharing | open share sheet for enterprise flows | `GDService` / `GDServiceClient` (`GDServices.h`) | tier2 | AppKinetics pairing + Info.plist service registration required |
 | External data movement / DLP | unmanaged document/share/export/import surfaces | classify direction + migrate/secure-copy/block | tier2 | Protected unmanaged outbound defaults to blocked unless approved |
@@ -87,7 +101,8 @@ follow-up and record it in `manualTodos`.
 
 | Pattern | Tier | Required Action |
 |---|---|---|
-| SwiftData for sensitive persistence | tier3 | Rewrite to Core Data + Dynamics secure store |
+| Persistent history tracking on a secure SwiftData/Core Data store | tier3 | Unsupported on the Dynamics store; redesign change detection. Do not mark as migrated |
+| Core Data and SwiftData sharing one store URL | tier3 | Use separate stores; Prompt 04b and 04c are complementary |
 | App Extensions (WidgetKit, Share Extension, etc.) needing secure container | tier3 | Split architecture, keep secure flows in main app |
 | App Clip requiring Dynamics secure container | tier3 | Redesign feature boundary |
 | CloudKit/iCloud for sensitive container data | tier3 | Keep sensitive data in secure container |
@@ -101,4 +116,5 @@ follow-up and record it in `manualTodos`.
 - Use this catalog when generating `apisReplaced` in `migration-report.json`.
 - Every replacement entry should map to exactly one row above.
 - If no row applies, add a `manualTodo` and mark domain as `partial`.
-- Do not invent replacement APIs that are absent from public docs/internal headers.
+- Do not invent replacement APIs that are absent from public docs or the
+  installed SDK headers.

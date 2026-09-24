@@ -67,6 +67,13 @@ If app-level screenshot prevention exists only for DLP:
 - remove screenshot-only blur overlays
 - document UEM-managed policy ownership
 
+SDK 15.1 extends the UEM **Do not allow screenshots** setting: when that
+policy is enabled, Dynamics also prevents **Siri / Apple Intelligence**
+from accessing on-screen and selected text in the Dynamics app. There is
+no additional public API to call. Do not invent Siri-specific wrappers.
+Record a runtime test that screenshot restriction and Siri AI text access
+both honor the UEM profile.
+
 ### 6. Build and verify
 
 Run `xcodebuild` and classify failures as pre-existing, migration-introduced,

@@ -220,6 +220,11 @@ If the app has custom screen capture prevention:
 - Remove background blur overlays intended solely for screenshot prevention
 - Document in the migration report that UEM DLP policy now controls this
 
+SDK 15.1: when UEM **Do not allow screenshots** is enabled, Dynamics also
+prevents Siri / Apple Intelligence from reading on-screen and selected
+text in the Dynamics app. This is policy-driven — there is no extra
+public API. Include it in UEM runtime tests with screenshot restriction.
+
 ---
 
 ## Audit Checklist

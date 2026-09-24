@@ -11,8 +11,8 @@ app to access secure APIs (`GDFileSystem`, secure SQLite, `GDHttpClient`,
 needs container data.
 
 In this toolkit Background Authorize is **first-class but opt-in**,
-matching the Dynamics SDK 15.0 posture (generally available since 14.1,
-still opt-in at both the app config and UEM profile levels):
+matching the Dynamics SDK 15.1 posture (generally available since 14.1 /
+15.0, still opt-in at both the app config and UEM profile levels):
 
 1. **Discovery (mechanical).** Candidate background entry points are
    identified in `00pre-bootstrap.md` and recorded in
@@ -95,7 +95,7 @@ into `bootstrap.backgroundAuthorize.decisions[]`:
 
 Do not write Background Authorize dispositions to
 `migration-plan-state.json`. That ledger is reserved for the
-data-plane call-site prompts (`04`, `05c`, `06`) and its schema does
+data-plane call-site prompts (`04`, `05z`, `06`) and its schema does
 not include the `backgroundAuthorize` domain.
 
 A `deferred` decision is a contract with the UEM administrator: until
@@ -283,10 +283,10 @@ requires a `Service` context.
 ### BroadcastReceiver variant
 
 `BroadcastReceiver.onReceive()` does not own a `Service` lifecycle.
-Prompt 03c rewrites secure-API-touching receivers to start a dedicated
-`JobIntentService` (Pre-31) or schedule a `JobService` (`minSdk >=
-31`, which this toolkit enforces), and the handshake lives in that
-service per the canonical pattern above.
+Prompt 03c rewrites secure-API-touching receivers to schedule a dedicated
+`JobService` (this kit's `minSdk` is **33**; `JobIntentService` pre-31
+paths are dead). The handshake lives in that service per the canonical
+pattern above.
 
 ---
 

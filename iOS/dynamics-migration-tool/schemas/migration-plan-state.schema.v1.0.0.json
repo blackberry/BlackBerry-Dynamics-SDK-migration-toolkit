@@ -62,6 +62,7 @@
             "secureFileStorage",
             "secureSql",
             "secureCoreData",
+            "secureSwiftData",
             "secureNetworking",
             "webview",
             "icc",

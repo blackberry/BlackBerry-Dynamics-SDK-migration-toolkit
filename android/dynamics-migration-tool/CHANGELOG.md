@@ -13,7 +13,38 @@ fresh project and avoid mid-run upgrades.
 
 ## [Unreleased]
 
+Lockstep component version **1.1.0** with iOS. Android toolkit retargets
+Dynamics SDK **15.1** (`15.1.8766.18`).
+
+### Added
+
+- Prompt **05c** (`prompts/05c-secure-media.md`) between 05b and 05z for
+  native media capture/playback/metadata. Domain stays
+  `secureFileStorage`. Steering `41-secure-media.md`, templates
+  `SeekableGdMediaCapture` / `SeekableGdMediaPlayback`, catalog rows
+  `fs-java-media-*`.
+
 ### Changed
+
+- Retargeted the Android toolkit to Dynamics SDK **15.1**
+  (`15.1.8766.18`): Maven pin
+  `com.blackberry.blackberrydynamics:android_handheld_platform:15.1.8766.18`,
+  **minSdk 33** (Android 13; Android 12 / API 31–32 removed), Gradle
+  **≥ 9.3.1**, AGP **9.1.1**, NDK **27.3.13750724**, compile/target
+  **API 36** (Android 17-ready). No new public persistence API (unlike
+  iOS SwiftData). TLS 1.3 AES-GCM is a runtime-stack change; SQLite /
+  cURL / OpenSSL are library refreshes.
+- Former SharedPreferences + closure prompt **05c** is now **05z**,
+  so later 05* steps can insert before domain closure. Fresh
+  migrations only; do not switch toolkit versions mid-run. Prompt
+  order is `05a → 05b → 05c → 05z`. MPEG-4 /
+  `MediaRecorder` + `ParcelFileDescriptor.createPipe()` is no longer a
+  migrated outcome (Phase 4 rule **4L** `mpeg4-nonseekable-fd`). New
+  4H tokens: `mediaplayer-path-datasource`,
+  `retriever-path-datasource`, `camerax-video-file-output`. Sequential
+  `AAC_ADTS`/AMR pipes still pass. Stream-layer fixture
+  `pass-mediarecorder-fd-gd-pipe` is 4I-clean and **4L-fail** (omitted
+  format defaults to MPEG-4).
 
 - Dynamics conversions are **always a fresh install** (mandate, not an
   option): do not create or offer leftover SharedPreferences / SQLCipher /

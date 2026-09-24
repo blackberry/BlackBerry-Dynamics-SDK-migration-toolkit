@@ -132,21 +132,24 @@ rg "compose|@Composable" -g "*.kt" -g "*.gradle" -g "*.gradle.kts" -l 2>/dev/nul
 
 **Record these values** in the analysis output.
 
-**minSdk / toolchain rules for Dynamics SDK 15.x:**
-- BlackBerry Dynamics SDK 15.x requires `minSdk` >= **31** (Android 12)
-  (unchanged from 14.x).
-- If the project already targets 31 or higher, **keep the existing target**.
-  Only raise it to 31 if it is below 31. Never lower a higher target.
-- If the project targets a version above 31, it may use APIs unavailable at
-  API 31. Flag these as `preExistingApiAvailabilityRisks` in the analysis
+**minSdk / toolchain rules for Dynamics SDK 15.1:**
+- BlackBerry Dynamics SDK 15.1 requires `minSdk` >= **33** (Android 13).
+  Android 12 (API 31–32) is not supported.
+- If the project already targets 33 or higher, **keep the existing target**.
+  Only raise it to 33 if it is below 33. Never lower a higher target.
+- If the project targets a version above 33, it may use APIs unavailable at
+  API 33. Flag these as `preExistingApiAvailabilityRisks` in the analysis
   artifact if the target must change.
-- SDK 15.0 software requirements: Gradle **≥ 8.11.1**, Android Gradle
-  Plugin **8.9.1**, NDK **27.3.13750724**. Record gaps; do not silently
-  downgrade the app toolchain.
+- SDK 15.1 software requirements: Gradle **≥ 9.3.1**, Android Gradle
+  Plugin **9.1.1**, NDK **27.3.13750724**, compile/target **API 36**
+  (Android 17-ready). Record gaps; do not silently downgrade the app
+  toolchain.
 - Flag and plan removal of `android_handheld_blackberry_protect_support`
   and Protect Mobile API usage (unsupported as of SDK 15.0).
 - Flag native `GDCryptoPKCS7` / PKCS#7 call sites for OpenSSL 3.x flag
   review (`GDPKCS7_BINARY`, `GDPKCS7_DETACHED`).
+- Record TLS 1.3 AES-GCM regression for networking paths (AES-CCM is not
+  supported). No app API swap.
 
 **Language awareness:**
 - Detect whether the project uses Kotlin, Java, or mixed.
@@ -211,7 +214,7 @@ Read ALL Java/Kotlin source files in the project. For each file, identify:
   `EncryptedSharedPreferences` — inventory every steady-state preference
   persistence path. Do **not** plan a leftover `SharedPreferences` copy
   helper (`18-fresh-dynamics-install.md`). Runtime `SharedPreferences`
-  usage must be migrated to Dynamics secure storage (see Prompt 05a/05b/05c).
+  usage must be migrated to Dynamics secure storage (see Prompt 05a/05b/05c/05z).
 - **SQLite/Database**: `android.database.sqlite.SQLiteOpenHelper`,
   `SQLiteDatabase`, Room database (`@Database`, `Room.databaseBuilder()`),
   `ContentProvider` with database backing, SQLCipher or other encryption
@@ -273,7 +276,7 @@ Read ALL Java/Kotlin source files in the project. For each file, identify:
   launch Activity's `onCreate()` — specifically what data access (database,
   files, network, policy) happens during initialization
 - **Version-Gated Code**: `Build.VERSION.SDK_INT` checks against API levels
-  below 31 — these become dead code after minSdk bump and may cause compile
+  below 33 — these become dead code after minSdk bump and may cause compile
   errors if the `else` branch references resources or APIs that don't exist
   at the new minSdk level
 - **Third-Party File Libraries and Library-Consumed `File` Arguments**:
@@ -281,14 +284,19 @@ Read ALL Java/Kotlin source files in the project. For each file, identify:
   `java.io` stream internally bypasses the Dynamics container. See
   `steering/40-secure-file-storage.md` §5c for the invariant and
   `steering/13-unsupported-feature-detection-matrix.md` rows
-  CameraX / ZipFile / ExifInterface / MediaMuxer / PdfRenderer for
+  CameraX / ZipFile / ExifInterface / MediaMuxer / MediaRecorder /
+  MediaPlayer / PdfRenderer for
   detection signals, `kind` values, and `replacementHint` strings.
   For each detected call site, emit a `callSites[]` entry on the
   `secureFileStorage` execution-plan row with the `kind`, `library`,
-  and `replacementHint` values defined in those steering files. Also
-  flag image-loading libraries (Glide, Picasso, Coil) that expect
-  `java.io.File` per `steering/13` row "Unsupported third-party APIs
-  requiring raw filesystem".
+  and `replacementHint` values defined in those steering files. Media
+  capture/playback/retriever sites that need a seekable FD (class C in
+  `steering/41-secure-media.md`) MUST set `ownerPrompt` `"05c"` on the
+  matching `egressFeatures[]` entry or on analysis notes consumed by
+  prompt 05c, and MUST NOT use `ParcelFileDescriptor.createPipe` as the
+  replacementHint for MPEG-4. Also flag image-loading libraries
+  (Glide, Picasso, Coil) that expect `java.io.File` per `steering/13`
+  row "Unsupported third-party APIs requiring raw filesystem".
 - **Redundant Features**: Features that Dynamics replaces at the
   container level — flag for removal per
   `steering/15-redundant-feature-removal.md`. That file defines five
@@ -305,6 +313,15 @@ Read ALL Java/Kotlin source files in the project. For each file, identify:
   "CameraX `OutputFileOptions.Builder(File)`" for the canonical
   detection signal. Flag for mandatory replacement with in-memory
   processing.
+- **Secure media inventory (MANDATORY)**: Scan for MediaRecorder,
+  MediaPlayer, VideoView, MediaMuxer, MediaMetadataRetriever,
+  ThumbnailUtils, CameraX `androidx.camera.video`, ExoPlayer
+  `FileDataSource`, `ACTION_IMAGE_CAPTURE` / `ACTION_VIDEO_CAPTURE`.
+  Emit `mediaCapabilities[]` (see JSON template). Classify each entry
+  A/B/C/D per `steering/41-secure-media.md`. Class C/D call sites stay
+  on domain `secureFileStorage` with `ownerPrompt` `"05c"` (still-capture
+  `OutputStream` may remain 05a). Empty inventory makes prompt 05c
+  skippable.
 - **External / Secondary Storage Data Leakage**: Features that write
   sensitive data outside the Dynamics container. See
   `steering/13-unsupported-feature-detection-matrix.md` row
@@ -330,7 +347,7 @@ Read ALL Java/Kotlin source files in the project. For each file, identify:
   For each feature record:
   - stable `id`
   - owning `domain`
-  - `ownerPrompt` (`05a`, `08`, `09`, or `10`)
+  - `ownerPrompt` (`05a`, `05c`, `08`, `09`, or `10`)
   - `category`
   - `featureName`
   - `recommendedOutcome`
@@ -431,7 +448,7 @@ Classify each native artifact as one of:
 
 1. **App-controlled native source** — direct replacement applies.
    Every call site must appear as a `callSites[]` entry on the
-   matching `executionPlan` row (`secureFileStorage` / `05c` for file
+   matching `executionPlan` row (`secureFileStorage` / `05z` for file
    calls; `secureNetworking` / `06` for socket calls). Set `language`
    to `"C"` or `"C++"`.
 2. **Prebuilt `.so` (no source available)** — record as a
@@ -482,7 +499,7 @@ sensitivity is recorded as inventory metadata only, not as a gate):
 
 Classify the data flowing through each API usage. Sensitivity drives
 migration **for storage / networking / sharing / sharedprefs domains**
-(filesystem, SharedPreferences, ICC, etc. — see prompts `05a`, `05c`,
+(filesystem, SharedPreferences, ICC, etc. — see prompts `05a`, `05z`,
 `08`). It is **reporting metadata only** for cataloged UI replacement
 rows (prompt `09` / steering `45`): every `replaceRows[]` widget migrates
 regardless of sensitivity.
@@ -622,7 +639,7 @@ Create `dynamics-migration-tool/output/migration-analysis.json` with:
           "kind": "SQLiteOpenHelper",
           "context": "App database helper extends SQLiteOpenHelper",
           "library": "(optional) top-level package of the library, e.g. androidx.camera.core, java.util.zip, androidx.exifinterface.media, android.media, android.graphics.pdf — present for library-consumed File call sites",
-          "replacementHint": "(optional) machine-readable hint mapping 1:1 to a row in the 05a migration sub-table, e.g. Builder(OutputStream)+com.good.gd.file.FileOutputStream, ZipInputStream+com.good.gd.file.FileInputStream, ExifInterface(InputStream)+com.good.gd.file.FileInputStream, MediaMuxer(FileDescriptor), ParcelFileDescriptor.createPipe — downstream prompts and validate.sh consume these when present",
+          "replacementHint": "(optional) machine-readable hint mapping 1:1 to a row in the 05a/05c migration sub-table, e.g. Builder(OutputStream)+com.good.gd.file.FileOutputStream, ZipInputStream+com.good.gd.file.FileInputStream, ExifInterface(InputStream)+com.good.gd.file.FileInputStream, MediaMuxer(seekable FileDescriptor)+MemoryFile, MediaRecorder.setOutputFile(MemoryFile fd) — NEVER ParcelFileDescriptor.createPipe for MPEG-4. Downstream prompts and validate.sh consume these when present",
           "writeReadPair": "(optional) present when this write site powers a user-facing save/download/export feature. Object with: { referenceProducer: 'what generates the URI/path after writing', referenceStore: 'where the reference is persisted (DataStore/Room/SharedPreferences/etc.)', referenceConsumers: ['files/methods that read the reference back'], uiLocationText: 'string resource key showing the save location to the user, if any' }. Prompt 05a step 4d uses this to verify the full write-read round-trip is migrated. See steering/40-secure-file-storage.md §7a.",
           "redesignPath": "(optional) in-container | saf-boundary | feature-removal | null for public-storage/SAF/file-sharing redesign sites",
           "direction": "(optional, required for SAF) inbound | outbound | bidirectional",
@@ -635,7 +652,7 @@ Create `dynamics-migration-tool/output/migration-analysis.json` with:
     {
       "applicable": false,
       "domain": "secureFileStorage",
-      "promptId": "05c",
+      "promptId": "05z",
       "rationale": "No java.io file or Context.openFile* usage detected",
       "callSites": []
     }
@@ -655,6 +672,17 @@ Create `dynamics-migration-tool/output/migration-analysis.json` with:
       "secureAlternativeHint": "AppKinetics ICC TransferFile with runtime provider discovery"
     }
   ],
+  "mediaCapabilities": [
+    {
+      "id": "media-audio-record-001",
+      "kind": "preview|still-capture|audio-record|audio-play|video-record|video-play|metadata-thumb|capture-intent|mediastore-publish",
+      "closureClass": "A|B|C|D",
+      "ownerPrompt": "05c",
+      "apis": ["android.media.MediaRecorder.setOutputFile"],
+      "files": ["app/src/main/java/com/example/AudioRecordService.kt"],
+      "notes": "Classify per steering/41-secure-media.md. Omit this array or use [] when no media APIs exist (prompt 05c skips)."
+    }
+  ],
   "unsupportedDetections": [
     {
       "feature": "string",
@@ -670,7 +698,7 @@ Create `dynamics-migration-tool/output/migration-analysis.json` with:
       "reason": "string"
     }
   ],
-  "recommendedPromptOrder": ["00pre","00","01","02","03","03b","04","05a","05b","05c","06","07","08","09","11","03c","10","12"],
+  "recommendedPromptOrder": ["00pre","00","01","02","03","03b","04","05a","05b","05c","05z","06","07","08","09","11","03c","10","12"],
   "optionalPromptOrder": ["00b after 00 when architecture diagrams are requested", "12 after 10 when the developer opts in"]
 }
 ```
@@ -685,7 +713,7 @@ prompt that will migrate it. Required entries (one per row, exactly):
 |---|---|
 | `backgroundAuthorize` | `03c` |
 | `secureSql` | `04` |
-| `secureFileStorage` | `05c` |
+| `secureFileStorage` | `05z` |
 | `secureNetworking` | `06` |
 | `webview` | `07` |
 | `icc` | `08` |
@@ -759,6 +787,7 @@ Owner mapping:
 | Feature family | `ownerPrompt` |
 |---|---|
 | backup/export/public storage/download/gallery/media containment | `05a` |
+| audio/video capture, playback, retriever, CameraX video (class C/D) | `05c` |
 | share/open-with/external viewer/email/ICC replacement | `08` |
 | clipboard/drag-drop/printing/screen-export DLP surfaces | `09` |
 | report-only/manual follow-up items with no earlier owning prompt | `10` |
@@ -787,7 +816,7 @@ Rules:
 
 #### `callSites[]` worklist (M2 — schema 1.2.0)
 
-For every `executionPlan` row whose `promptId` is **`04`**, **`05c`**,
+For every `executionPlan` row whose `promptId` is **`04`**, **`05z`**,
 **`06`**, **`08`**, or **`09`**:
 
 1. Include a **`callSites` array** on the row (required key).
@@ -797,14 +826,14 @@ For every `executionPlan` row whose `promptId` is **`04`**, **`05c`**,
 3. If `applicable: false`, set **`callSites` to `[]`**.
 4. If `applicable: true` and the inventory genuinely found **zero** call
    sites, `callSites` may be `[]` **only** for data-plane domains (`04` /
-   `05c` / `06`) — state that explicitly in `rationale`. For **`icc`**,
+   `05z` / `06`) — state that explicitly in `rationale`. For **`icc`**,
    **`secureUiWidgets`**, and **`secureClipboard`** (`08` / `09`), an
    applicable row with empty `callSites[]` is a contract violation unless
    the domain is `not-applicable`.
 5. Each `callSites[*]` entry **must** include a `module` field — the
    Gradle module name owning that file, taken from `module-map.json`
    (`primaryAppModule.name` or one of `libraryModulesInScope[*].name`).
-   Prompts 04/05c/06 propagate this `module` value into the matching
+   Prompts 04/05z/06 propagate this `module` value into the matching
    `dispositions[*]` row in `migration-plan-state.json`.
 6. For `secureFileStorage` call sites that use MediaStore,
    `getExternalFilesDir`, SAF import/export, external primary storage, or
@@ -812,7 +841,7 @@ For every `executionPlan` row whose `promptId` is **`04`**, **`05c`**,
    `"in-container" | "saf-boundary" | "feature-removal" | null` per
    `steering/40-secure-file-storage.md` §7 and
    `steering/44-saf-trust-boundary.md`. Non-null values become the
-   redesign worklist for prompts `05a`–`05c` and block ICC until storage closes.
+   redesign worklist for prompts `05a`–`05z` and block ICC until storage closes.
    If `redesignPath` is `"saf-boundary"`, the call site must also include
    `direction`, `migrationDecision`, `uiEntryPoint` when user-visible, and
    `targetMechanism`. Outbound SAF export defaults to
@@ -845,7 +874,7 @@ For every `executionPlan` row whose `promptId` is **`04`**, **`05c`**,
      `socket`, `connect`),
    - `file` pointing at the `.c` / `.cpp` / `.h` / `.hpp` source.
    File-system native calls go on the `secureFileStorage` row
-   (`promptId: "05c"`). Socket / name-resolution native calls go on
+   (`promptId: "05z"`). Socket / name-resolution native calls go on
    the `secureNetworking` row (`promptId: "06"`). Prebuilt `.so`
    libraries do **not** become `callSites[]` entries — they go in
    `manualTodoCandidates[]` and `unsupportedDetections[]`.
@@ -862,7 +891,7 @@ immediately after analysis (full-file overwrite):
 }
 ```
 
-Prompts **04**, **05c**, **06**, **08**, and **09** append dispositions here
+Prompts **04**, **05z**, **06**, **08**, and **09** append dispositions here
 as they close each call site. Prompt **10** refuses final completion until
 every listed `callSites[].id` has a matching disposition or a valid domain
 deferral exists (see steering 79).

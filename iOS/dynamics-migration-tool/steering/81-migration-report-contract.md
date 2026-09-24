@@ -23,8 +23,10 @@ Document how sensitive data storage was handled:
 - file storage migration status
 - SQL migration status
 - Core Data migration status
+- SwiftData migration status (`GDSecureModelContainer.create` or
+  explicit blocked/not-applicable)
 - SQL wrapper status (direct sqlite, FMDB, GRDB, SQLite.swift, SQLCipher)
-- SwiftData disposition (explicit blocked/not-applicable when detected)
+- SwiftData disposition (`migrated`/`blocked`/`not-applicable` when detected)
 - reader/follow-on closure status (not writers only)
 - UserDefaults/Keychain/local-crypto decision outcomes with rationale
 - unresolved storage risks and affected files/components

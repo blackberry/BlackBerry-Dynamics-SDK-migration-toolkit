@@ -26,13 +26,22 @@ For each networking path:
 
 Explain your reasoning clearly.
 
-Supported Dynamics-compatible paths in this toolkit:
+Treat these as the supported Dynamics-compatible paths in this toolkit:
 
 - `GDHttpClient`
 - `GDSocket`
 - OkHttp via `BBCustomInterceptor` (and `BBCookieJar` as needed)
 - Retrofit only when wired to a proven interceptor-wired `OkHttpClient`
 - BlackBerry WebSocket project based on `GDSocket`
+
+### TLS 1.3 (SDK 15.1)
+
+Dynamics 15.1 supports **TLS 1.3 with AES-GCM cipher suites**. AES-CCM
+is not supported. This is a runtime stack change, not an app API swap.
+Do not invent TLS configuration types. After migration, regress
+`GDHttpClient`, `GDSocket`, and OkHttp+`BBCustomInterceptor` against
+enterprise endpoints that negotiate TLS 1.3, TLS 1.2 fallback, mutual
+TLS, and proxies.
 
 Treat these as unsupported/unproven until replaced or proven routed through the
 supported list above:

@@ -48,16 +48,16 @@ Recovery steps:
 If using CocoaPods:
 
 1. Add or update `Podfile`.
-   Use the project's current deployment target if it is >= 17.0, otherwise
-   use '17.0' as the floor:
+   Use the project's current deployment target if it is >= 18.0, otherwise
+   use '18.0' as the floor:
    ```ruby
-   # Use max(current_target, '17.0') — do NOT lower a higher target
-   platform :ios, '17.0'  # or keep existing if already >= 17.0
+   # Use max(current_target, '18.0') — do NOT lower a higher target
+   platform :ios, '18.0'  # or keep existing if already >= 18.0
    use_frameworks!
 
    target 'YourApp' do
      # [BB_DYNAMICS-MIGRATION] Added BlackBerryDynamics SDK
-     pod 'BlackBerryDynamics', '~> 15.0'
+     pod 'BlackBerryDynamics', '~> 15.1'
    end
 
    post_install do |installer|
@@ -65,7 +65,7 @@ If using CocoaPods:
        target.build_configurations.each do |config|
          # Only raise — never lower the deployment target
          current = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f
-         config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '17.0' if current < 17.0
+         config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '18.0' if current < 18.0
          config.build_settings['ENABLE_BITCODE'] = 'NO'
        end
      end
@@ -116,7 +116,7 @@ If not using CocoaPods **and** not using SPM:
    - `BlackBerryDynamics.xcframework` → Embed & Sign
    - `GSEProvider.xcframework` → Embed & Sign
 
-   **Version note**: This toolkit targets public SDK `15.0` (`15.0.8513.67`).
+   **Version note**: This toolkit targets public SDK `15.1` (`15.1.8766.18`).
    SDK 15.0 replaced `BlackBerryCerticom.xcframework` /
    `BlackBerryCerticomSBGSE.xcframework` with a single `GSEProvider.xcframework`.
    Do not keep the old Certicom pair when integrating 15.0+.
@@ -146,10 +146,10 @@ If the integration matrix selects SPM:
    alternate URLs:
    - URL: `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK`
    - Xcode: File → Add Package Dependencies… → paste the URL
-2. Dependency rule: **Up to Next Major** from `15.0.0`, or **Exact**
-   `15.0.0` for a reproducible migration pin.
-   - Tag `15.0.0` ships SDK build `15.0.8513.67` (this toolkit's target).
-3. Link both products required by SDK 15.0 on the **app target**:
+2. Dependency rule: **Up to Next Major** from `15.1.18`, or **Exact**
+   `15.1.18` for a reproducible migration pin.
+   - Tag `v15.1.18` ships SDK build `15.1.8766.18` (this toolkit's target).
+3. Link both products required by SDK 15.1 on the **app target**:
    - `BlackBerryDynamics` (required)
    - `GSEProvider` (required)
    - Do **not** link `BlackBerryDynamicsAutomatedTestSupportLibrary` to the
@@ -160,7 +160,7 @@ If the integration matrix selects SPM:
    // [BB_DYNAMICS-MIGRATION] Official BlackBerry Dynamics SPM (prompt 01)
    .package(
        url: "https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK",
-       from: "15.0.0"
+       from: "15.1.18"
    )
    ```
 
@@ -195,18 +195,18 @@ See `10-xcode-integration.md` Method 1b for the full SPM reference.
    </array>
    ```
 
-### 4. Ensure Deployment Target is at Least iOS 17
+### 4. Ensure Deployment Target is at Least iOS 18
 
-BlackBerry Dynamics SDK 15.x requires iOS **>= 17.0** (CocoaPods platform).
-Do NOT force the target to exactly 17.0 — preserve higher targets.
+BlackBerry Dynamics SDK 15.1 requires iOS **>= 18.0** (CocoaPods platform).
+Do NOT force the target to exactly 18.0 — preserve higher targets.
 
-- **If current target < 17.0**: raise to 17.0 in Xcode and Podfile
-- **If current target >= 17.0** (e.g., 18.0, 26.0): **keep the existing
+- **If current target < 18.0**: raise to 18.0 in Xcode and Podfile
+- **If current target >= 18.0** (e.g., 18.0, 26.0, 27.0): **keep the existing
   target** — do not lower it. Lowering introduces API availability errors
   for modern APIs the app already uses (e.g., `glassEffect`, `@Observable`)
-- Update Podfile platform to match: `platform :ios, '<current-or-17>'`
+- Update Podfile platform to match: `platform :ios, '<current-or-18>'`
 - After changing (if target was raised), search for `#available` / `@available`
-  checks against iOS < 17 — these become dead code
+  checks against iOS < 18 — these become dead code
 - **If raising the target introduces new build errors** (e.g., availability
   warnings becoming errors), classify them as pre-existing compatibility issues
   and add them to `manualTodos` rather than blocking the migration
@@ -235,12 +235,12 @@ xcodebuild -workspace YourApp.xcworkspace -scheme YourApp \
 ```
 
 If errors appear for APIs above the new target (e.g., iOS 18+ APIs now that
-target is 17.0), classify each as:
+target is 18.0), classify each as:
 - **Pre-existing**: app was already using APIs above its old target
-- **Target-change introduced**: API was valid at the old target but not at 17.0
+- **Target-change introduced**: API was valid at the old target but not at 18.0
 
 For target-change introduced errors, either:
-- Keep the higher target (preferred, if currently >= 17.0)
+- Keep the higher target (preferred, if currently >= 18.0)
 - Add `if #available` guards and log as `manualTodos`
 - Do NOT silently delete modern API usage
 

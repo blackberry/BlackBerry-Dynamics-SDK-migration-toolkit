@@ -2,7 +2,7 @@
 # BlackBerry Dynamics Migration — List required call-site dispositions
 #
 # Reads migration-analysis.json and migration-plan-state.json and prints
-# every required call-site ID for closure-gated prompts (04, 05c, 06, 08,
+# every required call-site ID for closure-gated prompts (04, 05z, 06, 08,
 # 09) together with the disposition status already recorded (or <missing>).
 #
 # Usage:
@@ -72,7 +72,7 @@ analysis_path = os.environ["ANALYSIS_FILE"]
 plan_state_path = os.environ["PLAN_STATE_FILE"]
 domain_filter = os.environ.get("DOMAIN_FILTER", "").strip()
 
-CLOSURE_PROMPTS = frozenset({"04", "05c", "06", "08", "09"})
+CLOSURE_PROMPTS = frozenset({"04", "05z", "06", "08", "09"})
 VALID_DOMAINS = ("secureSql", "secureFileStorage", "secureNetworking",
                  "icc", "secureUiWidgets", "secureClipboard")
 ALLOWED_STATUS = frozenset({"migrated", "removed"})
@@ -139,7 +139,7 @@ if not rows:
     if domain_filter:
         print(f"No applicable call sites found for domain={domain_filter!r}.")
     else:
-        print("No applicable call sites found for closure-gated prompts (04/05c/06/08/09).")
+        print("No applicable call sites found for closure-gated prompts (04/05z/06/08/09).")
     sys.exit(0)
 
 # Sort: domain order first, then by callSiteId

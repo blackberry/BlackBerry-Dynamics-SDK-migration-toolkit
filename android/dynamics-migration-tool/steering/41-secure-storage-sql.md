@@ -2,6 +2,12 @@
 
 Dynamics supports secure SQLite databases protected by policy.
 
+SDK 15.1 refreshes the bundled SQLite library. There is **no** new
+public persistence API and no Android equivalent of iOS SwiftData.
+Keep `com.good.gd.database.sqlite.*` as the replacement for
+`android.database.sqlite.*`. Regress existing secure-SQL migrations;
+do not invent a new database wrapper.
+
 > **Multi-module note**: SQLite/Room call sites and bridge templates
 > commonly live in dedicated `core/database` library modules — scan
 > `${in_scope_main_src}` from

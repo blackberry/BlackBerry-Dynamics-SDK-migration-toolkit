@@ -516,7 +516,7 @@ I need to migrate this iOS app to BlackBerry Dynamics. The migration tool
 is in dynamics-migration-tool/.
 
 Read the migration prompts in $prompts_ref and execute them in this order:
-00pre, 00, 00b, 01, 02, 03, 03b, 04, 04b, 05, 06, 07, 08, 09, 09b, 11, 10.
+00pre, 00, 00b, 01, 02, 03, 03b, 04, 04b, 04c, 05, 06, 07, 08, 09, 09b, 11, 10.
 Optional after acceptance: 12.
 
 For each prompt, read the prompt file and its referenced steering files in
@@ -542,7 +542,8 @@ iOS API guardrails: do not invent GDURLSession, GDPersistentContainer, or
 GDSqlDatabase. Use cataloged public surfaces such as GDURLLoadingSystem,
 GDSocket, GDPersistentStoreCoordinator, GDEncryptedBinaryStoreType,
 GDEncryptedIncrementalStoreType, sqlite3enc_*, GDFileManager, GDFileHandle,
-GDCReadStream/GDCWriteStream, and
+GDCReadStream/GDCWriteStream, GDSecureModelConfiguration,
+GDSecureModelContainer.create, and
 GDNativePasteboardAccess.performActionOnNativePasteboard:.
 
 Validation and recording contract:
@@ -597,6 +598,7 @@ echo "  03  — Add Dynamics authorization (REQUIRED)"
 echo "  03b — Authorization deferral audit (REQUIRED)"
 echo "  04  — Migrate SQLite to encrypted (if applicable)"
 echo "  04b — Migrate Core Data to encrypted (if applicable)"
+echo "  04c — Migrate SwiftData to GDSecureModelContainer (if applicable)"
 echo "  05  — Migrate file storage (if applicable)"
 echo "  06  — Migrate networking (if applicable)"
 echo "  07  — Migrate WKWebView (if applicable)"
@@ -624,6 +626,7 @@ echo "  03    — Add Dynamics authorization (REQUIRED)"
 echo "  03b   — Authorization deferral audit (REQUIRED)"
 echo "  04    — Migrate SQLite to encrypted (if applicable)"
 echo "  04b   — Migrate Core Data to encrypted (if applicable)"
+echo "  04c   — Migrate SwiftData to GDSecureModelContainer (if applicable)"
 echo "  05    — Migrate file storage (if applicable)"
 echo "  06    — Migrate networking (if applicable)"
 echo "  07    — Migrate WKWebView (if applicable)"

@@ -32,7 +32,7 @@ on the line where `observe()` is called.
 - Prompt 03 (auth initialization) — identifies main Activity startup restructuring
 - Prompt 03b (deferral audit) — primary input, maps every pre-auth chain to a deferral pattern
 - Prompt 04 (secure SQL) — identifies which DB access points need deferral
-- Prompt 05a/05b/05c (secure filesystem split flow) — identifies which file I/O and reader paths need deferral
+- Prompt 05a/05b/05c/05z (secure filesystem split flow) — identifies which file I/O, reader, and native-media paths need deferral
 - Prompt 10 (migration report) — risk heatmap feeds into report risk assessments
 
 If this output is incomplete, downstream prompts will miss pre-auth chains

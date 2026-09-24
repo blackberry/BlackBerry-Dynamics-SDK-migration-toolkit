@@ -1,9 +1,10 @@
-## Task: Secure Filesystem Migration 05c (SharedPreferences + Final Closure)
+## Task: Secure Filesystem Migration 05z (SharedPreferences + Final Closure)
 
 Goal: Migrate SharedPreferences persistence and finalize secure file-storage
 call-site closure for the domain.
 
-**Prerequisite**: Run `05a` and `05b` first.
+**Prerequisite**: Run `05a`, `05b`, and `05c` first (`05c` may be
+`skipped` when `mediaCapabilities[]` is empty).
 
 **Module map context**: Load
 `dynamics-migration-tool/output/module-map.json` and resolve
@@ -52,7 +53,7 @@ is the finding you are here to fix.**
 
 Replacing `SharedPreferences` with a Dynamics-backed helper converts every
 remaining launch-path prefs call site into secure file I/O. Before closing
-05c, re-check:
+05z, re-check:
 
 - Launch / base `Activity.onCreate`, `onStart`, and `onResume`
 - Shared base Activities that apply theme, FLAG_SECURE, or settings
@@ -86,7 +87,7 @@ Before completion, verify all three secure-file sub-domains are closed:
   app-controlled native `.c`/`.cpp` storage call sites per 05a step 4a
   and `steering/40-secure-file-storage.md` §8)
 - **05b UI Reader Closure**: no native-reader drift for migrated sensitive domains
-- **05c SharedPreferences**: runtime preference persistence migrated with upgrade path
+- **05z SharedPreferences**: runtime preference persistence migrated with upgrade path
 
 Native-source check for `secureFileStorage` closure:
 
@@ -169,7 +170,7 @@ in `bootstrap.json deferredDomains[]` with developer sign-off. See
 `steering/40-secure-file-storage.md` §7. Do not proceed to ICC while public-storage
 roots remain for app data.
 
-### 4. Exit Criteria Before Marking `05c` Completed (MANDATORY)
+### 4. Exit Criteria Before Marking `05z` Completed (MANDATORY)
 
 Do not record `--status completed` until the secure-file closure ledger
 matches `migration-analysis.executionPlan[].callSites` (or the entire
@@ -209,12 +210,14 @@ Before recording completion, manually verify every
 Do not isolate leftover reads in a copy helper
 (`steering/18-fresh-dynamics-install.md`).
 
-Before invoking the recorder below, run the scoped diagnostic for prompt 05c
+Before invoking the recorder below, run the scoped diagnostic for prompt 05z
 (Phase 4 + Phase 10 API audit). If it reports remnants such as "External
 storage/MediaStore API surface detected", "Android filesDir/cacheDir staging
-remains", "Direct java.io.File construction", or "SharedPreferences runtime
-usage still present", re-run `05a/05b/05c` as needed and update
-`migration-plan-state.json`. The recorder records prompt progress here;
+remains", "Direct java.io.File construction", "mpeg4-nonseekable-fd",
+"mediaplayer-path-datasource", or "SharedPreferences runtime
+usage still present", re-run `05a/05b/05c/05z` as needed and update
+`migration-plan-state.json`. Prompt `05c` must already be `completed` or
+`skipped`. The recorder records prompt progress here;
 prompt `10` is the mandatory final source/report gate.
 
 ### 4a. Independent Evidence Preflight (MANDATORY before recording completion)
@@ -222,7 +225,7 @@ prompt `10` is the mandatory final source/report gate.
 Run the scoped validator once before `record-prompt-execution.sh`:
 
 ```bash
-bash dynamics-migration-tool/tooling/validate.sh --check-prompt 05c
+bash dynamics-migration-tool/tooling/validate.sh --check-prompt 05z
 ```
 
 If the output contains `Independent evidence closure` findings:
@@ -258,7 +261,8 @@ Do not proceed to ICC or prompt 10 while treating independent-evidence inventory
 - Final secure-file completeness checklist:
   - 05a closed
   - 05b closed
-  - 05c closed
+  - 05c closed or skipped
+  - 05z closed
   - call-site dispositions complete
   - validator outcome captured
 
@@ -266,11 +270,11 @@ Do not proceed to ICC or prompt 10 while treating independent-evidence inventory
 
 ## Record execution
 
-After 05c completes:
+After 05z completes:
 
 ```bash
 bash dynamics-migration-tool/tooling/record-prompt-execution.sh \
-    --prompt-id 05c \
+    --prompt-id 05z \
     --status completed \
     --files-touched <comma-separated relative paths including migration-plan-state.json>
 ```
@@ -279,7 +283,7 @@ If secure file storage is `not-applicable` per execution plan:
 
 ```bash
 bash dynamics-migration-tool/tooling/record-prompt-execution.sh \
-    --prompt-id 05c \
+    --prompt-id 05z \
     --status skipped \
     --note "secureFileStorage not-applicable per executionPlan"
 ```

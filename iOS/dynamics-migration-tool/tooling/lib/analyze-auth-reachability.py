@@ -37,6 +37,7 @@ SENSITIVE_DOMAINS = {
     "secureFileStorage",
     "secureSql",
     "secureCoreData",
+    "secureSwiftData",
     "secureNetworking",
     "webview",
     "icc",

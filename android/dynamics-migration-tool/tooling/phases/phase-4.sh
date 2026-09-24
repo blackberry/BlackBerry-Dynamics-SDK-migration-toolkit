@@ -250,7 +250,7 @@ if [ "$GD_FS_IMPORTS" -gt 0 ] && [ "$GD_FS_CALLS" -eq 0 ]; then
 fi
 if [ "$STD_FS" -gt 0 ]; then
     _CURRENT_PHASE="4"
-    fail_or_defer "secureFileStorage" "Standard file I/O still present ($STD_FS) — re-run prompts 05a/05b/05c (filesystem migration split)" \
+    fail_or_defer "secureFileStorage" "Standard file I/O still present ($STD_FS) — re-run prompts 05a/05b/05c/05z (filesystem migration split)" \
         "Replace context.openFileInput/openFileOutput with GDFileSystem.openFileInput/openFileOutput (catalog rows fs-java-001/002)"
 else
     check_pass "Standard file I/O removed"
@@ -264,7 +264,7 @@ else
 fi
 if [ "$DIRECT_FILE_COUNT" -gt 0 ]; then
     _CURRENT_PHASE="4"
-    fail_or_defer "secureFileStorage" "Direct java.io.File construction in $DIRECT_FILE_COUNT location(s) outside cache paths — bypasses the Dynamics secure container. Re-run prompts 05a/05b/05c to complete the migration, or have the developer defer the entire 'secureFileStorage' domain in bootstrap.json deferredDomains[]." \
+    fail_or_defer "secureFileStorage" "Direct java.io.File construction in $DIRECT_FILE_COUNT location(s) outside cache paths — bypasses the Dynamics secure container. Re-run prompts 05a/05b/05c/05z to complete the migration, or have the developer defer the entire 'secureFileStorage' domain in bootstrap.json deferredDomains[]." \
         "Replace new java.io.File(path) with new com.good.gd.file.File(path) and update import to com.good.gd.file.File (catalog row fs-java-005)"
 else
     check_pass "No direct java.io.File construction in non-cache paths"
@@ -1347,7 +1347,9 @@ for dirpath, _, files in os.walk(src_root):
         if not fn.endswith((".java", ".kt")):
             continue
         # Skip the toolkit's own SecureFileIO template if it landed in src.
-        if fn in ("SecureFileIO.kt", "SecureFileIO.java"):
+        if fn in ("SecureFileIO.kt", "SecureFileIO.java",
+                  "SeekableGdMediaCapture.kt", "SeekableGdMediaCapture.java",
+                  "SeekableGdMediaPlayback.kt", "SeekableGdMediaPlayback.java"):
             continue
         path = os.path.normpath(os.path.join(dirpath, fn))
         try:
@@ -1464,7 +1466,9 @@ for dirpath, _, files in os.walk(src_root):
     for fn in files:
         if not fn.endswith(('.java', '.kt')):
             continue
-        if fn in ('SecureFileIO.kt', 'SecureFileIO.java'):
+        if fn in ('SecureFileIO.kt', 'SecureFileIO.java',
+                  'SeekableGdMediaCapture.kt', 'SeekableGdMediaCapture.java',
+                  'SeekableGdMediaPlayback.kt', 'SeekableGdMediaPlayback.java'):
             continue
         path = os.path.normpath(os.path.join(dirpath, fn))
         try:
@@ -1511,7 +1515,9 @@ for dirpath, _, files in os.walk(src_root):
     for fn in files:
         if not fn.endswith(('.java', '.kt')):
             continue
-        if fn in ('SecureFileIO.kt', 'SecureFileIO.java'):
+        if fn in ('SecureFileIO.kt', 'SecureFileIO.java',
+                  'SeekableGdMediaCapture.kt', 'SeekableGdMediaCapture.java',
+                  'SeekableGdMediaPlayback.kt', 'SeekableGdMediaPlayback.java'):
             continue
         path = os.path.normpath(os.path.join(dirpath, fn))
         try:
@@ -1558,7 +1564,9 @@ for dirpath, _, files in os.walk(src_root):
     for fn in files:
         if not fn.endswith(('.java', '.kt')):
             continue
-        if fn in ('SecureFileIO.kt', 'SecureFileIO.java'):
+        if fn in ('SecureFileIO.kt', 'SecureFileIO.java',
+                  'SeekableGdMediaCapture.kt', 'SeekableGdMediaCapture.java',
+                  'SeekableGdMediaPlayback.kt', 'SeekableGdMediaPlayback.java'):
             continue
         path = os.path.normpath(os.path.join(dirpath, fn))
         try:
@@ -1607,7 +1615,9 @@ for dirpath, _, files in os.walk(src_root):
     for fn in files:
         if not fn.endswith(('.java', '.kt')):
             continue
-        if fn in ('SecureFileIO.kt', 'SecureFileIO.java'):
+        if fn in ('SecureFileIO.kt', 'SecureFileIO.java',
+                  'SeekableGdMediaCapture.kt', 'SeekableGdMediaCapture.java',
+                  'SeekableGdMediaPlayback.kt', 'SeekableGdMediaPlayback.java'):
             continue
         path = os.path.normpath(os.path.join(dirpath, fn))
         try:
@@ -1656,7 +1666,9 @@ for dirpath, _, files in os.walk(src_root):
     for fn in files:
         if not fn.endswith(('.java', '.kt')):
             continue
-        if fn in ('SecureFileIO.kt', 'SecureFileIO.java'):
+        if fn in ('SecureFileIO.kt', 'SecureFileIO.java',
+                  'SeekableGdMediaCapture.kt', 'SeekableGdMediaCapture.java',
+                  'SeekableGdMediaPlayback.kt', 'SeekableGdMediaPlayback.java'):
             continue
         path = os.path.normpath(os.path.join(dirpath, fn))
         try:
@@ -1706,7 +1718,9 @@ for dirpath, _, files in os.walk(src_root):
     for fn in files:
         if not fn.endswith(('.java', '.kt')):
             continue
-        if fn in ('SecureFileIO.kt', 'SecureFileIO.java'):
+        if fn in ('SecureFileIO.kt', 'SecureFileIO.java',
+                  'SeekableGdMediaCapture.kt', 'SeekableGdMediaCapture.java',
+                  'SeekableGdMediaPlayback.kt', 'SeekableGdMediaPlayback.java'):
             continue
         path = os.path.normpath(os.path.join(dirpath, fn))
         try:
@@ -1776,7 +1790,9 @@ for dirpath, _, files in os.walk(src_root):
     for fn in files:
         if not fn.endswith(('.java', '.kt')):
             continue
-        if fn in ('SecureFileIO.kt', 'SecureFileIO.java'):
+        if fn in ('SecureFileIO.kt', 'SecureFileIO.java',
+                  'SeekableGdMediaCapture.kt', 'SeekableGdMediaCapture.java',
+                  'SeekableGdMediaPlayback.kt', 'SeekableGdMediaPlayback.java'):
             continue
         path = os.path.normpath(os.path.join(dirpath, fn))
         try:
@@ -1808,12 +1824,285 @@ PY
 )
 __stream_layer_accumulate "fd-media-sandbox-provenance" "$SL_4I_FD_SANDBOX"
 
-STREAM_LAYER_DETAILS_BUFFER=$(printf "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s" \
+# -----------------------------------------------------------------------
+# 4L. MPEG-4 / 3GP / WEBM (or omitted MediaRecorder format) + non-seekable
+#     pipe FD. Sequential AAC_ADTS / AMR pipes are allowed. PdfRenderer
+#     pipes without a media writer are not in scope. Do not add createPipe
+#     to 4I — MemoryFile / SharedMemory / proxy FDs must not trip 4I.
+#     See steering/41-secure-media.md.
+# -----------------------------------------------------------------------
+SL_4L_MPEG4_PIPE=$(python3 - "$SRC_DIR_MM" <<'PY' 2>/dev/null
+import os, re, sys
+
+src_root = sys.argv[1]
+gd_import = re.compile(r'^\s*import\s+com\.good\.gd\.file\.', re.MULTILINE)
+pipe = re.compile(r'ParcelFileDescriptor\.create(?:Reliable)?Pipe\s*\(')
+media_writer = re.compile(
+    r'\bMediaRecorder\b|'
+    r'\.set(?:Next)?OutputFile\s*\(|'
+    r'new\s+MediaMuxer\s*\('
+)
+seekable_format = re.compile(
+    r'OutputFormat\.(MPEG_4|THREE_GPP|WEBM)\b|'
+    r'MUXER_OUTPUT_(MPEG_4|WEBM)\b'
+)
+sequential_format = re.compile(r'OutputFormat\.(AAC_ADTS|AMR_NB|AMR_WB)\b')
+set_output_format = re.compile(r'\.setOutputFormat\s*\(')
+
+def is_comment(line):
+    s = line.lstrip()
+    return (not s) or s.startswith('//') or s.startswith('*') or s.startswith('/*')
+
+skip = (
+    'SecureFileIO.kt', 'SecureFileIO.java',
+    'SeekableGdMediaCapture.kt', 'SeekableGdMediaCapture.java',
+    'SeekableGdMediaPlayback.kt', 'SeekableGdMediaPlayback.java',
+)
+cwd = os.getcwd()
+for dirpath, _, files in os.walk(src_root):
+    for fn in files:
+        if not fn.endswith(('.java', '.kt')):
+            continue
+        if fn in skip:
+            continue
+        path = os.path.normpath(os.path.join(dirpath, fn))
+        try:
+            rel = os.path.relpath(path, cwd)
+        except ValueError:
+            rel = path
+        try:
+            with open(path, 'r', encoding='utf-8', errors='replace') as fh:
+                text = fh.read()
+        except OSError:
+            continue
+        if not gd_import.search(text):
+            continue
+        pipe_lines = []
+        has_writer = False
+        has_seek = False
+        has_seq = False
+        has_set_format = False
+        has_recorder = False
+        has_muxer = False
+        for lineno, line in enumerate(text.splitlines(), start=1):
+            if is_comment(line):
+                continue
+            if pipe.search(line):
+                pipe_lines.append((lineno, line.strip()))
+            if media_writer.search(line):
+                has_writer = True
+            if seekable_format.search(line):
+                has_seek = True
+            if sequential_format.search(line):
+                has_seq = True
+            if set_output_format.search(line):
+                has_set_format = True
+            if re.search(r'\bMediaRecorder\b|\.set(?:Next)?OutputFile\s*\(', line):
+                has_recorder = True
+            if re.search(r'new\s+MediaMuxer\s*\(', line):
+                has_muxer = True
+        if not pipe_lines or not has_writer:
+            continue
+        omitted_recorder_format = has_recorder and not has_set_format and not has_muxer
+        muxer_nonsequential = has_muxer and not has_seq
+        if has_seek or omitted_recorder_format or muxer_nonsequential:
+            for lineno, line_text in pipe_lines:
+                print(f'{rel}:{lineno}:mpeg4-nonseekable-fd:{line_text}')
+PY
+)
+__stream_layer_accumulate "mpeg4-nonseekable-fd" "$SL_4L_MPEG4_PIPE"
+
+# 4H.mediaplayer-path — MediaPlayer.setDataSource(path) / VideoView.setVideoPath /
+#     ExoPlayer FileDataSource. FD overloads are allowed.
+SL_4H_MEDIAPLAYER=$(python3 - "$SRC_DIR_MM" <<'PY' 2>/dev/null
+import os, re, sys
+
+src_root = sys.argv[1]
+gd_import = re.compile(r'^\s*import\s+com\.good\.gd\.file\.', re.MULTILINE)
+set_ds = re.compile(r'\.setDataSource\s*\(\s*([^)]*)\)')
+set_path = re.compile(r'\.setVideoPath\s*\(')
+file_ds = re.compile(r'new\s+FileDataSource\s*\(|\bFileDataSource\.Factory\b')
+fd_filter = re.compile(r'(?i)\bfd\b|descriptor|fileDescriptor|parcelFileDescriptor')
+in_scope = re.compile(r'\b(MediaPlayer|VideoView|FileDataSource)\b')
+
+def is_comment(line):
+    s = line.lstrip()
+    return (not s) or s.startswith('//') or s.startswith('*') or s.startswith('/*')
+
+skip = (
+    'SecureFileIO.kt', 'SecureFileIO.java',
+    'SeekableGdMediaCapture.kt', 'SeekableGdMediaCapture.java',
+    'SeekableGdMediaPlayback.kt', 'SeekableGdMediaPlayback.java',
+)
+cwd = os.getcwd()
+for dirpath, _, files in os.walk(src_root):
+    for fn in files:
+        if not fn.endswith(('.java', '.kt')):
+            continue
+        if fn in skip:
+            continue
+        path = os.path.normpath(os.path.join(dirpath, fn))
+        try:
+            rel = os.path.relpath(path, cwd)
+        except ValueError:
+            rel = path
+        try:
+            with open(path, 'r', encoding='utf-8', errors='replace') as fh:
+                text = fh.read()
+        except OSError:
+            continue
+        if not gd_import.search(text):
+            continue
+        if not in_scope.search(text):
+            continue
+        for lineno, line in enumerate(text.splitlines(), start=1):
+            if is_comment(line):
+                continue
+            if set_path.search(line) or file_ds.search(line):
+                print(f'{rel}:{lineno}:mediaplayer-path-datasource:{line.strip()}')
+                continue
+            m = set_ds.search(line)
+            if not m:
+                continue
+            args = m.group(1).strip()
+            if not args:
+                continue
+            if ',' not in args and fd_filter.search(args):
+                continue
+            if ',' not in args:
+                print(f'{rel}:{lineno}:mediaplayer-path-datasource:{line.strip()}')
+            elif re.search(r'(?i)getAbsolutePath|\.path\b|absolutePath|fromFile\s*\(', args):
+                print(f'{rel}:{lineno}:mediaplayer-path-datasource:{line.strip()}')
+PY
+)
+__stream_layer_accumulate "mediaplayer-path-datasource" "$SL_4H_MEDIAPLAYER"
+
+# 4H.retriever-path — MediaMetadataRetriever.setDataSource(path|File) /
+#     ThumbnailUtils.createVideoThumbnail. FD overloads stay allowed.
+SL_4H_RETRIEVER=$(python3 - "$SRC_DIR_MM" <<'PY' 2>/dev/null
+import os, re, sys
+
+src_root = sys.argv[1]
+gd_import = re.compile(r'^\s*import\s+com\.good\.gd\.file\.', re.MULTILINE)
+set_ds = re.compile(r'\.setDataSource\s*\(\s*([^)]*)\)')
+thumb = re.compile(r'ThumbnailUtils\.createVideoThumbnail\s*\(')
+fd_filter = re.compile(r'(?i)\bfd\b|descriptor|fileDescriptor|parcelFileDescriptor')
+in_scope = re.compile(r'\b(MediaMetadataRetriever|ThumbnailUtils)\b')
+
+def is_comment(line):
+    s = line.lstrip()
+    return (not s) or s.startswith('//') or s.startswith('*') or s.startswith('/*')
+
+skip = (
+    'SecureFileIO.kt', 'SecureFileIO.java',
+    'SeekableGdMediaCapture.kt', 'SeekableGdMediaCapture.java',
+    'SeekableGdMediaPlayback.kt', 'SeekableGdMediaPlayback.java',
+)
+cwd = os.getcwd()
+for dirpath, _, files in os.walk(src_root):
+    for fn in files:
+        if not fn.endswith(('.java', '.kt')):
+            continue
+        if fn in skip:
+            continue
+        path = os.path.normpath(os.path.join(dirpath, fn))
+        try:
+            rel = os.path.relpath(path, cwd)
+        except ValueError:
+            rel = path
+        try:
+            with open(path, 'r', encoding='utf-8', errors='replace') as fh:
+                text = fh.read()
+        except OSError:
+            continue
+        if not gd_import.search(text):
+            continue
+        if not in_scope.search(text):
+            continue
+        for lineno, line in enumerate(text.splitlines(), start=1):
+            if is_comment(line):
+                continue
+            if thumb.search(line):
+                print(f'{rel}:{lineno}:retriever-path-datasource:{line.strip()}')
+                continue
+            m = set_ds.search(line)
+            if not m:
+                continue
+            args = m.group(1).strip()
+            if not args:
+                continue
+            if ',' not in args and fd_filter.search(args):
+                continue
+            if ',' not in args:
+                print(f'{rel}:{lineno}:retriever-path-datasource:{line.strip()}')
+            elif re.search(r'(?i)getAbsolutePath|\.path\b|absolutePath|fromFile\s*\(', args):
+                print(f'{rel}:{lineno}:retriever-path-datasource:{line.strip()}')
+PY
+)
+__stream_layer_accumulate "retriever-path-datasource" "$SL_4H_RETRIEVER"
+
+# 4H.camerax-video — CameraX video FileOutputOptions / MediaStoreOutputOptions.
+#     FileDescriptorOutputOptions is the FD path (still needs a seekable FD;
+#     4L catches pipes). Do not match ImageCapture.OutputFileOptions (4H.camerax).
+SL_4H_CAMERAX_VIDEO=$(python3 - "$SRC_DIR_MM" <<'PY' 2>/dev/null
+import os, re, sys
+
+src_root = sys.argv[1]
+gd_import = re.compile(r'^\s*import\s+com\.good\.gd\.file\.', re.MULTILINE)
+video_file = re.compile(
+    r'(?<!ImageCapture\.)FileOutputOptions(?:\.Builder)?\s*\(|'
+    r'new\s+FileOutputOptions\.Builder\s*\(|'
+    r'\bMediaStoreOutputOptions\b'
+)
+
+def is_comment(line):
+    s = line.lstrip()
+    return (not s) or s.startswith('//') or s.startswith('*') or s.startswith('/*')
+
+skip = (
+    'SecureFileIO.kt', 'SecureFileIO.java',
+    'SeekableGdMediaCapture.kt', 'SeekableGdMediaCapture.java',
+    'SeekableGdMediaPlayback.kt', 'SeekableGdMediaPlayback.java',
+)
+cwd = os.getcwd()
+for dirpath, _, files in os.walk(src_root):
+    for fn in files:
+        if not fn.endswith(('.java', '.kt')):
+            continue
+        if fn in skip:
+            continue
+        path = os.path.normpath(os.path.join(dirpath, fn))
+        try:
+            rel = os.path.relpath(path, cwd)
+        except ValueError:
+            rel = path
+        try:
+            with open(path, 'r', encoding='utf-8', errors='replace') as fh:
+                text = fh.read()
+        except OSError:
+            continue
+        if not gd_import.search(text):
+            continue
+        for lineno, line in enumerate(text.splitlines(), start=1):
+            if is_comment(line):
+                continue
+            if 'FileDescriptorOutputOptions' in line:
+                continue
+            if 'ImageCapture.OutputFileOptions' in line:
+                continue
+            if video_file.search(line):
+                print(f'{rel}:{lineno}:camerax-video-file-output:{line.strip()}')
+PY
+)
+__stream_layer_accumulate "camerax-video-file-output" "$SL_4H_CAMERAX_VIDEO"
+
+STREAM_LAYER_DETAILS_BUFFER=$(printf "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s" \
     "$SL_KIO_TEXT" "$SL_KIO_ACCESS" "$SL_NIO_FILES" \
     "$SL_READER_WRITER" "$SL_BITMAP_DECODE" "$SL_BITMAP_COMPRESS" \
     "$SL_GD_FILE_SANDBOX" \
     "$SL_4H_CAMERAX" "$SL_4H_MEDIAMUXER" "$SL_4H_MEDIARECORDER" "$SL_4H_ZIPFILE" \
-    "$SL_4H_EXIFINTERFACE" "$SL_4H_PDFRENDERER" "$SL_4I_FD_SANDBOX" | sed '/^$/d')
+    "$SL_4H_EXIFINTERFACE" "$SL_4H_PDFRENDERER" "$SL_4I_FD_SANDBOX" \
+    "$SL_4L_MPEG4_PIPE" "$SL_4H_MEDIAPLAYER" "$SL_4H_RETRIEVER" "$SL_4H_CAMERAX_VIDEO" | sed '/^$/d')
 
 STREAM_LAYER_HITS=$(echo "$STREAM_LAYER_DETAILS_BUFFER" \
     | count_hits_for_domain "secureFileStorage")
@@ -1822,11 +2111,11 @@ if [ "${STREAM_LAYER_HITS:-0}" -gt 0 ]; then
     STREAM_LAYER_FIRST=$(echo "$STREAM_LAYER_DETAILS_BUFFER" | head -5 \
         | awk -F: '{ printf "    %s:%s [%s]\n", $1, $2, $3 }')
     _CURRENT_PHASE="4"
-    fail_or_defer "secureFileStorage" "Stream-layer closure failure in $STREAM_LAYER_HITS location(s) [${STREAM_LAYER_DETAIL}] — files importing com.good.gd.file.* still route I/O through Kotlin File extensions (including copy/delete recursion), java.nio.file helpers, FileReader/FileWriter family, BitmapFactory.decodeFile, sandbox-seeded GD File constructors, library-consumed File args (CameraX / MediaMuxer / MediaRecorder / ZipFile / ExifInterface / PdfRenderer), or sandbox-sourced FD media provenance. Calls may compile on com.good.gd.file.File but remain unresolved until replaced with GD streams, GDFileSystem, or SecureFileIO. Native media writers that still require path or file based output must be treated as manual intervention, not sandbox staging — filesDir/cacheDir staging is not an accepted default migration outcome. See steering/40-secure-file-storage.md §5 and §7 for canonical replacements and FD-only decision tree. First sites:
+    fail_or_defer "secureFileStorage" "Stream-layer closure failure in $STREAM_LAYER_HITS location(s) [${STREAM_LAYER_DETAIL}] — files importing com.good.gd.file.* still route I/O through Kotlin File extensions (including copy/delete recursion), java.nio.file helpers, FileReader/FileWriter family, BitmapFactory.decodeFile, sandbox-seeded GD File constructors, library-consumed File args (CameraX / MediaMuxer / MediaRecorder / ZipFile / ExifInterface / PdfRenderer / MediaPlayer path / retriever / CameraX video), sandbox-sourced FD media provenance, or MPEG-4/3GP/WEBM on a non-seekable pipe (4L). Calls may compile on com.good.gd.file.File but remain unresolved until replaced with GD streams, GDFileSystem, SecureFileIO, or the seekable FD bridge in steering/41-secure-media.md. Native media writers that still require path or file based output must be treated as manual intervention, not sandbox staging — filesDir/cacheDir staging is not an accepted default migration outcome. See steering/40-secure-file-storage.md §5 / §7 and steering/41-secure-media.md. First sites:
 ${STREAM_LAYER_FIRST}" \
-        "Replace File.readText/readBytes/writeText with com.good.gd.file.FileInputStream + manual read. Replace FileReader/FileWriter with GD stream equivalents. Replace BitmapFactory.decodeFile(path) with BitmapFactory.decodeStream(new com.good.gd.file.FileInputStream(containerPath)). See steering/40-secure-file-storage.md §5."
+        "Replace File.readText/readBytes/writeText with com.good.gd.file.FileInputStream + manual read. Replace FileReader/FileWriter with GD stream equivalents. Replace BitmapFactory.decodeFile(path) with BitmapFactory.decodeStream(new com.good.gd.file.FileInputStream(containerPath)). MPEG-4 MediaRecorder must not use createPipe — copy templates/file/SeekableGdMediaCapture. See steering/40-secure-file-storage.md §5 and steering/41-secure-media.md."
 else
-    check_pass "Stream-layer closure clean (no Kotlin File extensions, java.nio.file helpers, FileReader/decodeFile, library-consumed File patterns [4A-4H including 4H.camerax, 4H.mediamuxer, 4H.mediarecorder, 4H.zipfile, 4H.exifinterface, 4H.pdfrenderer], or sandbox-sourced FD media provenance [4I] in files importing com.good.gd.file.*)"
+    check_pass "Stream-layer closure clean (no Kotlin File extensions, java.nio.file helpers, FileReader/decodeFile, library-consumed File patterns [4A-4H including 4H.camerax, 4H.mediamuxer, 4H.mediarecorder, 4H.zipfile, 4H.exifinterface, 4H.pdfrenderer, 4H.mediaplayer-path, 4H.retriever-path, 4H.camerax-video], sandbox-sourced FD media provenance [4I], or MPEG-4 non-seekable pipe [4L] in files importing com.good.gd.file.*)"
 fi
 
 # -----------------------------------------------------------------------
@@ -1951,7 +2240,9 @@ for dirpath, _, files in os.walk(src_root):
     for fn in files:
         if not fn.endswith((".java", ".kt")):
             continue
-        if fn in ("SecureFileIO.kt", "SecureFileIO.java"):
+        if fn in ("SecureFileIO.kt", "SecureFileIO.java",
+                  "SeekableGdMediaCapture.kt", "SeekableGdMediaCapture.java",
+                  "SeekableGdMediaPlayback.kt", "SeekableGdMediaPlayback.java"):
             continue
         path = os.path.normpath(os.path.join(dirpath, fn))
         try:

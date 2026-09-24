@@ -29,7 +29,7 @@ extension). See `steering/17-app-extensions-and-share-extensions.md`.
 ## What You Need Before Starting
 
 1. Your iOS app source code (must build cleanly before migration)
-2. Xcode 15 or newer installed (plus command-line tools)
+2. Xcode 16 or newer installed (plus command-line tools; SDK 15.1 requires iOS 18)
 3. An AI coding agent (Cursor, Kiro, or equivalent — see "Using Other AI Agents" below)
 4. A web browser (for viewing the visual migration report)
 5. Git installed locally. No remote, GitHub account, or network access is
@@ -174,7 +174,7 @@ is in dynamics-migration-tool/.
 
 Read the migration prompts in dynamics-migration-tool/prompts and execute them
 in this order:
-00pre, 00, 00b, 01, 02, 03, 03b, 04, 04b, 05, 06, 07, 08, 09, 09b, 11, 10.
+00pre, 00, 00b, 01, 02, 03, 03b, 04, 04b, 04c, 05, 06, 07, 08, 09, 09b, 11, 10.
 Optional after acceptance: 12.
 
 For each prompt, read the prompt file and its referenced steering files in
@@ -244,6 +244,7 @@ Your AI agent will:
    - 03b authorization-deferral audit
    - 04  SQLite → secure SQL (`sqlite3enc_*`)
    - 04b Core Data → `GDPersistentStoreCoordinator`
+   - 04c SwiftData → `GDSecureModelContainer.create` (SDK 15.1)
    - 05  filesystem → GDFileManager
    - 06  secure networking audit/migrate (URLSession, Stream sockets)
    - 07  WKWebView secure migration
@@ -514,4 +515,4 @@ file manually.
 | Report viewer shows nothing | Check that the JSON is valid: `python3 -m json.tool dynamics-migration-tool/output/migration-report.json` |
 | `validate.sh` or recorder exits `3` (`ESCALATION REQUIRED`) | Retry budget is exhausted for repeated failures. Review `output/migration-loop-state.json`, fix the owner prompt/domain, and rerun targeted checks before another full attempt. |
 | CocoaPods integration fails | Ensure `pod install` completes cleanly first; use the `.xcworkspace` entrypoint; see CocoaPods guidance in `steering/10-xcode-integration.md` |
-| SPM package resolution fails | Use official URL `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK` (`15.0.0`); try `File > Packages > Reset Package Caches` in Xcode; see SPM guidance in `steering/10-xcode-integration.md` |
+| SPM package resolution fails | Use official URL `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK` (`15.1.18`); try `File > Packages > Reset Package Caches` in Xcode; see SPM guidance in `steering/10-xcode-integration.md` |

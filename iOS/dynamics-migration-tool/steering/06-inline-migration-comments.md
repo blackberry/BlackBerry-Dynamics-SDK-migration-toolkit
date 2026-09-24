@@ -39,7 +39,7 @@ let fileManager = GDFileManager.default
 
 ```ruby
 # [BB_DYNAMICS-MIGRATION] Added BlackBerryDynamics SDK dependency
-  pod 'BlackBerryDynamics', '~> 15.0'
+  pod 'BlackBerryDynamics', '~> 15.1'
 ```
 
 ### Storyboard / XIB (XML)
@@ -112,6 +112,13 @@ let fm = GDFileManager.default
 // [BB_DYNAMICS-MIGRATION] Replaced NSPersistentStoreCoordinator with
 // GDPersistentStoreCoordinator for encrypted Core Data store
 let coordinator = GDPersistentStoreCoordinator(managedObjectModel: model)
+```
+
+### SwiftData
+```swift
+// [BB_DYNAMICS-MIGRATION] Encrypted SwiftData store via GDSecureModelContainer
+// Created only after Dynamics authorization; keep @Model / @Query / ModelContext
+let container = try GDSecureModelContainer.create(config)
 ```
 
 ### Networking (auto-swizzled — comment where NO change needed)

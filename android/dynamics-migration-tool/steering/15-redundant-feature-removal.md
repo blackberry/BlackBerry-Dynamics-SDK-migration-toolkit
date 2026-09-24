@@ -306,6 +306,10 @@ to understand:
 - If the app needs to know whether screenshots are allowed, it can
   read the DLP policy via `GDAndroid.getInstance().getApplicationPolicy()`
 
+SDK 15.1 does **not** add a public Gemini / on-device-AI screenshot API.
+Screenshot blocking remains UEM DLP via `FLAG_SECURE` /
+`preventScreenCapture`. Do not invent a Dynamics Gemini wrapper.
+
 ### Migration Comment
 
 ```java
@@ -446,7 +450,7 @@ The ideal sequence is:
 2. **Prompt 01 (Gradle)** — remove redundant dependencies
 3. **Prompt 03 (auth)** — remove app-level lock screen, add Dynamics auth
 4. **Prompt 04 (SQL)** — remove SQLCipher, add Dynamics secure SQLite
-5. **Prompt 05a/05b/05c (filesystem split)** — remove app-level backup if file-based; strip unmanaged export/restore helpers; begin
+5. **Prompt 05a/05b/05c/05z (filesystem split)** — remove app-level backup if file-based; strip unmanaged export/restore helpers; begin
    phased removal of custom encryption engine (Category 5)
 
 Each prompt should check for these redundancies in its domain and remove
@@ -465,10 +469,10 @@ them as part of the migration.
 - [ ] Remove redundant dependencies (Prompt 01)
 - [ ] Remove lock screen Activities and biometric prompts (Prompt 03)
 - [ ] Remove SQLCipher and passphrase management (Prompt 04)
-- [ ] Remove app-level backup mechanisms (Prompt 05a/05b/05c)
+- [ ] Remove app-level backup mechanisms (Prompt 05a/05b/05c/05z)
 - [ ] Remove backup/export UI, workers, providers, permissions, and temp-file helpers that only support unmanaged egress
 - [ ] Remove FLAG_SECURE and screenshot prevention toggles (Prompt 03 or 09)
-- [ ] Begin phased removal of custom encryption engine — add deprecated shim (Prompt 05a/05c)
+- [ ] Begin phased removal of custom encryption engine — add deprecated shim (Prompt 05a/05z)
 - [ ] Migrate callers away from encryption engine one by one
 - [ ] Remove shim and encryption classes once all callers migrated
 - [ ] Verify no double-authentication UX remains

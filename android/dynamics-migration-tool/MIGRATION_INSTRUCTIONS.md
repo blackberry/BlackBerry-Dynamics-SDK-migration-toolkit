@@ -179,7 +179,7 @@ Copy and paste the following prompt:
 
 ```
 Read the migration prompts in dynamics-migration-tool/prompts/ and execute
-them in order (00pre, 00, 01, 02, 03, 03b, 04, 05a, 05b, 05c, 06, 07, 08, 09,
+them in order (00pre, 00, 01, 02, 03, 03b, 04, 05a, 05b, 05c, 05z, 06, 07, 08, 09,
 11, 03c, 10) against this project.
 
 Start with 00pre-bootstrap.md — it will ask me to confirm IDE
@@ -229,14 +229,14 @@ Your AI agent will:
 2. **Analyze (00)** — read your entire codebase, produce the
    migration plan, and emit `output/migration-analysis.json` with a
    binding `executionPlan[]` table (**schema 1.2.0**: each row for
-   prompts 04/05c/06 includes `callSites[]`). Prompt 00 also seeds
+   prompts 04/05z/06 includes `callSites[]`). Prompt 00 also seeds
    `output/migration-plan-state.json` (`dispositions: []`). Prompts may
    update that ledger as they migrate call sites, but the closure check is
    enforced at prompt `10`, not after every intermediate prompt (see
    `steering/79-migration-plan-state-and-call-site-closure.md`).
 3. **Architecture (00b, optional)** — generate lifecycle dependency
    maps, data flow diagrams, secure API call graph.
-4. **Gradle (01)** — add SDK dependency, set `minSdk >= 31`, configure
+4. **Gradle (01)** — add SDK dependency, set `minSdk >= 33`, configure
    the BlackBerry Maven repository.
 5. **Settings (02)** — write `settings.json` from the UEM values
    captured in 00pre. The agent does NOT re-ask for these.
@@ -319,7 +319,7 @@ Use this recovery path before re-running the whole migration:
    **stop** and decide with your team — do not keep retrying the same
    failure.
 4. Optional bounded repair for controlled prompts
-   (`01,02,03,03b,04,05a,05b,05c,06,07,08,09,11,03c`):
+   (`01,02,03,03b,04,05a,05b,05c,05z,06,07,08,09,11,03c`):
 
    ```bash
    bash dynamics-migration-tool/tooling/repair-orchestrator.sh --prompt-id <id>
@@ -542,7 +542,7 @@ core `migrate.sh` / `validate.sh` / `record-prompt-execution.sh`:
 |------|-------|-------------|
 | `tooling/progress.sh` | `bash dynamics-migration-tool/tooling/progress.sh` | Mid-run progress dashboard showing completed/pending prompts, validation state, and deferred domains. Add `--json` for machine-parseable output. |
 | `tooling/loop-state.sh` | `bash dynamics-migration-tool/tooling/loop-state.sh --help` | Loop-state helper used by validator/recorder to track repeated failures, retry budgets, and escalation evidence in `output/migration-loop-state.json`. |
-| `tooling/repair-orchestrator.sh` | `bash dynamics-migration-tool/tooling/repair-orchestrator.sh --prompt-id <id>` | Optional bounded Stage 7 repair lane for controlled prompts only (`01,02,03,03b,04,05a,05b,05c,06,07,08,09,11,03c`). Final acceptance remains recorder-owned. |
+| `tooling/repair-orchestrator.sh` | `bash dynamics-migration-tool/tooling/repair-orchestrator.sh --prompt-id <id>` | Optional bounded Stage 7 repair lane for controlled prompts only (`01,02,03,03b,04,05a,05b,05c,05z,06,07,08,09,11,03c`). Final acceptance remains recorder-owned. |
 | Git restore from backup branch | `git branch --list "migration-backup-*"` then `git checkout <migration-backup-branch> -- .` | Restore app sources from the backup branch created by prompt `00pre`. To restore a single file, run `git checkout <migration-backup-branch> -- path/to/file`. |
 | `validate.sh --fix-suggestions` | `bash dynamics-migration-tool/tooling/validate.sh --fix-suggestions` | After validation, prints actionable fix instructions grouped by domain for every failure. |
 | `migrate.sh --resume` | `bash dynamics-migration-tool/tooling/migrate.sh --resume --agent cursor` | Resume a migration from the last completed prompt (reads `bootstrap.json`). |
@@ -650,7 +650,7 @@ output but doesn't block the migration.
 
 > The Room / OkHttp / direct `File` / `createTempFile` checks are the
 > hardening added in the gap analysis follow-up. Apps that pre-date
-> those checks may need to re-run prompts 04, 05a/05b/05c, and 06.
+> those checks may need to re-run prompts 04, 05a/05b/05c/05z, and 06.
 > Line-level exception tags are not supported. Do **not** add
 > `[BB_DYNAMICS-MIGRATION] EXCEPTION`, `[BB_DYNAMICS-WAIVER:*]`, or any
 > other waiver-style marker in source. If a call-site cannot be migrated,
@@ -692,7 +692,7 @@ file alongside each prompt:
 | 02 | `steering/11-settings-json-reference.md` |
 | 03 / 03b | `steering/20-auth-initialization.md` |
 | 04 | `steering/41-secure-storage-sql.md` |
-| 05a / 05b / 05c | `steering/40-secure-file-storage.md` |
+| 05a / 05b / 05c / 05z | `steering/40-secure-file-storage.md` (+ `steering/41-secure-media.md` for 05c) |
 | 06 | `steering/30-secure-networking.md` |
 | 07 | `steering/50-webview-bbwebview.md` |
 | 08 | `steering/60-icc-transferfileservice.md` |

@@ -14,7 +14,7 @@ Enterprise Android apps commonly use **two distinct push mechanisms**:
    `BroadcastReceiver`, `GDAndroid.getInstance().registerReceiver(...)`, and
    `PushChannel.getEventType(Intent)` for channel events.
 
-> **Verified public API (WI-00, SDK 15.0 / originally verified on 14.1):** `PushChannel`,
+> **Verified public API (WI-00, SDK 15.1 / originally verified on 14.1):** `PushChannel`,
 > `PushChannelState`, `PushChannelEventType`, and
 > `GDAndroid.getInstance().registerReceiver(BroadcastReceiver, IntentFilter)`.
 > `PushChannelListener` is present in the API reference but deprecated; do not

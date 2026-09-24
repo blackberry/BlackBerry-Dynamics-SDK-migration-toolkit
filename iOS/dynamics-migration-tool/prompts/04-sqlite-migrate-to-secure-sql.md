@@ -9,6 +9,7 @@ database storage in the Dynamics secure container.
 
 **Skip this prompt if the app does not use raw SQLite (sqlite3 C API).**
 If the app uses Core Data, see Prompt 04b instead.
+If the app uses SwiftData, see Prompt 04c instead.
 
 ---
 

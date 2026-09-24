@@ -124,9 +124,10 @@ The validator (validate.sh) checks:
 - No duplicate active dispositions for the same call-site ID
 - `blocked` dispositions produce validation blockers
 - `runId` in each disposition matches the current run
-- Storage contract closure for `secureSql`, `secureCoreData`, and
-  `secureFileStorage` (writer + reader/follow-on coverage, SwiftData block
-  handling, Keychain/local-crypto decision evidence, sensitive path closure)
+- Storage contract closure for `secureSql`, `secureCoreData`,
+  `secureSwiftData`, and
+  `secureFileStorage` (writer + reader/follow-on coverage, SwiftData factory
+  path, Keychain/local-crypto decision evidence, sensitive path closure)
 - Tranche-5 closure for `dlpPasteboard`, `icc`, and `policyManagement`
   (direction taxonomy, inbound secure copy, outbound egress closure, AppKinetics
   source/plist closure, residual URL/share closure, policy timing/cache/update closure)

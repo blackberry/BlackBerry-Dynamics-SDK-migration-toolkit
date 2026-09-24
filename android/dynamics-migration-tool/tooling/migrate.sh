@@ -103,7 +103,7 @@ while [[ $# -gt 0 ]]; do
             echo "  04    Secure SQLite (android.database.sqlite → com.good.gd.database.sqlite)"
             echo "  05a   Secure filesystem core I/O (writers/readers)"
             echo "  05b   Secure filesystem UI reader closure"
-            echo "  05c   Secure filesystem SharedPreferences + closure"
+            echo "  05z   Secure filesystem SharedPreferences + closure"
             echo "  06    Secure networking (HttpURLConnection → GDHttpClient, Socket → GDSocket)"
             echo "  07    WebView → BBWebView (if applicable)"
             echo "  08    ICC / TransferFileService (if applicable)"
@@ -136,8 +136,8 @@ case "$AGENT" in
         ;;
 esac
 
-PROMPT_ORDER_DEFAULT="00pre, 00, 01, 02, 03, 03b, 04, 05a, 05b, 05c, 06, 07, 08, 09, 11, 03c, 10"
-PROMPT_ORDER_WITH_DIAGRAMS="00pre, 00, 00b, 01, 02, 03, 03b, 04, 05a, 05b, 05c, 06, 07, 08, 09, 11, 03c, 10"
+PROMPT_ORDER_DEFAULT="00pre, 00, 01, 02, 03, 03b, 04, 05a, 05b, 05c, 05z, 06, 07, 08, 09, 11, 03c, 10"
+PROMPT_ORDER_WITH_DIAGRAMS="00pre, 00, 00b, 01, 02, 03, 03b, 04, 05a, 05b, 05c, 05z, 06, 07, 08, 09, 11, 03c, 10"
 if [ "$WITH_DIAGRAMS" = true ]; then
     PROMPT_ORDER="$PROMPT_ORDER_WITH_DIAGRAMS"
     POST_ANALYZE_NOTE="After prompt 00, run 00b-generate-architecture-diagrams.md (optional diagnostics enabled by --with-diagrams), then proceed through each applicable prompt sequentially."
@@ -246,7 +246,7 @@ IMPL_FIRST_NOTE="CRITICAL - Implementation Contract:
 - If a single waivable call site has no feasible automated fix, record it in manualTodos and continue to the next domain. Do not convert non-waivable domains or validator security blockers into manualTodos; fix them or stop for a developer security decision where the prompt explicitly permits it."
 
 CLOSURE_NOTE="Closure Ledger Contract:
-- For prompts 04, 05c, 06, 08, and 09, enumerate every call site from migration-analysis.json before editing.
+- For prompts 04, 05z, 06, 08, and 09, enumerate every call site from migration-analysis.json before editing.
 - Write final dispositions[] entries in dynamics-migration-tool/output/migration-plan-state.json only after the corresponding call site is actually migrated or removed.
 - Prompt 10 checks those entries as the final closure gate. If final closure rejects a removed disposition because the method still has callers, reclassify as migrated and implement the secure replacement.
 - Do not edit bootstrap.json deferredDomains[] - only the developer may add deferrals."
@@ -255,7 +255,7 @@ RECOVERY_NOTE="Validation and Recorder Recovery:
 - If validate.sh or record-prompt-execution.sh fails, fix the underlying source, generated artifact, or closure-ledger evidence and rerun the same validation/recorder command.
 - When stuck, run dynamics-migration-tool/tooling/progress.sh, then repair the owning prompt/domain. Do not thrash prompt 10 or re-run unrelated prompts to clear a gate.
 - If the recorder/validator prints ESCALATION REQUIRED (exit code 3), STOP and ask the developer. Do not keep retrying the same failure.
-- Optional bounded repair for controlled prompts (01,02,03,03b,04,05a,05b,05c,06,07,08,09,11,03c): bash dynamics-migration-tool/tooling/repair-orchestrator.sh --prompt-id <id>, obey exit 0/1/3, and read steering/96-repair-loop-conduct.md. Prompt 10 stays recorder-owned.
+- Optional bounded repair for controlled prompts (01,02,03,03b,04,05a,05b,05c,05z,06,07,08,09,11,03c): bash dynamics-migration-tool/tooling/repair-orchestrator.sh --prompt-id <id>, obey exit 0/1/3, and read steering/96-repair-loop-conduct.md. Prompt 10 stays recorder-owned.
 - Do not patch bootstrap.json.executedPrompts[], bootstrap.json.deferredDomains[], migration-plan-state.json, or validator output by hand to bypass a gate."
 
 if [ -n "$RESUME_NOTE" ]; then
@@ -345,7 +345,7 @@ and public BlackBerry Dynamics SDK documentation.
 ## Prompt Order
 
 Execute prompts in this exact default order:
-`00pre`, `00`, `01`, `02`, `03`, `03b`, `04`, `05a`, `05b`, `05c`,
+`00pre`, `00`, `01`, `02`, `03`, `03b`, `04`, `05a`, `05b`, `05c`, `05z`,
 `06`, `07`, `08`, `09`, `11`, `03c`, `10`.
 
 Optional after prompt 10:
@@ -682,7 +682,7 @@ PROMPT_FILES=(
     "04-sqlite-migrate-to-secure-sql.md"
     "05a-filesystem-core-io-migration.md"
     "05b-filesystem-ui-reader-closure.md"
-    "05c-filesystem-sharedprefs-and-closure.md"
+    "05z-filesystem-sharedprefs-and-closure.md"
     "06-secure-networking-audit-and-migrate.md"
     "07-webview-migrate-to-bbwebview.md"
     "08-icc-add-transferfileservice.md"
@@ -704,7 +704,7 @@ PROMPT_LABELS=(
     "Secure SQLite (database migration)"
     "Secure Filesystem 05a (core file I/O migration)"
     "Secure Filesystem 05b (UI/consumer reader closure)"
-    "Secure Filesystem 05c (SharedPreferences + final closure)"
+    "Secure Filesystem 05z (SharedPreferences + final closure)"
     "Secure Networking (HTTP + Socket migration)"
     "WebView → BBWebView (if applicable)"
     "ICC / TransferFileService (if applicable)"
@@ -726,7 +726,7 @@ PROMPT_NUMS=(
     "04"
     "05a"
     "05b"
-    "05c"
+    "05z"
     "06"
     "07"
     "08"
@@ -867,7 +867,7 @@ elif [ "$AGENT" = "generic" ]; then
     echo "     Prompt 04    → steering/41-secure-storage-sql.md"
     echo "     Prompt 05a   → steering/40-secure-file-storage.md"
     echo "     Prompt 05b   → steering/40-secure-file-storage.md"
-    echo "     Prompt 05c   → steering/40-secure-file-storage.md"
+    echo "     Prompt 05z   → steering/40-secure-file-storage.md"
     echo "     Prompt 06    → steering/30-secure-networking.md"
     echo "     Prompt 07    → steering/50-webview-bbwebview.md"
     echo "     Prompt 08    → steering/60-icc-transferfileservice.md"

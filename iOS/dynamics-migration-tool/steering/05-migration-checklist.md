@@ -8,7 +8,7 @@ Use this checklist to track migration progress. Each phase maps to a prompt.
 
 - [ ] **Pre-flight baseline PASSES** — unsigned simulator build (`CODE_SIGNING_ALLOWED=NO`)
 - [ ] Swift version detected (`SWIFT_VERSION` build setting)
-- [ ] Deployment target recorded and compatibility assessed (>= 17.0 required)
+- [ ] Deployment target recorded and compatibility assessed (>= 18.0 required)
 - [ ] All Swift/ObjC source files read and inventoried
 - [ ] All storyboards and xibs scanned for UI components
 - [ ] Info.plist strategy detected (physical file vs GENERATE_INFOPLIST_FILE)
@@ -17,7 +17,7 @@ Use this checklist to track migration progress. Each phase maps to a prompt.
 - [ ] API usage inventory table produced
 - [ ] Data sensitivity classification complete
 - [ ] Startup flow analysis complete (what runs in `didFinishLaunchingWithOptions`, `viewDidLoad`)
-- [ ] Unsupported features flagged (Flutter hybrid, Share Extension / App Extensions, SwiftData, BitCode, CloudKit, App Clips)
+- [ ] Unsupported features flagged (Flutter hybrid, Share Extension / App Extensions, SwiftData persistent-history / same-store mixing, BitCode, CloudKit, App Clips)
 - [ ] If Flutter hybrid detected: Tier C + out-of-scope stop — do **not** run Dynamics code-migration prompts with this toolkit version
 - [ ] If Share Extension detected: call out + isolate / non-shipping (never Dynamics-authorize the extension); see `17-app-extensions-and-share-extensions.md`
 - [ ] Third-party library compatibility assessed
@@ -34,9 +34,9 @@ Use this checklist to track migration progress. Each phase maps to a prompt.
 
 ## Phase 1: Project Setup (Prompt 01)
 
-- [ ] Deployment target >= 17.0 ensured (raised only if below; higher targets preserved)
+- [ ] Deployment target >= 18.0 ensured (raised only if below; higher targets preserved)
 - [ ] BlackBerryDynamics integrated via selected method (CocoaPods, SPM, or manual)
-- [ ] If SPM: official URL `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK` pinned at `15.0.0` (or later published `15.*`); products `BlackBerryDynamics` + `GSEProvider` linked
+- [ ] If SPM: official URL `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK` pinned at `v15.1.18` / `15.1.18` (or later published `15.*`); products `BlackBerryDynamics` + `GSEProvider` linked
 - [ ] GSEProvider.xcframework / `GSEProvider` product added (manual embed or SPM product link)
 - [ ] Pre-15.0 Certicom frameworks removed (if upgrading an existing Dynamics app)
 - [ ] Protect Mobile / SafeBrowsing usage flagged for removal (if present)
@@ -105,6 +105,15 @@ Use this checklist to track migration progress. Each phase maps to a prompt.
 - [ ] Lightweight migration verified with encrypted store
 - [ ] Core Data stack initialization deferred to post-authorization
 
+## Phase 5b: Secure SwiftData (Prompt 04c, if applicable)
+
+- [ ] `ModelConfiguration` replaced with `GDSecureModelConfiguration`
+- [ ] `ModelContainer(...)` replaced with `GDSecureModelContainer.create(...)`
+- [ ] Container creation deferred to post-authorization (no `.modelContainer(for:)` on `App`)
+- [ ] `@Model` / `@Query` / `ModelContext` retained
+- [ ] Persistent history tracking and same-store Core Data mixing blocked if present
+- [ ] iOS 18+ deployment target confirmed
+
 ## Phase 6: Secure File Storage (Prompt 05, if applicable)
 
 - [ ] Execution strategy selected before edits (direct replacement vs app-level injection)
@@ -126,7 +135,8 @@ Use this checklist to track migration progress. Each phase maps to a prompt.
 
 - [ ] `GDURLLoadingSystem` enabled for secure NSURLSession
 - [ ] Direct socket connections replaced with `GDSocket`
-- [ ] Custom HTTP replaced with `GDHttpRequest` (if applicable)
+- [ ] Legacy `GDHttpRequest` / `GDHttpRequestDelegate` call sites rewritten
+      onto `URLSession` (classes dropped from the SDK in 16.0)
 - [ ] Alamofire/other HTTP libraries assessed for compatibility
 - [ ] Network operations deferred to post-authorization
 
@@ -156,7 +166,7 @@ Use this checklist to track migration progress. Each phase maps to a prompt.
 - [ ] `migration-report.json` generated in `dynamics-migration-tool/output/`
 - [ ] Schema version is `2.0.0`
 - [ ] All coverage areas assessed
-- [ ] Unsupported features listed (SwiftData, App Extensions, etc.)
+- [ ] Unsupported features listed (App Extensions, SwiftData history/same-store mixing, etc.)
 - [ ] Manual TODOs documented
 - [ ] Runtime test plan generated
 - [ ] UEM admin handoff section complete

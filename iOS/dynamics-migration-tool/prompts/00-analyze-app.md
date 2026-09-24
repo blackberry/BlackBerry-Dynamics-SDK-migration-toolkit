@@ -157,11 +157,11 @@ xcodebuild -showBuildSettings -scheme YourApp 2>/dev/null | grep IPHONEOS_DEPLOY
 **Record both values** in the analysis output.
 
 **Deployment target rules for Dynamics:**
-- BlackBerry Dynamics SDK 15.x requires iOS **>= 17.0**.
-- If the project already targets 17.0 or higher, **keep the existing target**.
-  Only raise it to 17.0 if it is below 17.0. Never lower a higher target.
-- If the project targets a version above 17.0 (e.g., iOS 18, 26), it may use
-  APIs unavailable at iOS 17. Lowering the target would introduce compile errors
+- BlackBerry Dynamics SDK 15.1 requires iOS **>= 18.0**.
+- If the project already targets 18.0 or higher, **keep the existing target**.
+  Only raise it to 18.0 if it is below 18.0. Never lower a higher target.
+- If the project targets a version above 18.0 (e.g., iOS 26, 27), it may use
+  APIs unavailable at iOS 18. Lowering the target would introduce compile errors
   unrelated to Dynamics. Flag these as `preExistingApiAvailabilityRisks` in the
   analysis artifact if the target must change.
 - Flag BlackBerry Protect Mobile / SafeBrowsing usage for removal (unsupported
@@ -286,11 +286,14 @@ Read ALL Swift and Objective-C source files in the project. For each file, ident
     references and source usage. If a model directory is orphaned (not
     referenced by project/code), flag it as `manualTodoCandidates`:
     "abandoned Core Data schema candidate for removal".
-- **SwiftData** (UNSUPPORTED): `@Model`, `ModelContainer`, `ModelContext`,
-  `@Query`, `#Predicate` — flag as unsupported feature. If detected, produce
-  a `swiftDataRedesignPlan` section in the analysis artifact listing affected
-  entities, repositories, and a recommended Core Data migration path. Mark the
-  Core Data prompt (04b) as "design-only pending developer approval".
+- **SwiftData** (SDK 15.1 secure store): `@Model`, `ModelContainer`,
+  `ModelContext`, `@Query`, `#Predicate`, `ModelConfiguration`. Plan Prompt
+  04c (`secureSwiftData`) to replace configuration/factory with
+  `GDSecureModelConfiguration` + `GDSecureModelContainer.create(...)` after
+  authorization. Do **not** rewrite `@Model` types to Core Data. Flag
+  persistent history tracking and same-store Core Data/SwiftData mixing as
+  unsupported limitations. If SwiftData is created on `App` / scene launch
+  (`.modelContainer(for:)`), record a high-priority deferral to `onAuthorized`.
 - **Raw SQLite**: `sqlite3_open()`, `sqlite3_prepare_v2()`, FMDB usage,
   GRDB usage, SQLite.swift usage
 - **Networking**:
@@ -426,7 +429,7 @@ Based on the analysis, produce a structured migration plan:
 
 | Feature | Files | Impact |
 |---------|-------|--------|
-| SwiftData | Models.swift | Must rewrite to Core Data + GDPersistentStoreCoordinator |
+| SwiftData | Models.swift | → GDSecureModelConfiguration + GDSecureModelContainer.create (Prompt 04c) |
 | WidgetKit | WidgetExtension/ | Cannot access secure container from extension |
 | CloudKit | SyncManager.swift | Data must stay in secure container |
 
@@ -446,6 +449,7 @@ Based on the analysis, produce a structured migration plan:
        async/await, singletons)
 4. [ ] Secure SQL database (if applicable)
 4b.[ ] Secure Core Data (if applicable)
+4c.[ ] Secure SwiftData (if applicable)
 5. [ ] Secure file storage (if applicable)
 6. [ ] Secure networking (if applicable)
 7. [ ] Secure WKWebView (if applicable)
@@ -457,7 +461,7 @@ Based on the analysis, produce a structured migration plan:
 - [List any complex patterns, third-party libraries, or edge cases]
 - [Note any startup code that accesses secure APIs before authorization]
 - [Note any background processing that needs container access]
-- [Flag SwiftData usage — must be rewritten]
+- [Flag SwiftData usage — Prompt 04c; history tracking / same-store mixing unsupported]
 - [Flag App Extensions — unsupported]
 - [Flag CloudKit/iCloud — data cannot be in secure container]
 - [Flag third-party libraries that read/write files]
@@ -500,12 +504,12 @@ Create `dynamics-migration-tool/output/migration-analysis.json` with:
     "uiFramework": "UIKit|SwiftUI|Both",
     "deploymentTarget": "string",
     "swiftVersion": "string or null",
-    "deploymentTargetAction": "keep|raise-to-17",
+    "deploymentTargetAction": "keep|raise-to-18",
     "preExistingApiAvailabilityRisks": ["string"]
   },
   "domains": [
     {
-      "name": "authorization|secureFileStorage|secureSql|secureCoreData|secureNetworking|webview|icc|dlpPasteboard|policyManagement",
+      "name": "authorization|secureFileStorage|secureSql|secureCoreData|secureSwiftData|secureNetworking|webview|icc|dlpPasteboard|policyManagement",
       "tier": "tier1|tier2|tier3",
       "status": "applicable|not-applicable",
       "evidence": ["string"],
@@ -514,8 +518,8 @@ Create `dynamics-migration-tool/output/migration-analysis.json` with:
   ],
   "executionPlan": [
     {
-      "domainId": "authorization|secureFileStorage|secureSql|secureCoreData|secureNetworking|webview|icc|dlpPasteboard|policyManagement",
-      "promptId": "03|04|04b|05|06|07|08|09|09b",
+      "domainId": "authorization|secureFileStorage|secureSql|secureCoreData|secureSwiftData|secureNetworking|webview|icc|dlpPasteboard|policyManagement",
+      "promptId": "03|04|04b|04c|05|06|07|08|09|09b",
       "applicability": "applicable|not-applicable",
       "applicabilityRationale": "string",
       "risk": "high|medium|low",
@@ -649,7 +653,7 @@ Create `dynamics-migration-tool/output/migration-analysis.json` with:
       "reason": "string"
     }
   ],
-  "recommendedPromptOrder": ["00pre","00","00b","01","02","03","03b","04","04b","05","06","07","08","09","09b","11","10","12"]
+  "recommendedPromptOrder": ["00pre","00","00b","01","02","03","03b","04","04b","04c","05","06","07","08","09","09b","11","10","12"]
 }
 ```
 
@@ -660,7 +664,7 @@ IDs must be deterministic for unchanged source and unique within the run.
 These IDs are used by domain prompts when writing dispositions to
 `migration-plan-state.json`.
 
-For storage domains (`secureSql`, `secureCoreData`, `secureFileStorage`),
+For storage domains (`secureSql`, `secureCoreData`, `secureSwiftData`, `secureFileStorage`),
 populate `storageFamily`, `operation`, `pathOwnership`, `wrapperLibrary`,
 `auxiliaryFiles`, `downstreamReaders`, and `proposedTreatment`.
 
@@ -733,7 +737,7 @@ Use this policy:
 - Data sensitivity classification for each usage
 - Startup flow analysis (what runs before authorization is possible)
 - Ordered migration plan with applicable/not-applicable phases marked
-- Unsupported features list (SwiftData, Flutter hybrid, App Extensions, CloudKit, etc.)
+- Unsupported features list (Flutter hybrid, App Extensions, CloudKit, SwiftData persistent-history / same-store mixing, etc.)
 - Risks, edge cases, and items requiring developer input
 - `dynamics-migration-tool/output/migration-analysis.json` (required)
 
@@ -751,7 +755,7 @@ Use this policy:
 - Flag any patterns that will require special handling (e.g., Core Data
   access in `didFinishLaunchingWithOptions`, background tasks, SwiftUI
   `@StateObject` with secure data access)
-- If the app uses SwiftData, flag it prominently — there is NO Dynamics equivalent
+- If the app uses SwiftData, plan Prompt 04c — do not rewrite `@Model` to Core Data
 - If the app is Flutter-based, flag it prominently — **out of scope** for this
   toolkit release; do NOT prescribe FlutterEngine / plugin-registrant Dynamics
   wiring

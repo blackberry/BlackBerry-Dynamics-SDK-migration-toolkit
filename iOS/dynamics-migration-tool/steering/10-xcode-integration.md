@@ -2,22 +2,22 @@
 
 ## Deployment Target
 
-BlackBerry Dynamics SDK 15.x requires iOS **>= 17.0** (minimum). CocoaPods
+BlackBerry Dynamics SDK 15.x requires iOS **>= 18.0** (minimum). CocoaPods
 and the official SPM package both declare this floor — follow the package's
 declared platform when using SPM.
 
 **Rule**: Only raise the deployment target, never lower it.
-- If the project targets < 17.0: raise to 17.0 in Xcode and Podfile.
-- If the project already targets >= 17.0 (e.g., 18.0, 26.0): **keep the
+- If the project targets < 18.0: raise to 18.0 in Xcode and Podfile.
+- If the project already targets >= 18.0 (e.g., 18.0, 26.0): **keep the
   existing target**. Lowering it breaks modern APIs the app depends on
   (e.g., `glassEffect()`, `@Observable`, SwiftData APIs).
 
 Update:
 - Xcode project settings (General > Minimum Deployments)
-- `Podfile` platform line: `platform :ios, '<current-or-17>'`
+- `Podfile` platform line: `platform :ios, '<current-or-18>'`
 
 After raising (if applicable), search for `#available` or `@available`
-checks against iOS versions below 17 — these become dead code.
+checks against iOS versions below 18 — these become dead code.
 
 If the target was raised and new availability errors appear, add
 `if #available` guards or classify them as pre-existing issues in the
@@ -55,20 +55,20 @@ before continuing.
 If the project does not have a Podfile, create one:
 
 ```ruby
-# Use max(current_target, '17.0') — do NOT lower a higher target
-platform :ios, '17.0'  # or keep existing if already >= 17.0
+# Use max(current_target, '18.0') — do NOT lower a higher target
+platform :ios, '18.0'  # or keep existing if already >= 18.0
 use_frameworks!
 
 target 'YourApp' do
   # [BB_DYNAMICS-MIGRATION] Added BlackBerryDynamics SDK
-  pod 'BlackBerryDynamics', '~> 15.0'
+  pod 'BlackBerryDynamics', '~> 15.1'
 end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |config|
       current = config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'].to_f
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '17.0' if current < 17.0
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '18.0' if current < 18.0
     end
   end
 end
@@ -114,8 +114,8 @@ Dynamics Swift package. Do not invent alternate package URLs.
 |-------|-------|
 | Repository | https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK |
 | Package name | `BlackBerryDynamics` |
-| Toolkit-approved pin | SPM tag / version `15.0.0` (ships SDK build `15.0.8513.67`) |
-| Declared platform | iOS 17+ |
+| Toolkit-approved pin | SPM tag / version `v15.1.18` (ships SDK build `15.1.8766.18`) |
+| Declared platform | iOS 18+ |
 | Required products | `BlackBerryDynamics`, `GSEProvider` |
 | Optional product | `BlackBerryDynamicsAutomatedTestSupportLibrary` (test targets only) |
 
@@ -123,8 +123,8 @@ Dynamics Swift package. Do not invent alternate package URLs.
 
 1. File → Add Package Dependencies…
 2. Enter URL: `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK`
-3. Set Dependency Rule to **Up to Next Major** from `15.0.0`, or pin
-   **Exact Version** `15.0.0` for reproducible migrations.
+3. Set Dependency Rule to **Up to Next Major** from `15.1.18`, or pin
+   **Exact Version** `15.1.18` for reproducible migrations.
 4. Add products to the **app target**:
    - `BlackBerryDynamics` (required)
    - `GSEProvider` (required — FIPS crypto provider for SDK 15.0+)
@@ -140,7 +140,7 @@ declare the dependency explicitly:
 // [BB_DYNAMICS-MIGRATION] Official BlackBerry Dynamics SPM (prompt 01)
 .package(
     url: "https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK",
-    from: "15.0.0"
+    from: "15.1.18"
 )
 ```
 
@@ -154,7 +154,7 @@ And link products on the app target:
 ### SPM rules
 
 - Use only the official GitHub URL above (with or without a trailing `.git`).
-- Pin to `15.0.0` or a later published `15.0.*` / `15.*` release that
+- Pin to `15.1.18` (tag `v15.1.18`) or a later published `15.1.*` / `15.*` release that
   BlackBerry tags on that repository — do not invent checksums or mirror URLs.
 - Link both `BlackBerryDynamics` and `GSEProvider` on every production app
   target that uses Dynamics APIs.
@@ -317,7 +317,7 @@ if only used in the implementation.
 | `GDFileManager`, `GDFileHandle`, `GDCReadStream`, `GDCWriteStream`, `GDFileStat` | `@import BlackBerryDynamics.SecureStore.File;` | `GDFileManager.h`, `GDFileHandle.h` |
 | `sqlite3enc_open`, `sqlite3enc_open_v2` | `@import GD_C.SecureStore.SQLite;` (must also import a `BlackBerryDynamics.*` module first) | `sqlite3enc.h` |
 | `GDPersistentStoreCoordinator`, `GDEncryptedIncrementalStoreType` | `@import BlackBerryDynamics.SecureStore.CoreData;` | `GDPersistentStoreCoordinator.h` |
-| `GDSocket`, `GDSocketDelegate`, `GDHttpRequest`, `GDHttpRequestDelegate`, `GDDirectByteBuffer` | `@import BlackBerryDynamics.SecureCommunication;` | `GDNETiOS.h` |
+| `GDSocket`, `GDSocketDelegate`, `GDDirectByteBuffer` | `@import BlackBerryDynamics.SecureCommunication;` | `GDNETiOS.h` |
 | `GDURLLoadingSystem`, `WKWebView+GDNET`, `NSMutableURLRequest+GDNET` | `@import BlackBerryDynamics.SecureCommunication;` (re-exports `.URLLoadingSystem`) | `GDURLLoadingSystem.h`, `WKWebView+GDNET.h` |
 | `GDConnectivityManager`, `GDReachability`, `GDNetUtility` | `@import BlackBerryDynamics.SecureCommunication;` (re-exports `.Utility`) | `GDNetUtility.h` |
 | `GDPush` | `@import BlackBerryDynamics.SecureCommunication.PushChannel;` | `GDPush.h` |

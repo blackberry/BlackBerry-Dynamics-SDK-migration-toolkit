@@ -124,7 +124,7 @@ WIDGET_FAMILY_SPECS=(
     "GDAppCompatAutoCompleteTextView|androidx.appcompat.widget.AppCompatAutoCompleteTextView|androidx.appcompat.widget.AppCompatAutoCompleteTextView|AppCompatAutoCompleteTextView"
     "GDAppCompatMultiAutoCompleteTextView|androidx.appcompat.widget.AppCompatMultiAutoCompleteTextView|androidx.appcompat.widget.AppCompatMultiAutoCompleteTextView|AppCompatMultiAutoCompleteTextView"
     "GDAppCompatSearchView|androidx.appcompat.widget.SearchView|androidx.appcompat.widget.SearchView|SearchView"
-    "GDTextInputEditText|com.google.android.material.textfield.TextInputEditText|com.google.android.material.textfield.TextInputEditText|TextInputEditText"
+    "GDTextInputEditText|com.google.android.material.textfield.TextInputEditText,TextInputEditText|com.google.android.material.textfield.TextInputEditText|TextInputEditText"
 )
 
 _widget_count_token() {

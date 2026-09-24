@@ -112,6 +112,62 @@
       "streamLayerNote": "Stream-layer helpers wrap com.good.gd.file streams exclusively. Kotlin File extensions may compile on com.good.gd.file.File via java.io interop but still bypass secure I/O. NEVER replace these helpers with kotlin.io or java.nio.file convenience APIs. See steering/40-secure-file-storage.md §5."
     },
     {
+      "id": "file/SeekableGdMediaCapture",
+      "files": {
+        "java": "file/SeekableGdMediaCapture.java",
+        "kotlin": "file/SeekableGdMediaCapture.kt"
+      },
+      "provenance": {
+        "kind": "kit-authored",
+        "license": "Apache-2.0",
+        "editorialChanges": [
+          "Replaced package with __APP_PACKAGE__"
+        ]
+      },
+      "usedByPrompt": "05c",
+      "requiredCallSites": [
+        "MemoryFile",
+        "setOutputFile",
+        "com.good.gd.file.FileOutputStream"
+      ],
+      "forbiddenAfterMigration": [
+        "ParcelFileDescriptor.createPipe",
+        "ParcelFileDescriptor.createReliablePipe",
+        "getCacheDir(",
+        "getFilesDir(",
+        "createTempFile("
+      ],
+      "note": "Class C seekable capture: MemoryFile FD then GD FileOutputStream. Exclude this filename from Phase 4 stream-layer scanners. See steering/41-secure-media.md."
+    },
+    {
+      "id": "file/SeekableGdMediaPlayback",
+      "files": {
+        "java": "file/SeekableGdMediaPlayback.java",
+        "kotlin": "file/SeekableGdMediaPlayback.kt"
+      },
+      "provenance": {
+        "kind": "kit-authored",
+        "license": "Apache-2.0",
+        "editorialChanges": [
+          "Replaced package with __APP_PACKAGE__"
+        ]
+      },
+      "usedByPrompt": "05c",
+      "requiredCallSites": [
+        "MemoryFile",
+        "setDataSource",
+        "com.good.gd.file.FileInputStream"
+      ],
+      "forbiddenAfterMigration": [
+        "setVideoPath",
+        "getAbsolutePath()",
+        "getCacheDir(",
+        "getFilesDir(",
+        "createTempFile("
+      ],
+      "note": "Class C seekable playback: GD FileInputStream into MemoryFile then setDataSource(fd). Exclude this filename from Phase 4 stream-layer scanners. See steering/41-secure-media.md."
+    },
+    {
       "id": "sql/raw/DynamicsDbHelper",
       "files": {
         "java": "sql/raw/DynamicsDbHelper.java",

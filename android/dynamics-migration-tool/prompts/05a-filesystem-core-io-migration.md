@@ -560,42 +560,28 @@ Use in-memory or secure stream alternatives:
 | `new java.util.zip.ZipFile(file or path)` | `new java.util.zip.ZipInputStream(new com.good.gd.file.FileInputStream(path))` for read; `ZipOutputStream` wrapping `com.good.gd.file.FileOutputStream` for write |
 | `new androidx.exifinterface.media.ExifInterface(file)` (read) | `new ExifInterface(new com.good.gd.file.FileInputStream(<container-relative-path>))` |
 | `new androidx.exifinterface.media.ExifInterface(file)` + `saveAttributes()` (write) | Decode through GD `FileInputStream`, modify, re-encode through GD `FileOutputStream`. **No in-place EXIF write is supported.** |
-| `new android.media.MediaMuxer(file or path, format)` | `new MediaMuxer(fd, format)` where `fd` is a `FileDescriptor` obtained from a GD-backed source. If unavailable, STOP and mark manual intervention / no-go rather than introducing filesystem staging. |
+| `new android.media.MediaMuxer(file or path, format)` | **Prompt 05c.** Seekable FD (`MemoryFile` / proxy) then GD copy. Do **not** use `createPipe` for MP4. |
 | `ParcelFileDescriptor.open(file, mode)` used by `PdfRenderer` | Render via `ParcelFileDescriptor.createPipe()` or `MemoryFile` fed from a `com.good.gd.file.FileInputStream`. |
-| `mediaRecorder.setOutputFile(path/file)` / `setNextOutputFile(path/file)` | Prefer redesign to in-memory/direct-secure-stream capture. If the platform writer truly requires unmanaged path or seekable filesystem output and no approved direct-secure pattern exists, STOP and mark manual intervention / no-go. Do **not** introduce cache/files-dir staging as the default workaround. |
+| `mediaRecorder.setOutputFile(path/file)` / `setNextOutputFile(path/file)` | **Prompt 05c** / `steering/41-secure-media.md`. Seekable FD bridge then GD `FileOutputStream`. MPEG-4 + pipe is not migrated. Sequential `AAC_ADTS`/AMR pipes are allowed. Do **not** introduce cache/files-dir staging. |
 
-#### FD-only media writer decision (mandatory for MediaRecorder / MediaMuxer)
+#### FD-only media writer decision (mandatory — execute in prompt 05c)
 
-If `MediaRecorder`, `MediaMuxer`, or another file-descriptor-only API
-remains after migration, do **NOT** mark the call site `migrated` just
-because public storage is gone. Apply this decision tree:
+If `MediaRecorder`, `MediaMuxer`, `MediaPlayer`, CameraX video, or
+retriever/thumbnail path APIs remain after 05a type migration, do
+**NOT** mark those call sites `migrated` in 05a. Hand them to prompt
+**05c**. Apply this decision tree there (`steering/41-secure-media.md`):
 
-1. **Container-safe descriptor path exists?** (e.g.,
-   `ParcelFileDescriptor.createPipe()` backed by a GD stream, or a
-   codec that accepts `OutputStream` directly) → use it, mark `migrated`.
+1. **Sequential encoder?** (`AAC_ADTS`, AMR) → pipe into a GD stream,
+   mark `migrated` in 05c.
+2. **Seekable muxer/player?** (MPEG-4 / 3GP / WEBM / omitted format,
+   MediaPlayer path, CameraX video File options) → MemoryFile /
+   SharedMemory / `openProxyFileDescriptor` + GD Java I/O. Copy GD I/O
+   from an authorized Activity, not `Service.onCreate`.
+3. **No approved bridge?** Do **not** mark `migrated` or `removed`.
+   Record blocking `manualTodos[]` P1 and continue. `filesDir`/`cacheDir`
+   staging is not an accepted default.
 
-2. **No container-safe path — redesign feasible?** (e.g., replace
-   `MediaRecorder` with an in-memory codec, or chunk capture into a GD
-   `FileOutputStream`) → redesign, mark `migrated`.
-
-3. **No container-safe path, no feasible redesign?** The call site
-   remains unresolved after the redesign attempt. You **MUST**:
-   - **not** mark the call site `migrated` or `removed`,
-   - record the blocked API and affected feature in existing
-     `migration-analysis.json` rationale text or
-     `migration-plan-state.json` notes if you touched those artifacts,
-   - add a `manualTodos[]` entry with `severity: "P1"`, `blocking: true`,
-     and a title describing the specific blocked API and the affected feature,
-   - **continue to the next call site and subsequent prompts**. A
-     single unresolved FD-only media writer does not block
-     SharedPreferences migration, networking migration, UI widget
-     migration, or any other domain. Complete as much of the
-     migration as possible.
-
-   `filesDir`/`cacheDir`/`openFileOutput()` staging is **not** an
-   accepted default migration outcome. It is a runtime workaround
-   that leaves media unencrypted during the staging window and must be
-   surfaced as residual risk. `validate.sh` Phase 4 rule 4I flags
+   Phase 4 rule `4L` fails MPEG-4 + `createPipe`. Rule `4I` flags
    sandbox-sourced FD provenance; `PRIVATE_SANDBOX_STAGING_HITS` flags
    the staging pattern itself.
 
@@ -829,16 +815,16 @@ For each affected feature or call-site cluster:
      `severity: "P1"`, the appropriate `blocking` value, and a specific title.
    - Do not add a final disposition for the unresolved call site.
      `manual-intervention` is not a valid disposition status; leaving
-     the disposition missing correctly causes the 05c closure gate to
+     the disposition missing correctly causes the 05z closure gate to
      fail unless the developer defers the whole `secureFileStorage`
      domain.
-   - **Continue to `05b`, `05c`, and subsequent prompts.** An
+   - **Continue to `05b`, `05c`, `05z`, and subsequent prompts.** An
      unresolved FD-only media writer does not block SharedPreferences
      migration, networking migration, or UI widget migration. Complete
      as much of the migration as possible.
 7. Record prompt `05a` as `completed` only for the mechanically resolved
    subset; unresolved FD-only sites stay out of the final disposition
-   ledger and must be resolved, domain-deferred, or allowed to fail 05c
+   ledger and must be resolved, domain-deferred, or allowed to fail 05z
    closure. Record as `failed` only if you made no meaningful progress
    at all on the domain.
 
@@ -1023,14 +1009,14 @@ bash dynamics-migration-tool/tooling/record-prompt-execution.sh \
 If some call sites remain unresolved (e.g., FD-only media writers with
 no container-safe alternative) but you resolved all mechanically
 resolvable sites, leave those unresolved call sites without final
-dispositions and continue to 05c, where closure will either be completed
+dispositions and continue to 05z, where closure will either be completed
 or fail unless the developer defers the whole domain:
 
 ```bash
 bash dynamics-migration-tool/tooling/record-prompt-execution.sh \
     --prompt-id 05a \
     --status completed \
-    --note "secureFileStorage: N sites migrated, M unresolved FD-only sites left for 05c closure/developer deferral"
+    --note "secureFileStorage: N sites migrated, M unresolved FD-only sites left for 05z closure/developer deferral"
 ```
 
 Record failed **only** if you made no meaningful progress on the domain

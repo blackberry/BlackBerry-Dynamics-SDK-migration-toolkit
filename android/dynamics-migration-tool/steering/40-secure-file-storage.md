@@ -61,7 +61,7 @@ For every in-scope module from `module-map.json`, scan for:
    referenced from `CMakeLists.txt` via `add_library(... IMPORTED)`.
 
 Record discoveries in `migration-analysis.json` so prompts `05a`, `05b`,
-`05c`, and `06` can act on them.
+`05z`, and `06` can act on them.
 
 ---
 
@@ -594,7 +594,7 @@ in `manualTodos[]` with `severity: "P1"` and `blocking: true`, and **do not add 
 disposition** for that call site. `manual-intervention` is not a valid
 `migration-plan-state.json` status. The call site must later be
 resolved, removed, or covered by a developer-signed domain deferral
-before 05c closure can pass. Continue to the next call site and the next
+before 05z closure can pass. Continue to the next call site and the next
 prompt; the validator severity does **not** change.
 
 ### Media-safe redesign patterns
@@ -661,27 +661,29 @@ but is **not** equivalent to a clean `secureFileStorage` migration:
 
 #### Decision tree for FD-only media writers
 
-1. **Container-safe stream/descriptor path exists?**
-   If the platform API accepts an `OutputStream`, a pipe-backed
-   `FileDescriptor`, or a `ParcelFileDescriptor.createPipe()` whose
-   write end is fed from a GD stream, use that path. Mark the call
-   site `migrated`.
+**Do not apply this tree in prompt 05a.** MediaRecorder, MediaMuxer,
+MediaPlayer, CameraX video, and retriever/thumbnail path APIs belong to
+prompt **05c**. Canonical patterns, size policy, and anti-patterns are
+in `steering/41-secure-media.md`.
 
-2. **No container-safe path exists — redesign feasible?**
-   Replace the platform writer with an in-memory or bounded-buffer
-   architecture (e.g., `OnImageCapturedCallback` for photo capture,
-   chunked `OutputStream` for video where the codec supports it).
-   Mark the call site `migrated`.
+MPEG-4 / 3GP / WEBM (or omitted `setOutputFormat`) plus
+`ParcelFileDescriptor.createPipe()` is **not** a container-safe path.
+Phase 4 rule `4L` (`mpeg4-nonseekable-fd`) fails it. Sequential formats
+(`AAC_ADTS`, AMR) may still use a pipe into a GD stream.
 
-3. **No container-safe path, no feasible redesign?**
-   The call site must remain without a final disposition (not
-   `migrated` or `removed`) until resolved or domain-deferred. The
-   migration report must:
+1. **Class B Java stream?** `OutputStream` / `OnImageCapturedCallback`
+   / GD `FileInputStream` — migrate in 05a and mark `migrated`.
+2. **Class C seekable native FD?** Apply the 05c bridge (`MemoryFile` /
+   `SharedMemory` / `openProxyFileDescriptor` + GD Java I/O). Mark
+   `migrated` only when Phase 4 `4L` / `4H.mediaplayer-path` /
+   `4H.retriever-path` / `4H.camerax-video` are clean.
+3. **No approved bridge?** Leave the call site without a final
+   disposition. The migration report must:
    - set `coverage.secureFileStorage.status` to `"partial"`,
    - add the call site to `manualTodos[]` with `severity: "P1"`,
      `blocking: true`, and a title naming the blocked API and affected feature,
    - explain in `securityPosture.dataAtRest.summary` that media
-     staging leaves the container during capture,
+     cannot use a seekable GD kernel FD,
    - keep `releaseReadiness.recommendation` at `"no-go"` while the
      product/security decision is pending.
 
@@ -701,18 +703,22 @@ as `fail_or_defer "secureFileStorage"`. The developer must either
 eliminate the sandbox staging or defer the whole `secureFileStorage`
 domain with a valid developer-signed entry.
 
-### Layout redesign closure (prompts 05a / 05c)
+### Layout redesign closure (prompts 05a / 05c / 05z)
 
-Before recording prompt `05c` as `completed`:
+Before recording prompt `05z` as `completed`:
 
 1. Storage layout redesign decision documented in
    `migration-plan-state.json` notes or `migration-analysis.json`
    rationale when `redesignPath` applied.
-2. Every applicable `secureFileStorage` call site is `migrated` | `removed`,
+2. Prompt `05c` is `completed` or `skipped` (empty `mediaCapabilities[]`).
+3. Every applicable `secureFileStorage` call site is `migrated` | `removed`,
    domain is `not-applicable`, or developer signed a valid
    `deferredDomains[]` entry.
-3. No new `java.io.File` staging helpers for ICC (prompt 08 blocked until
+4. No new `java.io.File` staging helpers for ICC (prompt 08 blocked until
    storage closed).
+5. Phase 4 media tokens (`mpeg4-nonseekable-fd`,
+   `mediaplayer-path-datasource`, `retriever-path-datasource`,
+   `camerax-video-file-output`) are clean.
 
 ---
 
@@ -1238,16 +1244,14 @@ write EXIF metadata — use `OnImageCapturedCallback` for EXIF if needed.
 default to Android sandbox, cache, files-dir, MediaStore, or public
 filesystem staging for app-owned media.
 
-Required decision order:
+Required decision order is **prompt 05c** / `steering/41-secure-media.md`:
 
-1. Look for a redesign that keeps bytes in memory, stream form, pipe
-   form, or a descriptor path that can be imported into the secure
-   container without unmanaged staging.
-2. If the platform writer truly requires a normal filesystem path or a
-   seekable native descriptor and no approved direct-secure pattern
-   exists, mark the flow **manual intervention** and keep the migration
-   report `no-go`.
-3. Do **not** mark `coverage.secureFileStorage` as migrated while such a
+1. Seekable muxer (MPEG-4 / 3GP / WEBM, or omitted format): MemoryFile /
+   SharedMemory / proxy FD, then GD Java I/O. A pipe is not migrated.
+2. Sequential encoder (`AAC_ADTS`, AMR): pipe into a GD stream is allowed.
+3. If no approved bridge exists, mark **manual intervention** and keep
+   the migration report `no-go`.
+4. Do **not** mark `coverage.secureFileStorage` as migrated while such a
    writer remains unresolved.
 
 ### Lambda capture of try-with-resources variables
@@ -1286,12 +1290,16 @@ mandatory enforcement point is prompt `10` final source validation.
 | 4F | `bitmapCompressJavaIo` | `Bitmap.compress(…, new java.io.FileOutputStream)` |
 | 4G | `gdFileFromSandbox` | `com.good.gd.file.File` seeded from `getFilesDir()` / `getCacheDir()` |
 | 4H.camerax | `camerax-output-file-builder` | `ImageCapture.OutputFileOptions.Builder(File)` |
+| 4H.camerax-video | `camerax-video-file-output` | CameraX video `FileOutputOptions(File)` / `MediaStoreOutputOptions` |
 | 4H.mediamuxer | `mediamuxer-file-constructor` | `new MediaMuxer(path\|file, format)` |
 | 4H.mediarecorder | `mediarecorder-file-output` | `MediaRecorder.setOutputFile(path\|file)` / `setNextOutputFile(path\|file)` |
+| 4H.mediaplayer-path | `mediaplayer-path-datasource` | `MediaPlayer.setDataSource(path)` / `VideoView.setVideoPath` / ExoPlayer `FileDataSource` |
+| 4H.retriever-path | `retriever-path-datasource` | `MediaMetadataRetriever.setDataSource(path\|File)` / `ThumbnailUtils.createVideoThumbnail` |
 | 4H.zipfile | `zipfile-file-constructor` | `new ZipFile(File\|String)` |
 | 4H.exifinterface | `exifinterface-file-constructor` | `new ExifInterface(File\|String)` |
 | 4H.pdfrenderer | `pdfrenderer-file-backed-pfd` | `ParcelFileDescriptor.open(File, mode)` for `PdfRenderer` |
 | 4I | `fd-media-sandbox-provenance` | `MediaMuxer(fd, …)` or `MediaRecorder.setOutputFile(fd)` where the same file derives the FD from sandbox paths (`getFilesDir`, `getCacheDir`, `openFileOutput`, `createTempFile`, `ParcelFileDescriptor.open`) |
+| 4L | `mpeg4-nonseekable-fd` | Seekable muxer format (MPEG-4 / 3GP / WEBM, or omitted `setOutputFormat`) + `ParcelFileDescriptor.createPipe` / `createReliablePipe` |
 | 4K | `uri-empty-persistent` | `Uri.EMPTY` or `Uri.parse("")` stored in persistent data stores (DataStore, Room, SharedPreferences). Indicates a broken save round-trip — see §7a. |
 | 4M | `docfile-from-file-gd` | `DocumentFile.fromFile()` in files importing `com.good.gd.file.*` — produces invalid `file://` URIs from container-relative paths. FAILURE — see §10. |
 

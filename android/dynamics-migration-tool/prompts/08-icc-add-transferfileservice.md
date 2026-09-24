@@ -269,7 +269,7 @@ rg "java\.io\.File\b|Context\.getFilesDir|java\.io\.FileOutputStream" \
 | App stores files using... | ICC-ready? | Action |
 |---|---|---|
 | `com.good.gd.file.*` APIs (container-relative paths) | Yes | Pass container paths to `sendTo()` |
-| `java.io.File` / `getFilesDir()` / public storage for app data | **No** | **STOP** — complete prompts `05a`–`05c` / `40-secure-file-storage.md` §7 first |
+| `java.io.File` / `getFilesDir()` / public storage for app data | **No** | **STOP** — complete prompts `05a`–`05z` / `40-secure-file-storage.md` §7 first |
 
 **Do not** implement sandbox-to-container staging at ICC send time. ICC still
 depends on `secureFileStorage` being genuinely closed, but that closure is
@@ -679,7 +679,7 @@ For service providers, optionally declare in `settings.json`:
 
 1. **File paths must be GD container paths, NOT Android OS paths** —
    This is the most common ICC failure. If the app stores files using
-   `java.io.File` (standard Android), complete prompts 05a-05c first so
+   `java.io.File` (standard Android), complete prompts 05a-05z first so
    bytes live in the Dynamics container from the moment they are written.
    Do not add sandbox-to-container staging at ICC send time. Android OS
    paths like `/data/data/com.example/files/photo.jpg` look valid but

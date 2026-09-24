@@ -9,7 +9,7 @@ secure API access and defer all such access to post-authorization.
 
 **Key concept**: Any code that accesses `GDFileManager`, `GDFileHandle`,
 `GDCReadStream`, `GDCWriteStream`, `GDPersistentStoreCoordinator`,
-`sqlite3enc_open`, `GDURLLoadingSystem`, `GDSocket`, `GDHttpRequest`,
+`sqlite3enc_open`, `GDURLLoadingSystem`, `GDSocket`,
 or any other secure API MUST run after authorization. This audit traces
 every call chain to find violations.
 
@@ -36,7 +36,9 @@ For EVERY SwiftUI view:
   access secure storage?
 - Check `.onAppear` modifiers — do they trigger secure API calls?
 - Check `.task` modifiers — do they start async secure operations?
-- Check `@Query` (SwiftData — flag as unsupported)
+- Check `@Query` / `.modelContainer(for:)` — SwiftData containers must be
+  created after authorization via `GDSecureModelContainer.create` (Prompt 04c).
+  Do not leave `.modelContainer(for:)` on `App` / scene launch.
 
 **Fix**: Conditionally show views based on auth state, or defer loading.
 
@@ -122,7 +124,7 @@ verify the following before marking this prompt complete:
 
 **Pre-authorization scan** — confirm no secure API remains in Phase 1:
 ```
-rg "GDFileManager|GDFileHandle|GDCReadStream|GDCWriteStream|sqlite3enc|GDURLLoadingSystem|GDPersistentStoreCoordinator|GDSocket|GDHttpRequest" \
+rg "GDFileManager|GDFileHandle|GDCReadStream|GDCWriteStream|sqlite3enc|GDURLLoadingSystem|GDPersistentStoreCoordinator|GDSocket" \
   --include="*.swift" --include="*.m" \
   -n
 ```

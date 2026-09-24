@@ -1,8 +1,8 @@
 {
   "schemaVersion": "1.0.0",
   "catalogVersion": "1.0.0",
-  "sdkVersionVerified": "15.0.8513.64",
-  "lastUpdated": "2026-09-10",
+  "sdkVersionVerified": "15.1.8766.18",
+  "lastUpdated": "2026-09-18",
   "provenance": {
     "widgetPackageReference": "https://developer.blackberry.com/files/blackberry-dynamics/android/namespacecom_1_1good_1_1gd_1_1widget.html",
     "clipboardReference": "https://developer.blackberry.com/files/blackberry-dynamics/android/classcom_1_1good_1_1gd_1_1content_1_1_clipboard_manager.html",
@@ -255,7 +255,7 @@
         "androidx.preference.Preference",
         "androidx.preference.PreferenceFragmentCompat"
       ],
-      "reason": "No public GDEditTextPreference class in SDK 15.0.8513.64."
+      "reason": "No public GDEditTextPreference class in SDK 15.1.8766.18."
     },
     {
       "id": "keep-native-004",
