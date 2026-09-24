@@ -14,7 +14,7 @@
 #   --preflight              Run pre-flight checks only (verify project can build
 #                            before migration starts).
 #   --check-prompt <id>      Run only the validator phases owned by the given
-#                            prompt id (e.g. 01, 04, 05c, 06, 10). The mapping
+#                            prompt id (e.g. 01, 04, 05z, 06, 10). The mapping
 #                            is read from `tooling/check-prompt-map.json`. This
 #                            is an optional diagnostic mode; the recorder no
 #                            longer auto-runs it for intermediate prompts.
@@ -78,7 +78,7 @@ Options:
   --preflight              Run pre-flight checks only (verify the project can
                            build before migration starts).
   --check-prompt <id>      Run only validator phases owned by the given prompt
-                           id (e.g. 01, 04, 05c, 06, 10). Mapping is read from
+                           id (e.g. 01, 04, 05z, 06, 10). Mapping is read from
                            tooling/check-prompt-map.json. Optional diagnostic
                            mode; writes output/.last-check.json.
   --app-module <name>      Select primary application module by repo-relative
@@ -309,7 +309,7 @@ CHECK_PROMPT_MODE_LABEL=""
 # the single source of truth shared with record-prompt-execution.sh.
 if [ "$CHECK_PROMPT_MODE" = true ]; then
     if [ -z "$CHECK_PROMPT_ID" ]; then
-        echo "❌ --check-prompt requires a prompt id (e.g. 04, 05c, 10)"
+        echo "❌ --check-prompt requires a prompt id (e.g. 04, 05z, 10)"
         exit 2
     fi
     if [ ! -f "$CHECK_PROMPT_MAP" ]; then
@@ -1365,7 +1365,7 @@ REPORT_FILE="$TOOL_DIR/output/migration-report.json"
 evidence_domains_for_prompt() {
   case "$1" in
     04) echo "secureSql" ;;
-    05a|05b|05c) echo "secureFileStorage" ;;
+    05a|05b|05c|05z) echo "secureFileStorage" ;;
     06) echo "secureNetworking" ;;
     07) echo "webview" ;;
     08) echo "icc" ;;

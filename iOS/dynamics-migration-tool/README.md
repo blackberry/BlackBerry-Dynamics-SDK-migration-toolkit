@@ -2,6 +2,9 @@
 
 Migrate your native iOS app to BlackBerry Dynamics using AI-assisted guidance.
 
+This revision targets **BlackBerry Dynamics SDK for iOS 15.1**
+(`15.1.8766.18`; CocoaPods `~> 15.1`; SPM `15.1.18`). Minimum iOS **18.0**.
+
 This tool provides structured prompts, steering files, and validation scripts
 that work with any AI coding agent (Kiro, Copilot, Cursor, etc.) to automate
 the migration of a standard iOS application to BlackBerry Dynamics.
@@ -54,6 +57,7 @@ dynamics-migration-tool/
 │   ├── 40-secure-storage-filesystem.md
 │   ├── 41-secure-storage-sql.md
 │   ├── 42-secure-storage-coredata.md
+│   ├── 43-secure-storage-swiftdata.md
 │   ├── 45-dlp-pasteboard.md
 │   ├── 50-wkwebview-secure.md
 │   ├── 60-appkinetics-icc.md
@@ -83,6 +87,7 @@ dynamics-migration-tool/
 │   ├── 03b-authorization-deferral-audit.md
 │   ├── 04-sqlite-migrate-to-secure-sql.md
 │   ├── 04b-coredata-migrate-to-gdpersistentstore.md
+│   ├── 04c-swiftdata-migrate-to-gdsecuremodel.md
 │   ├── 05-filesystem-migrate-to-gdfilemanager.md
 │   ├── 06-secure-networking-audit-and-migrate.md
 │   ├── 07-wkwebview-secure-migration.md
@@ -114,6 +119,7 @@ dynamics-migration-tool/
 | 03b | `03b-authorization-deferral-audit.md` | REQUIRED | Systematic audit of ViewControllers, SwiftUI views, Combine, async/await |
 | 04 | `04-sqlite-migrate-to-secure-sql.md` | if applicable | Migrates raw SQLite to encrypted SQLite (sqlite3enc) |
 | 04b | `04b-coredata-migrate-to-gdpersistentstore.md` | if applicable | Migrates Core Data to GDPersistentStoreCoordinator |
+| 04c | `04c-swiftdata-migrate-to-gdsecuremodel.md` | if applicable | Migrates SwiftData to GDSecureModelContainer (SDK 15.1) |
 | 05 | `05-filesystem-migrate-to-gdfilemanager.md` | if applicable | Migrates file I/O to GDFileManager/GDFileHandle |
 | 06 | `06-secure-networking-audit-and-migrate.md` | if applicable | Migrates URLSession/sockets to secure networking |
 | 07 | `07-wkwebview-secure-migration.md` | if applicable | Enables secure WKWebView via WKWebView+GDNET |
@@ -140,15 +146,16 @@ manual interventions, and recommended toolkit improvements.
 6. **Authorization Deferral** — Audit all pre-auth secure API access
 7. **Secure SQL** — Raw SQLite to encrypted SQLite (if applicable)
 8. **Secure Core Data** — NSPersistentStoreCoordinator to GDPersistentStoreCoordinator (if applicable)
-9. **Secure File Storage** — FileManager/FileHandle to GDFileManager/GDFileHandle
-10. **Secure Networking** — GDURLLoadingSystem, GDSocket
-11. **Secure WebView** — WKWebView+GDNET (if applicable)
-12. **AppKinetics ICC** — GDService/GDServiceClient (if applicable)
-13. **External Data Movement + DLP** — direction/sensitivity taxonomy, inbound secure copy, outbound export blockers
-14. **Policy Management** — post-auth policy reads, update events, cache/default handling
-15. **Push Channel Audit** — APNs vs Dynamics push classification and migration decisions
-16. **Report Generation** — Migration report with coverage, risks, test plan
-17. **Retrospective (Optional)** — post-acceptance migration learnings artifact
+9. **Secure SwiftData** — ModelContainer to GDSecureModelContainer.create (if applicable; SDK 15.1)
+10. **Secure File Storage** — FileManager/FileHandle to GDFileManager/GDFileHandle
+11. **Secure Networking** — GDURLLoadingSystem, GDSocket
+12. **Secure WebView** — WKWebView+GDNET (if applicable)
+13. **AppKinetics ICC** — GDService/GDServiceClient (if applicable)
+14. **External Data Movement + DLP** — direction/sensitivity taxonomy, inbound secure copy, outbound export blockers
+15. **Policy Management** — post-auth policy reads, update events, cache/default handling
+16. **Push Channel Audit** — APNs vs Dynamics push classification and migration decisions
+17. **Report Generation** — Migration report with coverage, risks, test plan
+18. **Retrospective (Optional)** — post-acceptance migration learnings artifact
 
 ---
 
@@ -164,6 +171,7 @@ manual interventions, and recommended toolkit improvements.
 | Authorization | `GDiOS` authorization implemented, delegate or notification pattern |
 | File Storage | `GDFileManager` used, standard `FileManager` removed for sensitive ops |
 | Core Data | `GDPersistentStoreCoordinator` used (if applicable) |
+| SwiftData | `GDSecureModelContainer.create` used (if applicable) |
 | SQL Database | Encrypted SQLite (`sqlite3enc`) used (if applicable) |
 | Networking | `GDURLLoadingSystem` enabled, standard APIs reviewed |
 | External Data / DLP | Directional surface classification, inbound secure-copy closure, outbound protected egress closure |
@@ -293,7 +301,7 @@ treated as a maturing lane and remains optional/controlled.
 
 The migration tool will flag the following iOS features as unsupported:
 
-- **SwiftData** — `@Model`/`ModelContainer`/`ModelContext` cannot be redirected to the secure container
+- **SwiftData persistent history / same-store Core Data mixing** — ordinary `@Model` stores migrate via Prompt 04c (`GDSecureModelContainer`). Persistent history tracking and sharing one store URL with Core Data remain unsupported.
 - **Share Extensions** — Dynamics does not support Share Extensions (no secure-container access). Main-app migration continues; isolate the extension from Dynamics shipping and do not Dynamics-authorize it. See `steering/17-app-extensions-and-share-extensions.md`.
 - **Other App Extensions** — WidgetKit, SiriKit, Notification Service, etc. (same isolate doctrine)
 - **BitCode** — Incompatible with Dynamics cryptographic requirements

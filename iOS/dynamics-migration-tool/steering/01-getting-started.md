@@ -33,6 +33,8 @@ APIs. This means:
 - `FileManager.default` → `GDFileManager.default` for encrypted file operations
 - `FileHandle` → `GDFileHandle` for encrypted file handle access
 - `NSPersistentStoreCoordinator` → `GDPersistentStoreCoordinator` for Core Data
+- `ModelConfiguration` / `ModelContainer` → `GDSecureModelConfiguration` /
+  `GDSecureModelContainer.create(...)` for SwiftData (iOS 18+, SDK 15.1)
 - `sqlite3_open()` → `sqlite3enc_open()` for raw SQLite
 - `UserDefaults` for sensitive data → secure file storage (no leftover
   UserDefaults copy; `18-fresh-dynamics-install.md`)
@@ -42,7 +44,8 @@ APIs. This means:
 - `GDURLLoadingSystem` intercepts `NSURLSession` traffic and routes it
   through the Dynamics infrastructure
 - `GDSocket` replaces direct socket connections
-- `GDHttpRequest` provides HTTP request capability
+- HTTP has no separate Dynamics class: the withdrawn `GDHttpRequest` /
+  `GDHttpRequestDelegate` are replaced by routed `URLSession` traffic
 
 ### Secure WebView
 
@@ -71,7 +74,7 @@ Choose the method from the dependency topology matrix in
 
 Add to your `Podfile`:
 ```ruby
-pod 'BlackBerryDynamics', '~> 15.0'
+pod 'BlackBerryDynamics', '~> 15.1'
 ```
 
 Run `pod install` and open the `.xcworkspace` file.
@@ -81,7 +84,7 @@ Run `pod install` and open the `.xcworkspace` file.
 When the matrix selects SPM, add the official package:
 
 - URL: https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK
-- Version: `15.0.0` (SDK build `15.0.8513.67`) or a later published `15.*` tag
+- Version: `15.1.18` (SDK build `15.1.8766.18`) or a later published `15.*` tag
 - Products (app target): `BlackBerryDynamics` + `GSEProvider`
 
 In Xcode: File → Add Package Dependencies… → paste the URL above → link
@@ -156,9 +159,9 @@ See `10-xcode-integration.md` for the full module import reference table.
 
 ## Requirements
 
-- **iOS Deployment Target**: >= 17.0 (minimum). If the project already targets
+- **iOS Deployment Target**: >= 18.0 (minimum). If the project already targets
   a higher version, keep the existing target — do NOT lower it.
-- **Xcode**: 15 or 16
+- **Xcode**: 16 or newer (SDK 15.1 requires iOS 18)
 - **Languages**: Swift 4/4.2/5/6, Objective-C
 - **Swift Version Awareness**: Detect the project's `SWIFT_VERSION` build
   setting. Swift 6 projects with strict concurrency may require `@Sendable`
@@ -177,7 +180,7 @@ The migration follows a strict order:
 2. **Project Setup** (Prompt 01) — Add framework, configure Xcode
 3. **Configuration** (Prompt 02) — Info.plist with entitlement info
 4. **Authorization** (Prompts 03, 03b) — GDiOS authorization, deferral audit
-5. **Secure Storage** (Prompts 04, 04b, 05) — SQLite, Core Data, filesystem
+5. **Secure Storage** (Prompts 04, 04b, 04c, 05) — SQLite, Core Data, SwiftData, filesystem
 6. **Secure Networking** (Prompt 06) — GDURLLoadingSystem, GDSocket
 7. **WebView** (Prompt 07) — WKWebView+GDNET (if applicable)
 8. **ICC** (Prompt 08) — AppKinetics (if applicable)
@@ -211,8 +214,9 @@ Before Prompt 10, review:
 | Activity init | `activityInit()` per Activity | Not needed (single AppDelegate) |
 | File storage | `GDFileSystem` | `GDFileManager` (subclass of `NSFileManager`) |
 | Core Data | N/A | `GDPersistentStoreCoordinator` |
+| SwiftData | N/A | `GDSecureModelConfiguration` + `GDSecureModelContainer.create` (SDK 15.1) |
 | SQLite | `com.good.gd.database.sqlite` | `sqlite3enc.h` (C API) |
-| Networking | `GDHttpClient`, `GDSocket` | `GDURLLoadingSystem`, `GDSocket`, `GDHttpRequest` |
+| Networking | `GDHttpClient`, `GDSocket` | `GDURLLoadingSystem` (routed `URLSession`), `GDSocket` |
 | WebView | `BBWebView` | `WKWebView+GDNET` |
 | UI DLP | `GDEditText`, `GDTextView` | `UIPasteboard` policy, `GDNativePasteboardAccess` |
 | ICC | `TransferFileService` | `GDService`/`GDServiceClient` (AppKinetics) |

@@ -6,12 +6,12 @@ Use ONLY these sources as authoritative:
 
 ## Official Documentation
 
-- **BlackBerry Dynamics SDK for Android Development Guide** (v15.0)
+- **BlackBerry Dynamics SDK for Android Development Guide** (v15.1)
   — The primary reference for this migration tool
-- **BlackBerry Dynamics SDK API Reference (Android)** (15.0.8513.64)
+- **BlackBerry Dynamics SDK API Reference (Android)** (15.1.8766.18)
   — https://developer.blackberry.com/files/blackberry-dynamics/android/
-- **BlackBerry Dynamics SDK for Android 15.0 Release Notes**
-  — https://docs.blackberry.com/en/blackberry-dynamics-sdk/15.x/blackberry-dynamics-sdk-for-android/blackberry-dynamics-sdk-for-android-release-notes/blackberry-dynamics-sdk-for-android-version-15.0
+- **BlackBerry Dynamics SDK for Android 15.1 Release Notes**
+  — https://docs.blackberry.com/en/blackberry-dynamics-sdk/15.x/blackberry-dynamics-sdk-for-android/blackberry-dynamics-sdk-for-android-release-notes/blackberry-dynamics-sdk-for-android-version-15.1
 - **BlackBerry UEM Administration Guide**
   — For entitlement setup, policy configuration, compliance profiles
 - **BlackBerry Dynamics Security White Paper**
@@ -79,7 +79,7 @@ Source code: https://github.com/blackberry/BlackBerry-Dynamics-Android-Samples
 - If information is missing or unclear, request clarification
 - Do not rely on third-party blogs or StackOverflow
 - Cross-reference with the official API reference when in doubt
-- The Dynamics SDK 15.0 Development Guide / release notes are the
+- The Dynamics SDK 15.1 Development Guide / release notes are the
   canonical source for integration guidance in this toolkit revision
 
 ## Standalone migration kit (no internal SDK sources)

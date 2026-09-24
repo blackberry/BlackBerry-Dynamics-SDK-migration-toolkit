@@ -296,7 +296,7 @@ bash ./dynamics-migration-tool/tooling/validate.sh --check-prompt 03
 
 ### Deployment target errors
 
-- Set deployment target to iOS **>= 17.0** in both project and Podfile
+- Set deployment target to iOS **>= 18.0** in both project and Podfile
 - If the project already targets a higher version (e.g., 18.0, 26.0), **keep
   the existing target** — do not lower it. Lowering introduces API availability
   errors for modern APIs (e.g., `glassEffect()`, `@Observable`, SwiftData)
@@ -304,7 +304,7 @@ bash ./dynamics-migration-tool/tooling/validate.sh --check-prompt 03
 
 ### API availability errors after deployment target change
 
-- If raising the target from < 17.0 introduces `'X' is only available in
+- If raising the target from < 18.0 introduces `'X' is only available in
   iOS Y or newer` errors, these are pre-existing compatibility issues
 - Add `if #available` guards or raise the deployment target to the required
   version — do NOT silently delete modern API calls
@@ -371,7 +371,7 @@ Fix:
    Versions.
 4. Ensure network access to GitHub and
    `software.download.blackberry.com` (binary target host).
-5. Pin to published tag `15.0.0` (SDK `15.0.8513.67`) or a later official
+5. Pin to published tag `v15.1.18` (SDK `15.1.8766.18`) or a later official
    `15.*` tag on that repository.
 
 ### CocoaPods error: "Unable to find compatibility version string for object version '70'"

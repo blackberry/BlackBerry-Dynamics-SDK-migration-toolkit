@@ -36,6 +36,7 @@ can fire before authorization if the upstream emits synchronously.
 - Prompt 03b (deferral audit) — primary input, maps every pre-auth chain to a deferral pattern
 - Prompt 04 (secure SQL) — identifies which sqlite3 access points need deferral
 - Prompt 04b (Core Data) — identifies NSPersistentContainer setup timing
+- Prompt 04c (SwiftData) — identifies ModelContainer / `.modelContainer(for:)` setup timing
 - Prompt 05 (secure filesystem) — identifies which file I/O needs deferral
 - Prompt 10 (migration report) — risk heatmap feeds into report risk assessments
 
@@ -506,7 +507,7 @@ Column rules:
   or state `None — post-auth only`
 
 Risk assignment guidance:
-- HIGH: Pre-auth secure API access, or complex migration (Core Data stack replacement, SwiftData incompatibility)
+- HIGH: Pre-auth secure API access, or complex migration (Core Data stack replacement, SwiftData container factory + auth ordering)
 - MED: Post-auth secure API access with API shape change (sqlite3 to sqlite3enc), or singleton init timing
 - LOW: Post-auth with drop-in replacement (URLSession auto-swizzled), or no secure API involvement
 

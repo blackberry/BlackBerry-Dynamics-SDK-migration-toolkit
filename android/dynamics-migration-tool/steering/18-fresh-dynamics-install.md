@@ -11,7 +11,7 @@ data. Do not ask the developer whether to preserve it. Do not invent
 one-time transfer helpers.
 
 This file is the canonical install-model rule. Storage-domain prompts
-(`04`, `05a`, `05c`) and steering (`15`, `41`, `42`) follow it.
+(`04`, `05a`, `05z`) and steering (`15`, `41`, `42`) follow it.
 
 ---
 

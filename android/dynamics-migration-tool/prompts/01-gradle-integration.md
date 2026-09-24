@@ -107,7 +107,7 @@ build file may live elsewhere (`app-primary/app-primary/build.gradle.kts`,
 
 At minimum, in the primary application module's build file:
 ```groovy
-def dynamics_version = '15.0.8513.64'  // Pin to Dynamics SDK 15.0
+def dynamics_version = '15.1.8766.18'  // Pin to Dynamics SDK 15.1
 implementation "com.blackberry.blackberrydynamics:android_handheld_platform:$dynamics_version"
 implementation "com.blackberry.blackberrydynamics:android_handheld_resources:$dynamics_version"
 implementation "com.blackberry.blackberrydynamics:android_handheld_backup_support:$dynamics_version"
@@ -136,9 +136,10 @@ allowing the library to compile against `com.good.gd.*` types. Do NOT
 duplicate `implementation` of Dynamics in library modules — that
 produces duplicate-class errors at packaging time.
 
-### 4. Bump minSdk to 31
+### 4. Bump minSdk to 33
 
-Required for Dynamics SDK 15.x (unchanged from 14.x).
+Required for Dynamics SDK 15.1 (Android 13+). Android 12 (API 31–32)
+is not supported. Never lower a higher existing `minSdk`.
 
 - For projects whose Android `defaultConfig` lives in
   `${primary_build_file}`, edit `minSdk` there.
@@ -150,7 +151,7 @@ Required for Dynamics SDK 15.x (unchanged from 14.x).
   and bump it there.
 
 After bumping:
-- Search for `Build.VERSION.SDK_INT` checks against API levels ≤ 31
+- Search for `Build.VERSION.SDK_INT` checks against API levels ≤ 33
   across `${in_scope_modules}` (primary + libraries).
 - Remove dead `else` branches that reference missing resources or APIs
 - The compiler will flag these as errors

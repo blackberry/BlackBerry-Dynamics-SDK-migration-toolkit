@@ -97,7 +97,7 @@ Areas to assess:
 
 For Tranche 3 storage closure, also populate a `storageClosure` block with:
 - SQL wrapper status (`directSqlite`, `FMDB`, `GRDB`, `SQLite.swift`, `SQLCipher`)
-- Core Data and SwiftData status (SwiftData must be explicit, never implicit)
+- Core Data and SwiftData status (SwiftData must be explicit `migrated`/`blocked`/`not-applicable`)
 - File writer + reader/follow-on closure status
 - Sensitive UserDefaults, Keychain, and local-crypto decision status
 
@@ -129,7 +129,7 @@ List anything the agent could not automate:
 - Runtime testing with UEM server
 - Credential and activation testing
 - Third-party library compatibility verification
-- SwiftData rewrite (if detected)
+- SwiftData factory verification (`GDSecureModelContainer.create`) if detected
 - App Extension compatibility (if detected)
 - Non-Dynamics build blockers (pre-existing API availability issues,
   deprecated APIs unrelated to migration)
@@ -157,7 +157,9 @@ List any app features that are incompatible with Dynamics:
   (Dynamics-unsupported; isolate / non-shipping — see
   `17-app-extensions-and-share-extensions.md`)
 - **Other App Extensions** — WidgetKit, SiriKit, Notification Service, etc.
-- **SwiftData** — `@Model`, `ModelContainer`, `ModelContext` detected
+- **SwiftData persistent history / same-store Core Data mixing** — only when
+  those unsupported 15.1 limitations are present. Migrated `@Model` stores
+  using `GDSecureModelContainer` are a coverage area, not an unsupported feature.
 - **BitCode** — if was enabled (now disabled)
 - **App Clips** — if App Clip target detected
 - **CloudKit / iCloud** — if used for sensitive data
@@ -437,8 +439,10 @@ status.
 - Do NOT fabricate data — only report what actually changed
 - Do NOT include `[BB_DYNAMICS-MIGRATION]` tags in the JSON
 - `overallStatus` must accurately reflect the migration state
-- `unsupportedFeatures` MUST include SwiftData, Flutter hybrid, Share
-  Extension / App Extensions, etc. if detected
+- `unsupportedFeatures` MUST include Flutter hybrid, Share
+  Extension / App Extensions, and SwiftData **limitations** (persistent
+  history, same-store mixing) if detected. Do not list ordinary SwiftData
+  as unsupported after Prompt 04c migrates it.
 - if Flutter hybrid is detected, `releaseReadiness.recommendation` MUST be
   `no-go` and the report MUST state that this toolkit release does not migrate
   Flutter apps (no official Dynamics Flutter SDK)

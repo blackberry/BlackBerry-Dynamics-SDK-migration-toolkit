@@ -1216,7 +1216,9 @@ def callsite_categories(callsite):
     categories = set()
     if re.search(r"(sqlite3|fmdb|grdb|sqlite\.swift|sqlcipher|databasequeue|connection\()", tokens):
         categories.add("sql")
-    if re.search(r"(core data|nspersistent|gdpersistentstorecoordinator|swiftdata|modelcontainer|@model|@query)", tokens):
+    if re.search(r"(swiftdata|gdsecuremodel|modelcontainer|modelconfiguration|@model|@query|#predicate)", tokens) and not re.search(r"(nspersistent|gdpersistentstorecoordinator|nsmanagedobject)", tokens):
+        categories.add("swiftdata")
+    if re.search(r"(core data|nspersistent|gdpersistentstorecoordinator|nsmanagedobject)", tokens):
         categories.add("coredata")
     if re.search(r"(filemanager|filehandle|data\\.write|string\\.write|write\\(to:|outputstream|gdcwritestream|archive|keyedarchiver|plist|createfile|write)", tokens):
         categories.add("file-writer")
@@ -1226,7 +1228,7 @@ def callsite_categories(callsite):
         categories.add("prefs-keychain-crypto")
     return categories
 
-def check_callsite_contract(domain_id, expected_prompt, callsite, require_sensitive_closed=False, enforce_swiftdata=False, enforce_keychain=False):
+def check_callsite_contract(domain_id, expected_prompt, callsite, require_sensitive_closed=False, enforce_swiftdata_history=False, enforce_keychain=False):
     cs_id = callsite.get("id")
     if not has_text(cs_id):
         add("FAIL", f"{domain_id}: call-site missing id")
@@ -1269,9 +1271,9 @@ def check_callsite_contract(domain_id, expected_prompt, callsite, require_sensit
     if require_sensitive_closed and sensitivity == "sensitive" and status not in {"migrated", "removed"}:
         add("FAIL", f"{cs_id}: sensitive storage call-site is not closed (status={status})")
 
-    if enforce_swiftdata and re.search(r"(swiftdata|modelcontainer|modelcontext|@model|@query|#predicate)", matched_api):
+    if enforce_swiftdata_history and re.search(r"(fetchhistory|deletehistory|historyproviding|nspersistenthistory)", matched_api):
         if status != "blocked":
-            add("FAIL", f"{cs_id}: SwiftData call-site must be blocked until redesign is approved")
+            add("FAIL", f"{cs_id}: SwiftData/Core Data persistent history tracking is unsupported on the secure store and must be blocked")
 
     if enforce_keychain and re.search(r"(secitem|keychain)", matched_api):
         policy_decision = callsite.get("keychainPolicyDecision") or callsite.get("proposedTreatment")
@@ -1292,7 +1294,7 @@ def check_callsite_contract(domain_id, expected_prompt, callsite, require_sensit
         if not (has_text(notes) or has_text(rationale)):
             add("FAIL", f"{cs_id}: local-crypto decision requires evidence notes or rationale")
 
-def evaluate_domain(domain_id, expected_prompt, phase_filter=None, require_sensitive_closed=False, enforce_swiftdata=False, enforce_keychain=False):
+def evaluate_domain(domain_id, expected_prompt, phase_filter=None, require_sensitive_closed=False, enforce_swiftdata_history=False, enforce_keychain=False):
     entry = domain_entry(domain_id)
     if entry is None:
         add("WARN", f"{domain_id}: domain missing from executionPlan; skipping {phase_kind} checks")
@@ -1317,7 +1319,7 @@ def evaluate_domain(domain_id, expected_prompt, phase_filter=None, require_sensi
             expected_prompt=expected_prompt,
             callsite=callsite,
             require_sensitive_closed=require_sensitive_closed,
-            enforce_swiftdata=enforce_swiftdata,
+            enforce_swiftdata_history=enforce_swiftdata_history,
             enforce_keychain=enforce_keychain,
         )
     add("PASS", f"{domain_id}: validated {len(callsites)} call-site(s) for {phase_kind}")
@@ -1325,7 +1327,9 @@ def evaluate_domain(domain_id, expected_prompt, phase_filter=None, require_sensi
 if phase_kind == "sql":
     evaluate_domain("secureSql", "04", phase_filter=lambda cs: "sql" in callsite_categories(cs), require_sensitive_closed=True)
 elif phase_kind == "coredata":
-    evaluate_domain("secureCoreData", "04b", phase_filter=lambda cs: "coredata" in callsite_categories(cs), require_sensitive_closed=True, enforce_swiftdata=True)
+    evaluate_domain("secureCoreData", "04b", phase_filter=lambda cs: "coredata" in callsite_categories(cs), require_sensitive_closed=True)
+elif phase_kind == "swiftdata":
+    evaluate_domain("secureSwiftData", "04c", phase_filter=lambda cs: "swiftdata" in callsite_categories(cs), require_sensitive_closed=True, enforce_swiftdata_history=True)
 elif phase_kind == "writers":
     evaluate_domain("secureFileStorage", "05", phase_filter=lambda cs: "file-writer" in callsite_categories(cs), require_sensitive_closed=True)
 elif phase_kind == "readers":
@@ -1334,7 +1338,8 @@ elif phase_kind == "preferences":
     evaluate_domain("secureFileStorage", "05", phase_filter=lambda cs: "prefs-keychain-crypto" in callsite_categories(cs), require_sensitive_closed=True, enforce_keychain=True)
 elif phase_kind == "final":
     evaluate_domain("secureSql", "04", require_sensitive_closed=True)
-    evaluate_domain("secureCoreData", "04b", require_sensitive_closed=True, enforce_swiftdata=True)
+    evaluate_domain("secureCoreData", "04b", require_sensitive_closed=True)
+    evaluate_domain("secureSwiftData", "04c", require_sensitive_closed=True, enforce_swiftdata_history=True)
     evaluate_domain("secureFileStorage", "05", require_sensitive_closed=True, enforce_keychain=True)
 else:
     add("FAIL", f"Unknown storage validation phase kind: {phase_kind!r}")
@@ -1584,6 +1589,11 @@ def evaluate_network():
 
         if "gdurlsession" in matched or "gdurlsession" in replacement:
             add("FAIL", f"{cs_id}: invented API GDURLSession is prohibited")
+
+        if "gdhttprequest" in replacement:
+            add("FAIL", f"{cs_id}: GDHttpRequest is withdrawn from the SDK; route HTTP through GDURLLoadingSystem via URLSession")
+        if "gdhttprequest" in matched and status not in {"migrated", "removed", "blocked", "deferred"}:
+            add("FAIL", f"{cs_id}: legacy GDHttpRequest call-site must be migrated/removed/blocked/deferred (got {status})")
 
         if lifecycle == "pre-auth":
             add("FAIL", f"{cs_id}: network initiation marked pre-auth")
@@ -2799,20 +2809,102 @@ PY
         echo ""
     fi
 
-    if should_run_phase "6-secure-core-data-swiftdata"; then
-        record_phase "6-secure-core-data-swiftdata"
-        echo -e "${BOLD}Phase 6: Secure Core Data / SwiftData Closure${NC}"
-        run_storage_contract_check "coredata" "Core Data/SwiftData closure"
+    if should_run_phase "6-secure-core-data"; then
+        record_phase "6-secure-core-data"
+        echo -e "${BOLD}Phase 6: Secure Core Data Closure${NC}"
+        run_storage_contract_check "coredata" "Core Data closure"
         if app_grep "NSPersistentContainer\|NSPersistentStoreCoordinator\|NSManagedObjectContext" --include="*.swift" --include="*.m" --include="*.h"; then
             app_grep "GDPersistentStoreCoordinator\|GDEncryptedIncrementalStoreType\|GDEncryptedBinaryStoreType" --include="*.swift" --include="*.m" --include="*.h" && pass "GDPersistentStoreCoordinator + encrypted store types detected" || fail "Core Data detected but encrypted Dynamics store setup not found"
         else
             skip "No Core Data APIs detected"
         fi
-        if app_grep "@Model\|ModelContainer\|ModelContext\|@Query\|#Predicate" --include="*.swift"; then
-            fail "SwiftData usage detected — must be explicitly blocked/design-only until secure redesign is approved"
-        fi
         if app_grep "addPersistentStore" --include="*.swift" --include="*.m" --include="*.h" && app_grep "at:[[:space:]]*nil" --include="*.swift" --include="*.m" --include="*.h"; then
             fail "Potential insecure Core Data store URL detected (addPersistentStore with nil URL)"
+        fi
+        echo ""
+    fi
+
+    if should_run_phase "6b-secure-swiftdata"; then
+        record_phase "6b-secure-swiftdata"
+        echo -e "${BOLD}Phase 6b: Secure SwiftData Closure${NC}"
+        run_storage_contract_check "swiftdata" "SwiftData closure"
+        local sd_state
+        sd_state=$(python3 - "$PROJECT_ROOT" "$TARGET_MAP_FILE" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+target_map = Path(sys.argv[2])
+skip = {"Pods", ".build", "DerivedData", "Tests", "dynamics-migration-tool", "Carthage"}
+app_roots = []
+if target_map.exists():
+    try:
+        import json
+        tm = json.loads(target_map.read_text(encoding="utf-8"))
+        for t in tm.get("targets") or []:
+            if isinstance(t, dict) and t.get("type") == "application":
+                for r in t.get("sourceRoots") or []:
+                    if isinstance(r, str) and r.strip():
+                        app_roots.append((root / r.strip()).resolve())
+    except Exception:
+        app_roots = []
+bases = app_roots or [root]
+has_swiftdata = False
+has_secure_factory = False
+has_secure_config = False
+unmanaged_container = False
+unmanaged_config = False
+has_history = False
+container_re = re.compile(r"(?<!GDSecure)ModelContainer\s*\(")
+config_re = re.compile(r"(?<!GDSecure)ModelConfiguration\s*\(")
+history_re = re.compile(r"fetchHistory\s*\(|deleteHistory\s*\(|HistoryProviding|NSPersistentHistoryChangeRequest")
+for base in bases:
+    if not base.exists():
+        continue
+    for path in base.rglob("*.swift"):
+        if set(path.parts) & skip:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if re.search(r"\bimport\s+SwiftData\b|@Model\b|@Query\b|#Predicate\b|\bModelContext\b", text):
+            has_swiftdata = True
+        if "GDSecureModelContainer.create" in text:
+            has_secure_factory = True
+        if "GDSecureModelConfiguration" in text:
+            has_secure_config = True
+        if container_re.search(text):
+            unmanaged_container = True
+        if config_re.search(text):
+            unmanaged_config = True
+        if history_re.search(text):
+            has_history = True
+print(f"{int(has_swiftdata)} {int(has_secure_factory)} {int(has_secure_config)} {int(unmanaged_container)} {int(unmanaged_config)} {int(has_history)}")
+PY
+)
+        set -- $sd_state
+        local has_sd="$1" has_factory="$2" has_config="$3" unmanaged_ct="$4" unmanaged_cfg="$5" has_hist="$6"
+        if [[ "$has_sd" == "1" ]]; then
+            if [[ "$has_factory" == "1" && "$has_config" == "1" ]]; then
+                pass "GDSecureModelConfiguration + GDSecureModelContainer.create detected"
+            else
+                fail "SwiftData usage detected but GDSecureModelContainer.create / GDSecureModelConfiguration not found"
+            fi
+            if [[ "$unmanaged_ct" == "1" ]]; then
+                fail "Unmanaged ModelContainer( factory still present — use GDSecureModelContainer.create"
+            else
+                pass "No unmanaged ModelContainer( factory detected"
+            fi
+            if [[ "$unmanaged_cfg" == "1" ]]; then
+                fail "Unmanaged ModelConfiguration( still present — use GDSecureModelConfiguration"
+            fi
+            if [[ "$has_hist" == "1" ]]; then
+                fail "SwiftData/Core Data persistent history tracking is not supported on the secure store"
+            fi
+        else
+            skip "No SwiftData APIs detected"
         fi
         echo ""
     fi
@@ -2875,8 +2967,8 @@ PY
         if app_grep "sqlite3_open\(|sqlite3_open_v2\(|GRDB\|import SQLite\|SQLCipher\|sqlite3_key" --include="*.swift" --include="*.m" --include="*.mm" --include="*.h" --include="*.c"; then
             fail "Storage final closure failed: unmanaged SQL surfaces still present"
         fi
-        if app_grep "@Model\|ModelContainer\|ModelContext\|@Query\|#Predicate" --include="*.swift"; then
-            fail "Storage final closure failed: SwiftData persistence remains active"
+        if app_grep "ModelContainer[[:space:]]*(" --include="*.swift"; then
+            fail "Storage final closure failed: unmanaged ModelContainer( factory still present"
         fi
         echo ""
     fi

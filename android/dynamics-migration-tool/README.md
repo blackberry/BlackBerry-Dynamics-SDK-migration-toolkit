@@ -15,7 +15,7 @@ other AI coding agents.
 - Android app that builds cleanly (`./gradlew assembleDebug`)
 - JDK >= 17, Android SDK discoverable via `ANDROID_HOME`
 - Network access to the BlackBerry Maven repository (no offline mode)
-- Target Dynamics SDK **15.0** (`15.0.8513.64` default pin)
+- Target Dynamics SDK **15.1** (`15.1.8766.18` default pin); **minSdk 33** (Android 13+)
 - From your UEM administrator: `GDApplicationID` and `GDApplicationVersion`
 - An AI coding agent (Cursor recommended; Kiro, Codex, or generic also supported)
 
@@ -51,7 +51,7 @@ open dynamics-migration-tool/migration-report-viewer.html
 Default sequence (no `00b` unless `--with-diagrams` is passed):
 
 ```
-00pre → 00 → 01 → 02 → 03 → 03b → 04 → 05a → 05b → 05c → 06 → 07 → 08 → 09 → 11 → 03c → 10
+00pre → 00 → 01 → 02 → 03 → 03b → 04 → 05a → 05b → 05c → 05z → 06 → 07 → 08 → 09 → 11 → 03c → 10
 ```
 
 | Step | Required? | What It Does |
@@ -63,7 +63,7 @@ Default sequence (no `00b` unless `--with-diagrams` is passed):
 | 02 | **Yes** | `settings.json` from UEM values |
 | 03 / 03b | **Yes** | Authorization init + deferral audit |
 | 04 | if applicable | SQLite → secure SQL |
-| 05a/05b/05c | if applicable | Filesystem → GD secure storage (split flow) |
+| 05a/05b/05c/05z | if applicable | Filesystem → GD secure storage (split flow; 05c = native media) |
 | 06 | if applicable | Networking → GDHttpClient / GDSocket |
 | 07 | if applicable | WebView → BBWebView |
 | 08 | if applicable | ICC / TransferFileService |

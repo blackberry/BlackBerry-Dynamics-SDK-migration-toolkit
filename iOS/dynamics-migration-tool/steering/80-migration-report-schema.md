@@ -93,7 +93,7 @@ Reports with `schemaVersion: "2.0.0"` are **rejected** by the validator.
     "name": "string",
     "bundleIdentifier": "string",
     "originalDeploymentTarget": "string (e.g. 15.0)",
-    "migratedDeploymentTarget": "string (e.g. 17.0)",
+    "migratedDeploymentTarget": "string (e.g. 18.0)",
     "language": "Swift | Objective-C | Mixed",
     "integrationMethod": "CocoaPods | SPM | Manual"
   },
@@ -129,6 +129,7 @@ Reports with `schemaVersion: "2.0.0"` are **rejected** by the validator.
     "secureFileStorage": { "status": "migrated | not-applicable | partial", "details": "string" },
     "secureSql": { "status": "migrated | not-applicable | partial", "details": "string" },
     "secureCoreData": { "status": "migrated | not-applicable | partial", "details": "string" },
+    "secureSwiftData": { "status": "migrated | not-applicable | partial", "details": "string" },
     "securePasteboard": { "status": "migrated | not-applicable | partial", "details": "string" },
     "authorization": { "status": "migrated | not-applicable | partial", "details": "string" },
     "policyManagement": { "status": "migrated | not-applicable | partial", "details": "string" },
@@ -146,8 +147,8 @@ Reports with `schemaVersion: "2.0.0"` are **rejected** by the validator.
     },
     "coreDataAndSwiftData": {
       "coreDataStatus": "migrated | partial | blocked | not-applicable",
-      "swiftDataStatus": "unsupported | blocked | not-applicable",
-      "swiftDataDisposition": "blocked | not-applicable",
+      "swiftDataStatus": "migrated | partial | blocked | not-applicable",
+      "swiftDataDisposition": "migrated | blocked | not-applicable",
       "notes": ["string"]
     },
     "fileWritersAndReaders": {
@@ -323,7 +324,7 @@ Always `"iOS"` for this migration tool.
 ### storageClosure (Tranche 3, when storage domains apply)
 - Include explicit status for SQL wrappers, Core Data/SwiftData, file
   writers/readers/follow-on consumers, and preferences/keychain/local crypto.
-- SwiftData must be explicit (`blocked`/`not-applicable`), never implicit.
+- SwiftData must be explicit (`migrated`/`blocked`/`not-applicable`), never implicit.
 - Use this block to summarize closure evidence, not to bypass ledger outcomes.
 
 ### networkWebClosure (Tranche 4, when networking/webview domains apply)
@@ -387,13 +388,20 @@ Assign risk based on behavioral change:
 This is an iOS-specific coverage area. Set to `not-applicable` if the app
 does not use Core Data.
 
+### coverage — secureSwiftData
+This is an iOS-specific coverage area (SDK 15.1). Set to `not-applicable`
+if the app does not use SwiftData. `migrated` requires
+`GDSecureModelContainer.create` after authorization.
+
 ### coverage — securePasteboard
 Replaces Android's `secureClipboard` and `secureUiWidgets`. On iOS, DLP is
 handled at the pasteboard level, not individual widgets.
 
 ### unsupportedFeatures
 Must include any detected usage of:
-- **SwiftData** — `@Model`, `ModelContainer`, `ModelContext`
+- **SwiftData persistent history / same-store Core Data mixing** — only when
+  those unsupported limitations are present. Ordinary `@Model` stores
+  migrated via `GDSecureModelContainer` are **not** unsupported features.
 - **Share Extension** — `com.apple.share-services` / Share Extension targets
   (Dynamics-unsupported; isolate / non-shipping —
   `17-app-extensions-and-share-extensions.md`)

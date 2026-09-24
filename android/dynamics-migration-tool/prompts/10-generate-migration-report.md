@@ -6,7 +6,7 @@ Produce a machine-readable `migration-report.json` inside
 `dynamics-migration-tool/output/`. It summarizes what the migration changed,
 what's covered, and what still needs manual attention.
 
-**This prompt runs AFTER the required migration prompts are complete (`00pre`, `00`, `01`–`09`, including `05a/05b/05c`) and after applicable prompt `11` (secure push) and prompt `03c` (Background Authorize intent capture). Prompt `00b` (architecture diagrams) is optional and is not a prerequisite for report generation.**
+**This prompt runs AFTER the required migration prompts are complete (`00pre`, `00`, `01`–`09`, including `05a/05b/05c/05z`) and after applicable prompt `11` (secure push) and prompt `03c` (Background Authorize intent capture). Prompt `00b` (architecture diagrams) is optional and is not a prerequisite for report generation.**
 
 This prompt has a **hard gate** (step 9) that cross-checks the execution
 plan in `migration-analysis.json` against the executed-prompts audit in
@@ -534,6 +534,17 @@ export. If such a path remains for secure-container-owned media, record
 it as `status: "unresolved"` with `safeOutcome: "no-go"` unless it was
 replaced by an in-app secure viewer/gallery or Dynamics ICC.
 
+Residual Phase 4 media hits (`mpeg4-nonseekable-fd`,
+`mediaplayer-path-datasource`, `retriever-path-datasource`,
+`camerax-video-file-output`, `mediarecorder-file-output`,
+`mediamuxer-file-constructor`) mean `coverage.secureFileStorage.status`
+MUST NOT be `"migrated"`. Use `"partial"`. Cite catalog rows
+`fs-java-media-record-001`, `fs-java-media-play-001`,
+`fs-java-media-muxer-001`, `fs-java-media-video-capture-001`, and/or
+`fs-java-media-retriever-001` on the matching `apisReplaced` /
+`unsupportedFeatures` / `securityBlockers` entries. Prompt `05c` owns
+these call sites; `05z` cannot close the domain while they remain.
+
 ### 5. Identify Unsupported Features
 
 List any app features or third-party libraries that are incompatible with
@@ -563,7 +574,11 @@ Classification rules:
 - **Resolved limitation** (do NOT list in `unsupportedFeatures`): A code
   workaround is already implemented and is one of: bounded in-memory
   conversion, GD-backed secure temporary storage, direct Dynamics streams,
-  or a pipe/memory descriptor fed by Dynamics streams. Instead, document
+  a **seekable** MemoryFile / SharedMemory / proxy FD fed by Dynamics
+  streams, or a **sequential** `AAC_ADTS`/`AMR` pipe into a GD stream.
+  `ParcelFileDescriptor.createPipe()` plus MPEG-4 / 3GP / WEBM (or omitted
+  `MediaRecorder.setOutputFormat`) is **not** a resolved limitation —
+  Phase 4 rule `4L` / catalog `fs-java-media-record-001`. Instead, document
   the workaround in the relevant `apisReplaced` entry for that category
   (e.g., add a note in the `riskReason` or `after` snippet showing the
   workaround pattern).
@@ -590,6 +605,9 @@ Create a test scenario for each migrated coverage area. Each scenario must be ac
 Always include:
 - Authorization flow test (activate, lock, wipe)
 - One test per migrated area (networking, file I/O, SQL, UI widgets, etc.)
+- When `mediaCapabilities[]` is non-empty: record audio/video into the
+  container, seek a muxed clip, and play it back (FD bridge — not a GD
+  path string and not MPEG-4 + `createPipe()`)
 - Policy retrieval test if policy was migrated
 - Each scenario must have: name, steps, expected result, related areas
 - Startup regression guard test:
@@ -662,7 +680,7 @@ If prompt 10 previously failed, do **not** jump straight back to another full
 
 ```bash
 # examples — pick the prompt that owns the failing domain
-bash dynamics-migration-tool/tooling/validate.sh --check-prompt 05c
+bash dynamics-migration-tool/tooling/validate.sh --check-prompt 05z
 bash dynamics-migration-tool/tooling/validate.sh --check-prompt 08
 bash dynamics-migration-tool/tooling/validate.sh --check-prompt 09
 ```
@@ -732,7 +750,7 @@ developer-signed-off deferral. The migration report cannot be written
 until each is resolved.
 
   domain=secureSql            owner-prompt=04   status=missing
-  domain=secureFileStorage    owner-prompt=05c  status=missing
+  domain=secureFileStorage    owner-prompt=05z  status=missing
   domain=secureNetworking     owner-prompt=06   status=failed
 
 To resolve:
@@ -1006,7 +1024,7 @@ escalation:
 1. Stop re-running prompt 10 source/report gates in a tight loop.
 2. Read `output/migration-loop-state.json` and `output/.last-source-check.json`
    or `output/.last-report-check.json` for the repeated signature.
-3. Route remediation back to the owning prompt/domain (for example 05c for
+3. Route remediation back to the owning prompt/domain (for example 05z for
    secure-file findings, 08 for ICC, 09 for secure UI/clipboard), then rerun
    prompt 10 only after targeted checks stabilize.
 
@@ -1087,6 +1105,10 @@ This writes:
   `beforeSnippet`, `afterSnippet`, or `occurrences`.
 - `migration-analysis.json` must be consumed as report input (not ignored)
 - runtimeTestPlan must cover every migrated area, do not skip any
+- when `migration-analysis.json` `mediaCapabilities[]` is non-empty,
+  `runtimeTestPlan` MUST include record, seek (muxed formats), and play
+  scenarios that exercise the Dynamics-safe FD bridge (not
+  `gdFile.getAbsolutePath()` / `createPipe()` + MPEG-4)
 - uemAdminHandoff.gdApplicationId must match **every** `settings.json`
   target listed in `module-map.json` `${primary_assets_dirs}` AND
   `bootstrap.json`'s `uem.gdApplicationId` exactly. Any mismatch
@@ -1176,10 +1198,13 @@ This writes:
   - `migrationConfidence.level` MUST be `"low"` and the `rationale`
     MUST name "security blocker" / "external storage" explicitly;
   - `coverage.secureFileStorage.status` MUST be `"partial"` whenever any
-    `externalStorage/*` blocker remains. Do NOT leave
+    `externalStorage/*` blocker remains, or whenever Phase 4 reports
+    `mpeg4-nonseekable-fd` / `mediaplayer-path-datasource` /
+    `retriever-path-datasource` / `camerax-video-file-output`. Do NOT leave
     `coverage.secureFileStorage.status = "migrated"` while MediaStore,
-    SAF, FileProvider, raw-path, or other container-boundary escape
-    findings are still open;
+    SAF, FileProvider, raw-path, MPEG-4 pipe, path-based MediaPlayer /
+    retriever, CameraX video File options, or other container-boundary
+    escape findings are still open;
   - any remaining capture-intent output URI flow, public Gallery restore,
     or native media-writer filesystem staging must appear in
     `mediaContainment` and keep the migration partial / no-go;

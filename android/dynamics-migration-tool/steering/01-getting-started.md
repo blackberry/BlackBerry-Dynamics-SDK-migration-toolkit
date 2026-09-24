@@ -85,7 +85,8 @@ The prompt files provide specific task instructions, run in order:
 - **04-sqlite-migrate-to-secure-sql.md** - Migrate SQL databases (Room bridge if needed)
 - **05a-filesystem-core-io-migration.md** - Core file I/O migration
 - **05b-filesystem-ui-reader-closure.md** - UI/consumer reader closure
-- **05c-filesystem-sharedprefs-and-closure.md** - SharedPreferences + final closure
+- **05c-secure-media.md** - Native media capture/playback/metadata
+- **05z-filesystem-sharedprefs-and-closure.md** - SharedPreferences + final closure
 - **06-secure-networking-audit-and-migrate.md** - Audit and migrate networking
 - **07-webview-migrate-to-bbwebview.md** - Migrate WebView to BBWebView
 - **08-icc-add-transferfileservice.md** - Add ICC support (if applicable)
@@ -111,14 +112,15 @@ For a typical migration:
 8. Run **04-sqlite-migrate-to-secure-sql.md** — database migration (most complex piece)
 9. Run **05a-filesystem-core-io-migration.md** — core file storage migration
 10. Run **05b-filesystem-ui-reader-closure.md** — reader closure pass
-11. Run **05c-filesystem-sharedprefs-and-closure.md** — sensitive prefs + final closure
-12. Run **06-secure-networking-audit-and-migrate.md** — networking migration
-13. Run remaining prompts (07-09) based on the migration plan
-14. Run **11-push-channel.md** when FCM / push is in scope (before `03c`)
-15. Run **03c-background-authorize.md** when `processModel.backgroundEntryPoints[]` is non-empty
-16. Run **10-generate-migration-report.md** — final report + `Dynamics_Migration_Readme.md`
-17. (Optional) Run **12-generate-migration-retrospective.md** — only if the developer wants `migration-retrospective.md`
-18. Use **95-troubleshooting.md** when issues arise
+11. Run **05c-secure-media.md** — native media (skip if no media APIs)
+12. Run **05z-filesystem-sharedprefs-and-closure.md** — sensitive prefs + final closure
+13. Run **06-secure-networking-audit-and-migrate.md** — networking migration
+14. Run remaining prompts (07-09) based on the migration plan
+15. Run **11-push-channel.md** when FCM / push is in scope (before `03c`)
+16. Run **03c-background-authorize.md** when `processModel.backgroundEntryPoints[]` is non-empty
+17. Run **10-generate-migration-report.md** — final report + `Dynamics_Migration_Readme.md`
+18. (Optional) Run **12-generate-migration-retrospective.md** — only if the developer wants `migration-retrospective.md`
+19. Use **95-troubleshooting.md** when issues arise
 
 ---
 

@@ -346,7 +346,7 @@ for class-index validation.
 ### `sdkClassIndex` (object, required)
 
 A map from fully-qualified Dynamics class name to one of `"found"` or
-`"not-found"`. Subsequent prompts (04, 05a/05b/05c, 06, 07, 08, 09) consult this
+`"not-found"`. Subsequent prompts (04, 05a/05b/05c/05z, 06, 07, 08, 09) consult this
 map instead of running their own SDK probes.
 
 ```json
@@ -389,7 +389,7 @@ directly — always go through the helper, which:
 - Replaces (not duplicates) any existing entry with the same `promptId`,
   so prompt re-runs are safe.
 - Sorts entries into canonical run order (00pre, 00, 00b, 01, 02, 03,
-  03b, 04, 05a, 05b, 05c, 06, 07, 08, 09, 11, 03c, 10, 12) for deterministic diffs.
+  03b, 04, 05a, 05b, 05c, 05z, 06, 07, 08, 09, 11, 03c, 10, 12) for deterministic diffs.
 - Performs a full-file overwrite of `bootstrap.json` so partial writes
   cannot corrupt the file.
 
@@ -400,7 +400,7 @@ Each entry has shape:
   "completedAt": "ISO-8601 UTC",
   "filesTouched": ["string — relative paths"],
   "note": "string — optional free text (e.g. 'secureSql not-applicable per executionPlan')",
-  "promptId": "00pre | 00 | 00b | 01 | 02 | 03 | 03b | 04 | 05a | 05b | 05c | 06 | 07 | 08 | 09 | 11 | 03c | 10 | 12",
+  "promptId": "00pre | 00 | 00b | 01 | 02 | 03 | 03b | 04 | 05a | 05b | 05c | 05z | 06 | 07 | 08 | 09 | 11 | 03c | 10 | 12",
   "startedAt": "ISO-8601 UTC",
   "status": "completed | failed | aborted | skipped",
   "validationProof": {
@@ -609,7 +609,7 @@ and surface as release-readiness blockers.
    probe run. `executedPrompts` and `deferredDomains` start empty.
 2. **Read** by every subsequent prompt for UEM credentials, SDK class
    availability, agent identity, or environment metadata. Prompts 04,
-   05a/05b/05c, and 06 specifically replace their own `./gradlew dependencies` probe
+   05a/05b/05c/05z, and 06 specifically replace their own `./gradlew dependencies` probe
    with an `sdkClassIndex` lookup.
 3. **Appended** by each prompt's completion handler via
    `tooling/record-prompt-execution.sh` — `executedPrompts` accumulates

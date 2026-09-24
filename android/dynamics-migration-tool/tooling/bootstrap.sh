@@ -720,7 +720,7 @@ EOF
                 echo "--- fallback gradle output (tail) ---" >&2
                 tail -30 "$FALLBACK_LOG" >&2
                 echo "--- end fallback gradle output ---" >&2
-                echo "If maven-metadata.xml still lists only 14.x while this toolkit targets 15.0, override temporarily with BOOTSTRAP_DYNAMICS_SDK_VERSION=<published-version> once you confirm the artifact is reachable, then re-pin to 15.0.8513.64 when Maven publishes it." >&2
+                echo "If maven-metadata.xml still lists only 14.x while this toolkit targets 15.1, override temporarily with BOOTSTRAP_DYNAMICS_SDK_VERSION=<published-version> once you confirm the artifact is reachable, then re-pin to 15.1.8766.18 when Maven publishes it." >&2
                 print_blackberry_maven_remediation
             fi
             rm -f "$FALLBACK_LOG"

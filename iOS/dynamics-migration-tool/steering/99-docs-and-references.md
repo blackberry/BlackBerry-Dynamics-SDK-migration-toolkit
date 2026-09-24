@@ -4,7 +4,8 @@
 
 - [BlackBerry Dynamics SDK for iOS — Development Guide](https://docs.blackberry.com/en/development-tools/blackberry-dynamics-sdk-ios/)
 - [BlackBerry Dynamics iOS API Reference](https://developer.blackberry.com/files/blackberry-dynamics/ios/interface_g_di_o_s.html)
-- [BlackBerry Dynamics SDK for iOS 15.0 Release Notes](https://docs.blackberry.com/en/blackberry-dynamics-sdk/15.x/blackberry-dynamics-sdk-for-ios/blackberry-dynamics-sdk-for-ios-release-notes/blackberry-dynamics-sdk-for-ios-version-15.0)
+- [BlackBerry Dynamics SDK for iOS 15.1 Release Notes](https://docs.blackberry.com/en/blackberry-dynamics-sdk/15.x/blackberry-dynamics-sdk-for-ios/blackberry-dynamics-sdk-for-ios-release-notes/blackberry-dynamics-sdk-for-ios-version-15.x)
+- [Integrating Apple SwiftData with your BlackBerry Dynamics app](https://docs.blackberry.com/en/blackberry-dynamics-sdk/15.x/blackberry-dynamics-sdk-for-ios/blackberry-dynamics-sdk-for-ios-development-guide/integrating-optional-features/integrating-apple-swiftdata-with-your-blackberry-dynamics-app)
 - [Crypto C Programming Interface (`GDCryptoPKCS7`)](https://developer.blackberry.com/files/blackberry-dynamics/ios/group__cryptolist.html)
 - [Allow or block file transfer to non-BlackBerry Dynamics apps](https://docs.blackberry.com/en/development-tools/blackberry-dynamics-sdk-ios/15_0/allow-or-block-file-transfer-to-non-blackberry-dynamics-apps)
 
@@ -35,9 +36,9 @@
 | `GDCReadStream` | `GDCReadStream.h` | Encrypted input stream |
 | `GDCWriteStream` | `GDCWriteStream.h` | Encrypted output stream |
 | `GDPersistentStoreCoordinator` | `GDPersistentStoreCoordinator.h` | Encrypted Core Data |
+| `GDSecureModelConfiguration` / `GDSecureModelContainer` | Swift module `BlackBerryDynamics` | Encrypted SwiftData (SDK 15.1, iOS 18+) |
 | `GDURLLoadingSystem` | `GDURLLoadingSystem.h` | Secure NSURLSession |
 | `GDSocket` | `GDNETiOS.h` | Secure socket |
-| `GDHttpRequest` | `GDNETiOS.h` | Secure HTTP request |
 | `GDService` | `GDServices.h` | AppKinetics service provider |
 | `GDServiceClient` | `GDServices.h` | AppKinetics service consumer |
 | `GDNativePasteboardAccess` | `GDNativePasteboardAccess.h` | DLP pasteboard access |
@@ -65,7 +66,7 @@
 
 - [BlackBerry Dynamics iOS SDK (SPM)](https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK)
   - Package URL: `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK`
-  - Approved pin for this toolkit: `15.0.0` (SDK build `15.0.8513.67`)
+  - Approved pin for this toolkit: `v15.1.18` (SDK build `15.1.8766.18`)
   - Required products: `BlackBerryDynamics`, `GSEProvider`
   - Optional test product: `BlackBerryDynamicsAutomatedTestSupportLibrary`
 

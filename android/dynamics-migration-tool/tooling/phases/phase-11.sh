@@ -398,7 +398,7 @@ AUTH_PREF_001=ERROR"
     _r="$(_ph11_get AUTH_PREF_001)"
     case "${_r%%|*}" in
         FAIL)
-            check_fail "[AUTH-PREF-001] Activity/Application lifecycle reaches Dynamics secure file or secure-preferences I/O before authorization (${_r#FAIL|}) — defer theme/settings/PIN/prefs, Kotlin preference property getters (`.value` / `isLockEnabled`), object-style SecurePreferencesHelper.get/put, and any com.good.gd.file.* reads/writes until runOnAuthorized()/authorized observers (see prompt 03 + 05c and steering/21-authorization-deferral-patterns.md Pattern 13)"
+            check_fail "[AUTH-PREF-001] Activity/Application lifecycle reaches Dynamics secure file or secure-preferences I/O before authorization (${_r#FAIL|}) — defer theme/settings/PIN/prefs, Kotlin preference property getters (`.value` / `isLockEnabled`), object-style SecurePreferencesHelper.get/put, and any com.good.gd.file.* reads/writes until runOnAuthorized()/authorized observers (see prompt 03 + 05z and steering/21-authorization-deferral-patterns.md Pattern 13)"
             AUTH_ISSUE=1
             ;;
         PASS)

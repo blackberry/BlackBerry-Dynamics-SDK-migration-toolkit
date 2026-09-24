@@ -1,7 +1,7 @@
 {
   "catalogVersion": "1.0.0",
   "platform": "ios",
-  "sdkVersionVerified": "15.0.8513.67",
+  "sdkVersionVerified": "15.1.8766.18",
   "provenanceSources": [
     {
       "id": "bb-api-ref",
@@ -22,7 +22,7 @@
       "id": "bb-spm",
       "description": "Official BlackBerry Dynamics iOS SDK Swift Package",
       "url": "https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK",
-      "notes": "Tag 15.0.0 ships SDK build 15.0.8513.67; required products BlackBerryDynamics + GSEProvider"
+      "notes": "Tag v15.1.18 ships SDK build 15.1.8766.18; required products BlackBerryDynamics + GSEProvider"
     },
     {
       "id": "installed-sdk-headers",
@@ -286,19 +286,19 @@
       "reportRequirements": "Coverage area 'secureCoreData' must be reported."
     },
     {
-      "id": "ios-storage-coredata-002",
-      "domain": "secureCoreData",
-      "nativeApi": "SwiftData (@Model, ModelContainer, ModelContext)",
+      "id": "ios-storage-swiftdata-001",
+      "domain": "secureSwiftData",
+      "nativeApi": "SwiftData ModelConfiguration / ModelContainer for sensitive @Model stores",
       "nativeHeaders": [],
-      "dynamicsReplacement": "No direct Dynamics replacement; explicit blocked redesign to Core Data + GDPersistentStoreCoordinator",
-      "dynamicsHeaders": ["GDPersistentStoreCoordinator.h"],
+      "dynamicsReplacement": "GDSecureModelConfiguration + GDSecureModelContainer.create(_:migrationPlan:)",
+      "dynamicsHeaders": [],
       "languages": ["swift"],
       "tier": "tier2",
       "severity": "blocking",
       "sdkEvidence": "installed-sdk-headers",
-      "provenanceRef": ["installed-sdk-headers"],
-      "limitations": "Unsupported for secure-container migration as-is; must not be silently preserved.",
-      "reportRequirements": "Report must include explicit SwiftData blocker/redesign status."
+      "provenanceRef": ["bb-dev-guide", "bb-spm", "installed-sdk-headers"],
+      "limitations": "iOS 18+. Always use GDSecureModelContainer.create; never ModelContainer(for:configurations:) with GDSecureModelConfiguration. Configuration is single-use. Create the container after Dynamics authorization. Do not attach .modelContainer(for:) on App/scene launch. Persistent history tracking is unsupported. Core Data and SwiftData must not share a store. Batch delete works but is not a bulk store operation.",
+      "reportRequirements": "Coverage area 'secureSwiftData' and storageClosure.coreDataAndSwiftData.swiftDataStatus must be explicit (migrated | blocked | not-applicable)."
     },
     {
       "id": "ios-networking-001",
@@ -374,6 +374,21 @@
       "provenanceRef": ["bb-dev-guide", "installed-sdk-headers"],
       "limitations": "Tranche 4 does not implement Background Authorize; autonomous secure background flows must not be marked complete.",
       "reportRequirements": "Report should include background-session G12 dependency status when present."
+    },
+    {
+      "id": "ios-networking-006",
+      "domain": "secureNetworking",
+      "nativeApi": "Legacy GDHttpRequest / GDHttpRequestDelegate call sites",
+      "nativeHeaders": ["GDNETiOS.h"],
+      "dynamicsReplacement": "URLSession / NSURLConnection auto-routed post-authorization via GDURLLoadingSystem",
+      "dynamicsHeaders": ["GDURLLoadingSystem.h"],
+      "languages": ["swift", "objc"],
+      "tier": "tier2",
+      "severity": "blocking",
+      "sdkEvidence": "installed-sdk-headers",
+      "provenanceRef": ["bb-api-ref", "bb-dev-guide"],
+      "limitations": "GDHttpRequest and GDHttpRequestDelegate are deprecated in the 15.x line and are dropped from the SDK headers in 16.0. They are never a valid replacement target, and no step may require them to be present in the installed SDK. Rewrite request construction, response handling, and delegate callbacks onto URLSession.",
+      "reportRequirements": "Report must record each legacy GDHttpRequest call site as rewritten to URLSession, or blocked/deferred with rationale."
     },
     {
       "id": "ios-webview-001",

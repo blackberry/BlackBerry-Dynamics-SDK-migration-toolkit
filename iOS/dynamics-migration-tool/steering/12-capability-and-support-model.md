@@ -41,8 +41,9 @@ automation coverage and report outcomes.
 
 ### Tier C — Advisory / Limited Fit
 
-- Heavy dependence on unsupported patterns (SwiftData for sensitive persistence,
-  extension-centric secure workflows, App Clip secure data path assumptions).
+- Heavy dependence on unsupported patterns (SwiftData persistent history,
+  same-store Core Data/SwiftData mixing, extension-centric secure workflows,
+  App Clip secure data path assumptions).
 - Opaque proprietary wrappers that hide data-at-rest and in-transit behavior.
 - **Flutter / cross-platform hybrid hosts** (Flutter Runner, React Native without
   the official BlackBerry Dynamics React Native SDK, similar embeddings).
@@ -94,12 +95,13 @@ Each migration domain is classified by what the tool can automate:
 | Secure file storage | `FileManager`, `FileHandle`, `InputStream`, `OutputStream` | `GDFileManager`, `GDFileHandle`, `GDCReadStream`, `GDCWriteStream` | 1 | sensitive file paths use GD APIs |
 | Secure SQL | `sqlite3_open`, `sqlite3.h`, wrappers (FMDB/GRDB) | `sqlite3enc_open`, `GD_C.SecureStore.SQLite` | 2 | secure open path + migration/compat notes |
 | Secure Core Data | `NSPersistentContainer`, standard store coordinator | `GDPersistentStoreCoordinator`, encrypted store types | 2 | post-auth init + encrypted store config |
-| Secure networking | `URLSession`, socket APIs | `GDURLLoadingSystem`, `GDSocket`, `GDHttpRequest` | 2 | transit paths documented as Dynamics-routed |
+| Secure SwiftData | `ModelConfiguration`, `ModelContainer`, `@Model` | `GDSecureModelConfiguration`, `GDSecureModelContainer.create` | 2 | post-auth factory; iOS 18+; no App-scene `.modelContainer(for:)` |
+| Secure networking | `URLSession`, socket APIs | `GDURLLoadingSystem` (routed `URLSession`), `GDSocket` | 2 | transit paths documented as Dynamics-routed |
 | Secure WebView | `WKWebView` | `WKWebView+GDNET` | 2 | secure web loading path and unsupported WK APIs listed |
 | ICC / AppKinetics | `UIActivityViewController`, custom sharing | `GDService`, `GDServiceClient` | 2 | service definitions + provider/consumer handling |
 | DLP / pasteboard | `UIPasteboard` use | `GDNativePasteboardAccess` + policy-aware behavior | 2 | pasteboard use audited and policy outcome documented |
 | UEM policy interactions | local app config assumptions | Dynamics/UEM policy-driven behavior | 2 | policy dependencies documented |
-| SwiftData/App Extensions/App Clips | modern iOS features not directly containerizable | N/A (workaround or redesign) | 3 | explicit unsupported feature entry + next steps |
+| SwiftData persistent history, App Extensions, App Clips | history APIs / extension targets | N/A (workaround or redesign) | 3 | explicit unsupported feature entry + next steps |
 | **Share Extension** | `com.apple.share-services` / Share Extension targets | **Unsupported** — isolate / non-shipping; never Dynamics-authorize the extension (`17-app-extensions-and-share-extensions.md`) | 3 | `unsupportedFeatures` + high manual TODO; Dynamics IPA excludes extension or approved URL handoff redesign |
 
 ### Share Extensions (this toolkit)

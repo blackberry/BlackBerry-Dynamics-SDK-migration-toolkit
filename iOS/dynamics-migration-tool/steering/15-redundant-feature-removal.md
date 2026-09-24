@@ -139,6 +139,10 @@ policy. Unlike Android (which uses `FLAG_SECURE`), iOS apps have limited
 ability to prevent screenshots natively. The Dynamics SDK handles this
 through its own mechanisms controlled by UEM policy.
 
+SDK 15.1 extends that same **Do not allow screenshots** policy to Siri /
+Apple Intelligence on-screen and selected text. App-level screenshot
+hacks remain redundant; do not add Siri-specific APIs.
+
 ### What to Look For
 
 During Prompt 00 analysis, flag:

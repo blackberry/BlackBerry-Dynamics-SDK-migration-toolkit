@@ -32,6 +32,15 @@ authorizes the app, it automatically:
 `GDActivationAdapter::onStartupCallback` — the app does NOT need to
 call `GDURLLoadingSystem.enableSecureCommunication()` manually.
 
+### TLS 1.3 (SDK 15.1)
+
+Dynamics 15.1 supports **TLS 1.3 with AES-GCM cipher suites**. AES-CCM
+is not supported. This is a runtime stack change, not an app API swap.
+Do not invent TLS configuration types. After migration, regress
+`URLSession` (auto-routed post-auth), `GDURLLoadingSystem`, and
+`GDSocket` against enterprise endpoints that negotiate TLS 1.3, TLS 1.2
+fallback, mutual TLS, and proxies.
+
 ### What Is Auto-Swizzled
 
 | Standard API | Intercepted? | Notes |
@@ -279,16 +288,50 @@ extension NetworkManager: GDSocketDelegate {
 
 ---
 
-## GDHttpRequest (Low-Level HTTP)
+## GDHttpRequest / GDHttpRequestDelegate (Withdrawn)
 
-`GDHttpRequest` exists in the SDK but is deprecated in current headers.
-Default migration guidance remains:
-- use standard `URLSession`/supported Foundation APIs post-authorization
-- avoid introducing new `GDHttpRequest` usage unless there is a verified,
-  documented requirement that cannot be met with routed `URLSession`
+`GDHttpRequest` and `GDHttpRequestDelegate` are deprecated in the 15.x API
+reference and are **dropped from the SDK headers** in 16.0. Code that
+references them fails to compile against that SDK, so they are never a valid
+migration target:
 
-If `GDHttpRequest` remains in legacy code, classify it explicitly in the call-site
-contract and report.
+- **Never introduce** `GDHttpRequest` / `GDHttpRequestDelegate` in migrated
+  code, and never propose them as a replacement API. There is no supported
+  low-level Dynamics HTTP class.
+- **Do not gate** any step on these symbols being present in the installed
+  SDK. Header probes and grep checks must not look for them; an SDK without
+  them is the expected case.
+- HTTP is handled by `GDURLLoadingSystem`: standard `URLSession` /
+  `NSURLConnection` requests are routed through the Dynamics infrastructure
+  automatically after authorization (see the auto-swizzling section above).
+
+If legacy code still calls `GDHttpRequest`, it is a `secureNetworking` call
+site that must be rewritten onto `URLSession` (catalog row
+`ios-networking-006`), not preserved:
+
+- Map the request to `URLRequest` (URL, HTTP method, headers, body) and issue
+  it with `URLSession` post-authorization.
+- Replace `GDHttpRequestDelegate` callbacks (`onStatusChange:`) with the
+  `URLSession` completion handler or `URLSessionDelegate`; response body and
+  status come from `Data` / `HTTPURLResponse` instead of `getReceiveBuffer`
+  and `getStatus`.
+- Keep the resulting call site classified in the call-site contract and
+  report. If the rewrite cannot be proven safe, mark it `blocked`/`deferred`
+  with rationale rather than leaving the removed API in place.
+
+```swift
+// [BB_DYNAMICS-MIGRATION] Replaced removed GDHttpRequest with URLSession;
+// requests are routed through Dynamics by GDURLLoadingSystem post-auth.
+var request = URLRequest(url: url)
+request.httpMethod = "POST"
+request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+request.httpBody = payload
+let task = URLSession.shared.dataTask(with: request) { data, response, error in
+    let status = (response as? HTTPURLResponse)?.statusCode
+    // handle response
+}
+task.resume()
+```
 
 ---
 

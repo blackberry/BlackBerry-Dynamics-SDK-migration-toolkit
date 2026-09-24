@@ -170,7 +170,7 @@ tag still find every change.
 ### `override-in-app-module`
 
 The kit leaves the convention plugin source untouched and adds new
-`dependencies { ... }`, `android { defaultConfig { minSdk = 31 } }`,
+`dependencies { ... }`, `android { defaultConfig { minSdk = 33 } }`,
 and `android { lint { ... } }` blocks directly inside the consuming
 app module's `build.gradle.kts`, after the convention plugin is
 applied. Gradle's last-write-wins semantics make these overrides take

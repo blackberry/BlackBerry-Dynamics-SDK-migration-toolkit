@@ -41,7 +41,7 @@ BOOTSTRAP_FILE="$TOOL_DIR/output/bootstrap.json"
 LAST_CHECK_FILE="$TOOL_DIR/output/.last-check.json"
 LOOP_STATE_FILE="$TOOL_DIR/output/migration-loop-state.json"
 
-CANONICAL_ORDER="00pre 00 00b 01 02 03 03b 04 05a 05b 05c 06 07 08 09 11 03c 10 12"
+CANONICAL_ORDER="00pre 00 00b 01 02 03 03b 04 05a 05b 05c 05z 06 07 08 09 11 03c 10 12"
 
 PROMPT_LABELS=(
     "00pre:Bootstrap & Environment"
@@ -54,7 +54,8 @@ PROMPT_LABELS=(
     "04:SQLite Migration"
     "05a:File I/O Core"
     "05b:File I/O Reader Closure"
-    "05c:SharedPreferences & Closure"
+    "05c:Secure Media"
+    "05z:SharedPreferences & Closure"
     "06:Networking"
     "07:WebView"
     "08:ICC"
@@ -266,7 +267,7 @@ PROMPT_LABELS = {
     "04": "SQLite Migration",
     "05a": "File I/O Core",
     "05b": "File I/O Reader Closure",
-    "05c": "SharedPreferences & Closure",
+    "05z": "SharedPreferences & Closure",
     "06": "Networking",
     "07": "WebView",
     "08": "ICC",

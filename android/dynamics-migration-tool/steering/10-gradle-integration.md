@@ -106,7 +106,8 @@ service are healthy.
 | Dynamics SDK Version | Minimum Android SDK (minSdk) |
 |---------------------|------------------------------|
 | 13.x and earlier    | 30 (Android 11)              |
-| 14.x and later      | 31 (Android 12)              |
+| 14.x                | 31 (Android 12)              |
+| 15.1                | 33 (Android 13). Android 12 (API 31–32) is not supported |
 
 ### Action Required
 
@@ -117,7 +118,7 @@ service are healthy.
 ```groovy
 android {
     defaultConfig {
-        minSdk 31  // Required for Dynamics SDK 15.x (unchanged from 14.x)
+        minSdk 33  // Required for Dynamics SDK 15.1 (Android 13+)
     }
 }
 ```
@@ -130,7 +131,7 @@ If minSdk is too low, you may see errors like:
 
 ### Dead Code After minSdk Bump (IMPORTANT)
 
-Bumping minSdk from a low value (e.g., 21) to 31 can cause compile errors
+Bumping minSdk from a low value (e.g., 21) to 33 can cause compile errors
 in existing code. Common patterns:
 
 - `Build.VERSION.SDK_INT >= Build.VERSION_CODES.S` checks become always-true,
@@ -153,10 +154,11 @@ Before integrating, verify the project meets these requirements:
 
 | Requirement | Minimum |
 |-------------|---------|
-| Android OS target | Android 12 (API 31) or later |
+| Android OS target | Android 13 (API 33) or later |
 | Java | Java 17 or later |
 | Gradle | 9.3.1 or later |
 | Android Gradle Plugin | 9.1.1 or later |
+| compileSdk / targetSdk | 36 (Android 17-ready; do not lower to satisfy Dynamics) |
 | AndroidX | Required (must use AndroidX support libraries) |
 | Character encoding | UTF-8 (no BOM) for all build/config files |
 
@@ -518,23 +520,24 @@ longer supported. Remove any existing Protect Mobile dependency.
 ## SDK Version Resolution (IMPORTANT)
 
 The Dynamics SDK does NOT follow simple semantic versioning on Maven.
-Version numbers include build identifiers (e.g., `15.0.8513.64`).
+Version numbers include build identifiers (e.g., `15.1.8766.18`).
 
 ### Common Mistake
 
 ```groovy
 // [NOT OK] WRONG — dynamic ranges often fail to resolve against Maven metadata
-def dynamics_version = '15.0.+'
+def dynamics_version = '15.1.+'
 
-// [NOT OK] WRONG — obsolete 14.0.x coordinates
+// [NOT OK] WRONG — obsolete 15.0.x / 14.0.x coordinates
+def dynamics_version = '15.0.+'
 def dynamics_version = '14.0.+'
 ```
 
 ### Correct Approach
 
 ```groovy
-// [OK] RECOMMENDED — pin to the toolkit-verified Dynamics SDK 15.0 release
-def dynamics_version = '15.0.8513.64'
+// [OK] RECOMMENDED — pin to the toolkit-verified Dynamics SDK 15.1 release
+def dynamics_version = '15.1.8766.18'
 
 // [WARN] ACCEPTABLE but fragile — dynamic range may fail if repo is unreachable
 // def dynamics_version = '15.+'

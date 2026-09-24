@@ -46,8 +46,8 @@ Use this checklist to track BlackBerry Dynamics integration progress.
 - [ ] Add `android_handheld_backup_support` dependency (recommended)
 - [ ] Remove redundant dependencies (SQLCipher, biometric lock libraries, app backup libraries)
 - [ ] Sync Gradle and verify no conflicts
-- [ ] Verify minSdk is 31+ (required for Dynamics SDK 15.x)
-- [ ] Confirm Dynamics SDK pin is `15.0.8513.64` (or a later approved 15.x build)
+- [ ] Verify minSdk is 33+ (required for Dynamics SDK 15.1)
+- [ ] Confirm Dynamics SDK pin is `15.1.8766.18` (or a later approved 15.x build)
 - [ ] Confirm `android_handheld_blackberry_protect_support` is absent (removed in SDK 15.0)
 - [ ] Verify Java 17 compatibility
 - [ ] Verify AndroidX is enabled (`android.useAndroidX=true`)

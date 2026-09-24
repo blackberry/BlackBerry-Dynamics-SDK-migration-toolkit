@@ -98,6 +98,9 @@ Before the app can activate against UEM:
 3. Test blocked domains (should fail with Dynamics networking)
 4. Test DLP settings (screenshot prevention, clipboard restrictions)
 5. Test compliance rules (rooted device detection, etc.)
+6. Regress TLS 1.3 AES-GCM endpoints (SDK 15.1; AES-CCM is not supported)
+7. Confirm UEM **Do not allow screenshots** still uses `FLAG_SECURE` /
+   `preventScreenCapture` (no extra public Gemini / on-device-AI API)
 
 ---
 

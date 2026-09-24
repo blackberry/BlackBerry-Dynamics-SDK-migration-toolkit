@@ -16,9 +16,14 @@ communications and migrate any direct socket usage.
 Before making any code changes, verify the networking headers are accessible:
 
 ```bash
-rg "GDURLLoadingSystem\|GDSocket\|GDHttpRequest" \
+rg "GDURLLoadingSystem|GDSocket" \
   Pods/BlackBerryDynamics --include="*.h" -l 2>/dev/null | head -5
 ```
+
+Do **not** probe for `GDHttpRequest` / `GDHttpRequestDelegate`. Those classes
+are deprecated in 15.x and are dropped from the SDK headers in 16.0; their
+absence is expected and must never be treated as a missing or broken SDK
+install.
 
 If not found, `pod install` has not been run. Confirm before proceeding.
 Do NOT write migration code based on assumed signatures — confirm
@@ -84,6 +89,16 @@ Required handling:
 If legacy code calls `GDURLLoadingSystem.enableSecureCommunication()`, ensure it
 is not used as a pre-auth bypass. The SDK auto-enables secure communication at
 authorization.
+
+**Withdrawn HTTP classes**: `GDHttpRequest` and `GDHttpRequestDelegate` are
+dropped from the SDK in 16.0, so they are never a valid replacement API and
+must not appear in migrated code. If legacy code still uses them, rewrite each
+call site onto `URLRequest`/`URLSession` post-authorization (catalog row
+`ios-networking-006`): map URL, method, headers, and body to `URLRequest`, and
+replace `onStatusChange:` handling with the `URLSession` completion handler or
+`URLSessionDelegate`, reading status from `HTTPURLResponse`. Where the rewrite
+cannot be proven safe, record `blocked`/`deferred` with rationale — leaving the
+removed class in place is not a valid disposition.
 
 ### 3. Direct Sockets and Wrappers
 
@@ -254,6 +269,8 @@ Resolve all failures before recording prompt completion. Hard failures include:
 - stale reachability/network evidence
 - missing/wrong-owner ledger disposition
 - invented Dynamics APIs (for example fictional GD URL-session class names)
+- removed Dynamics APIs (`GDHttpRequest` / `GDHttpRequestDelegate`) used as a
+  replacement, or a legacy call site on them left unmigrated
 
 ---
 

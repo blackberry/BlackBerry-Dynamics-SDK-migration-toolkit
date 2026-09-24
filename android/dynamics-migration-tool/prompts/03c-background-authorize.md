@@ -89,7 +89,7 @@ For each entry, locate the source file under `${in_scope_modules}` (by
 FQCN) and **scan its handler body** for evidence of secure-API usage
 (direct or transitive) — look for: `GDFileSystem`, `GDHttpClient`,
 `SQLiteDatabase` opened through Dynamics, secure-storage repositories
-that prompts 04 / 05c migrated, secure networking clients that prompt 06
+that prompts 04 / 05z migrated, secure networking clients that prompt 06
 migrated. This evidence becomes the per-candidate explanation in step 2.
 
 If a candidate's class file cannot be located, STOP and report the
@@ -202,7 +202,7 @@ overwrite it wholesale. Instead, perform a structural edit:
 `this` is not a `Service`. Migration path:
 
 1. Introduce a thin `JobIntentService` (Pre-31) or `JobService`
-   (`minSdk >= 31` — this kit's baseline) under the same package as
+   (`minSdk >= 33` — this kit's baseline) under the same package as
    the worker.
 2. Move the worker's secure-API-touching work into a method invoked
    from the `JobService`'s `onStartJob(...)` handler, behind the
@@ -276,7 +276,7 @@ authorization at the profile level until these are revisited."
 Background Authorize candidates are inventoried in
 `migration-analysis.json` for reporting, but they are **not** closed
 through `migration-plan-state.json`. That file's schema is reserved for
-the data-plane call-site prompts (`04`, `05c`, `06`) and only accepts
+the data-plane call-site prompts (`04`, `05z`, `06`) and only accepts
 `secureSql`, `secureFileStorage`, and `secureNetworking` dispositions.
 
 For prompt `03c`, closure is the per-candidate decision set in

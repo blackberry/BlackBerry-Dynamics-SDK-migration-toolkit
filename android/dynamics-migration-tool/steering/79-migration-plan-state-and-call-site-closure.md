@@ -31,7 +31,7 @@ entries to `migration-plan-state.json`.
 | File | Writer | Purpose |
 |------|--------|---------|
 | `dynamics-migration-tool/output/migration-analysis.json` | Prompt 00 | `executionPlan[]` rows include `callSites[]` for applicable domains; `egressFeatures[]` records feature-level container-boundary decisions |
-| `dynamics-migration-tool/output/migration-plan-state.json` | Prompts 04/05c/06/08/09 (and 00 seeds empty) | `dispositions[]` — one row per closed call site; `egressFeatureDecisions[]` — one row per analyzed egress-capability feature |
+| `dynamics-migration-tool/output/migration-plan-state.json` | Prompts 04/05z/06/08/09 (and 00 seeds empty) | `dispositions[]` — one row per closed call site; `egressFeatureDecisions[]` — one row per analyzed egress-capability feature |
 
 Both are **full-file overwrite** JSON (no patch tools). Same hygiene as
 `bootstrap.json` and `migration-report.json`.
@@ -40,7 +40,7 @@ Both are **full-file overwrite** JSON (no patch tools). Same hygiene as
 
 ## `migration-analysis.json` — `executionPlan[].callSites`
 
-For each `executionPlan` row whose `promptId` is `04`, `05c`, `06`, `08`, or `09`:
+For each `executionPlan` row whose `promptId` is `04`, `05z`, `06`, `08`, or `09`:
 
 - Include a **`callSites` array** (may be empty only when the inventory
   truly found **zero** call sites for that domain; document
@@ -99,7 +99,7 @@ after the main migration is already done.
 closure-gated domains**. This includes `secureSql`, `secureFileStorage`,
 `secureNetworking`, **`icc`**, `secureUiWidgets`, and **`secureClipboard`**
 — not just the three data-plane domains. Prompts 08 and 09 write to the
-same `dispositions[]` as prompts 04, 05c, and 06.
+same `dispositions[]` as prompts 04, 05z, and 06.
 
 `migration-plan-state.json` is a **closure ledger**, not proof by itself.
 Prompt `10` uses it to confirm that every inventoried call site received a
@@ -177,7 +177,7 @@ alongside (not instead of) the entries from earlier data-plane prompts:
 ```
 
 `runId` is optional in the historical v1.0.0 schema for backward
-compatibility, but required for new runs. Prompts 00/04/05a/05b/05c/06
+compatibility, but required for new runs. Prompts 00/04/05a/05b/05c/05z/06
 must preserve it unchanged so prompt 10 can cross-check report
 provenance against bootstrap + plan-state artifacts.
 

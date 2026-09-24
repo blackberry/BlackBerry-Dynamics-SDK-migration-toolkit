@@ -21,7 +21,8 @@
     "5b-secure-file-readers-follow-on",
     "5c-preferences-keychain-crypto",
     "5d-storage-final-closure",
-    "6-secure-core-data-swiftdata",
+    "6-secure-core-data",
+    "6b-secure-swiftdata",
     "7-secure-sql-wrappers",
     "8a-network-request-timing",
     "8b-network-session-configuration",
@@ -217,7 +218,29 @@
         "mode": "prompt-scoped",
         "requiredPhases": [
           "0-artifact-provenance",
-          "6-secure-core-data-swiftdata"
+          "6-secure-core-data"
+        ],
+        "mustBeFull": false
+      },
+      "nonWaivableBlockers": ["blocked", "deferred"]
+    },
+    {
+      "id": "04c",
+      "description": "Secure SwiftData",
+      "requires": ["03b"],
+      "requiredArtifacts": [
+        "output/bootstrap.json",
+        "output/target-map.json",
+        "output/migration-analysis.json",
+        "output/migration-plan-state.json"
+      ],
+      "canBeNotApplicable": true,
+      "ownedDomains": ["secureSwiftData"],
+      "validator": {
+        "mode": "prompt-scoped",
+        "requiredPhases": [
+          "0-artifact-provenance",
+          "6b-secure-swiftdata"
         ],
         "mustBeFull": false
       },
@@ -391,7 +414,7 @@
     {
       "id": "10",
       "description": "Generate migration report — final acceptance gate",
-      "requires": ["00pre", "00", "00b", "01", "02", "03", "03b", "04", "04b", "05", "06", "07", "08", "09", "09b", "11"],
+      "requires": ["00pre", "00", "00b", "01", "02", "03", "03b", "04", "04b", "04c", "05", "06", "07", "08", "09", "09b", "11"],
       "requiredArtifacts": [
         "output/bootstrap.json",
         "output/target-map.json",
@@ -417,7 +440,8 @@
           "5-secure-file-writers",
           "5b-secure-file-readers-follow-on",
           "5c-preferences-keychain-crypto",
-          "6-secure-core-data-swiftdata",
+          "6-secure-core-data",
+          "6b-secure-swiftdata",
           "7-secure-sql-wrappers",
           "5d-storage-final-closure",
           "8a-network-request-timing",

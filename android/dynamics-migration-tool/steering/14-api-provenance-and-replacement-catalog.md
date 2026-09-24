@@ -2,7 +2,7 @@
 
 > **Source of truth:** The machine-readable catalog is
 > `contracts/api-catalog.v1.0.0.json` (current `catalogVersion: 1.2.0`,
-> `sdkVersionVerified: 15.0.8513.64`).
+> `sdkVersionVerified: 15.1.8766.18`).
 > The filename is the stable contract path; bump `catalogVersion` inside
 > the JSON when catalog rows change structurally. This Markdown file is the
 > **human-readable view** of the same data. When the two diverge, the JSON
@@ -51,34 +51,43 @@ This file maps native Android APIs to Dynamics APIs, with provenance to
 
 ## Target SDK release
 
-This toolkit revision targets **BlackBerry Dynamics SDK for Android 15.0**
-(public API reference build **15.0.8513.64**).
+This toolkit revision targets **BlackBerry Dynamics SDK for Android 15.1**
+(public API reference / Maven build **15.1.8766.18**).
 
 Release-note deltas that affect migration steering (not every app needs
 code changes):
 
+| Area | SDK 15.1 change | Migration action |
+|------|-----------------|------------------|
+| Minimum Android | Android 12 (API 31–32) removed; **minSdk 33** (Android 13+) | Raise `minSdk` / `minSdkVersion` only if below 33; never lower a higher target |
+| OS readiness | Android 17 supported (`compileSdk` / `targetSdk` 36) | Record toolchain; do not lower compile/target to satisfy Dynamics |
+| TLS | TLS 1.3 with AES-GCM cipher suites (AES-CCM not supported) | No API swap; regress `GDHttpClient` / `GDSocket` / OkHttp+`BBCustomInterceptor` against TLS 1.3 endpoints |
+| Third-party libraries | SQLite, cURL, and OpenSSL updated | Regression for secure SQL and networking; no app API rename |
+| Toolchain | Gradle **≥ 9.3.1**, AGP **9.1.1**, NDK **27.3.13750724** | Record gaps in bootstrap / report; do not silently downgrade |
+
+SDK 15.0 deltas that remain in force (do not re-attribute them to 15.1):
+
 | Area | SDK 15.0 change | Migration action |
 |------|-----------------|------------------|
-| OpenSSL | Upgraded to OpenSSL 3.5.4 | Review any `GDCryptoPKCS7` / PKCS#7 call sites for stricter flag handling (`GDPKCS7_BINARY`, `GDPKCS7_DETACHED`) |
+| OpenSSL | Upgraded to OpenSSL 3.x (15.1 refreshes the library again) | Review any `GDCryptoPKCS7` / PKCS#7 call sites for stricter flag handling (`GDPKCS7_BINARY`, `GDPKCS7_DETACHED`) |
 | FIPS | Provider upgraded to FIPS 140-3 | Prefer AES-128/256-CBC over Triple-DES for S/MIME when FIPS is enabled; see `74-fips-obfuscation-backup.md` |
 | SecureStorage | New activations use AES-GCM; existing stay AES-CBC | No app API swap; note in report if storage crypto posture matters |
 | Native libs | Ships `libgdndk.so` + `libsbgse.so` | No extra Gradle wiring required |
 | Protect Mobile | Malware / safe browsing / SMS URL scan removed | Remove `android_handheld_blackberry_protect_support` and Protect API usage |
-| Build toolchain | Gradle ≥ 8.11.1, AGP 8.9.1, NDK 27.3.13750724 | Record toolchain gaps in bootstrap / report; do not silently downgrade |
 | UEM profile | "Open files unencrypted in other selected non-Dynamics apps" | Policy-driven; keep outbound file transfer on Dynamics-controlled paths |
 
 Official notes:
-https://docs.blackberry.com/en/blackberry-dynamics-sdk/15.x/blackberry-dynamics-sdk-for-android/blackberry-dynamics-sdk-for-android-release-notes/blackberry-dynamics-sdk-for-android-version-15.0
+https://docs.blackberry.com/en/blackberry-dynamics-sdk/15.x/blackberry-dynamics-sdk-for-android/blackberry-dynamics-sdk-for-android-release-notes/blackberry-dynamics-sdk-for-android-version-15.1
 
-## WI-00 verified public APIs (2026 Q2, revalidated for SDK 15.0)
+## WI-00 verified public APIs (2026 Q2, revalidated for SDK 15.1)
 
 Symbols below were confirmed with `javap -public` against
 `com.blackberry.blackberrydynamics:android_handheld_platform` (originally
 **14.1.8215.34**; public API reference for this toolkit cut is
-**15.0.8513.64** — resolve `libs/gd.jar` inside the AAR — `classes.jar`
+**15.1.8766.18** — resolve `libs/gd.jar` inside the AAR — `classes.jar`
 may be empty). Maintainer transcript:
 `_maintainer/notes/sdk-verification-2026Q2.md`. Re-run `javap` against the
-installed 15.0 AAR when Maven publishes the artifact locally.
+installed 15.1 AAR when Maven publishes the artifact locally.
 
 **Kit scope:** Push Channel rows (`push-java-*`) ship with prompt
 `11-push-channel.md` and Phase `12`. Application config cache row
@@ -137,6 +146,11 @@ Background Authorize (public overload only — no no-arg form):
 | **External storage — raw paths** (SECURITY BLOCKER, non-waivable) | String literals `"/sdcard/..."`, `"/storage/emulated/..."`, `"/storage/self/..."`, `"/mnt/sdcard/..."`, `"/storage/<volume>/{Download,Downloads,Pictures,Documents,DCIM,Movies,Music}"` in any `java.io.File(...)`, stream constructor, native call, or library load | Container-relative `com.good.gd.file.File` paths (no leading `/sdcard`, `/storage`, or `/data`). Catalog row: `fs-java-ext-004`. | tier1 | Common silent-leak vector — slips past API-level detection. Phase 4 scans the literals directly. |
 | **External storage — SAF persisted tree** (SECURITY BLOCKER, non-waivable) | `ACTION_OPEN_DOCUMENT_TREE`, `DocumentFile.fromTreeUri`, `DocumentsContract.buildChildDocumentsUriUsingTree`, `DocumentsContract.createDocument`, `takePersistableUriPermission` | One-shot `ACTION_CREATE_DOCUMENT` for a single user-initiated export, OR AppKinetics `GDServiceClient.sendTo` (`icc-java-001`) for inter-Dynamics-app transfer. Catalog row: `fs-java-ext-005`. | tier1 | A persisted tree URI mounts an external folder for repeated writes of app data; every write leaves the container. Never persist a tree URI for application data. |
 | **`DocumentFile.fromFile()` with GD paths** (FORBIDDEN) | `DocumentFile.fromFile(com.good.gd.file.File)` | Direct GD stream access: `com.good.gd.file.FileInputStream` / `com.good.gd.file.FileOutputStream`. Do not wrap GD `File` objects with `DocumentFile`. Catalog row: `fs-java-docfile-001`. | tier1 | `DocumentFile.fromFile()` constructs a `file://` URI from `absolutePath`. GD container-relative paths are virtual — the URI is always invalid for `ContentResolver`. Compiles cleanly; crashes at runtime with `IllegalArgumentException` or `FileNotFoundException`. Phase 4 rule 4M (`FS-DOCFILE-001`). |
+| **Secure media — record (MPEG-4)** | `MediaRecorder.setOutputFile(path\|file)` / pipe + `MPEG_4` | Seekable FD bridge (`MemoryFile` / `SharedMemory` / `openProxyFileDescriptor`) then `com.good.gd.file.FileOutputStream`. Catalog row: `fs-java-media-record-001`. | tier1 | GD has no `getFD()`. Pipe + MPEG-4 fails at `start()`. Prompt 05c / `41-secure-media.md`. Phase 4 `4L`. |
+| **Secure media — play** | `MediaPlayer.setDataSource(path)`, `VideoView.setVideoPath`, ExoPlayer `FileDataSource` | `setDataSource(FileDescriptor)` from the same bridge. Catalog row: `fs-java-media-play-001`. | tier1 | `gdFile.absolutePath` is virtual. Phase 4 `4H.mediaplayer-path`. |
+| **Secure media — muxer** | `new MediaMuxer(path\|File, format)` | `new MediaMuxer(seekableFd, format)` + GD copy. Catalog row: `fs-java-media-muxer-001`. | tier1 | Same seekable-FD rule as MediaRecorder. |
+| **Secure media — CameraX video** | `FileOutputOptions(File)`, `MediaStoreOutputOptions` | `FileDescriptorOutputOptions` on a seekable bridge, or blocking no-go. Catalog row: `fs-java-media-video-capture-001`. | tier1 | Phase 4 `4H.camerax-video`. Still capture stays 4H.camerax. |
+| **Secure media — metadata/thumbs** | `MediaMetadataRetriever.setDataSource(path\|File)`, `ThumbnailUtils.createVideoThumbnail` | FD/stream from GD bytes. Catalog row: `fs-java-media-retriever-001`. | tier1 | Phase 4 `4H.retriever-path`. |
 | **SAF inbound import** | `ACTION_OPEN_DOCUMENT`, `ACTION_GET_CONTENT`, `ACTION_PICK`, `ActivityResultContracts.OpenDocument`, `ActivityResultContracts.OpenMultipleDocuments`, `ActivityResultContracts.GetContent`, `ActivityResultContracts.GetMultipleContents`, `ContentResolver.openInputStream` against external URIs | Read external content directly into `com.good.gd.file.FileOutputStream` (container path). No plaintext staging. Validate file type/size. Catalog row: `saf-java-inbound-001`. | tier1 | Trust-boundary crossing: external data enters the container. Not a security blocker but requires explicit secure-copy migration. See `44-saf-trust-boundary.md` §1a. |
 | **SAF outbound export** (SECURITY BLOCKER, non-waivable without developer approval) | `ACTION_CREATE_DOCUMENT`, `ActivityResultContracts.CreateDocument`, `ContentResolver.openOutputStream` for export, writable `ParcelFileDescriptor` to external URIs, `DocumentFile` write operations | Default: **BLOCK**. Disable UI action, prevent picker launch. After explicit developer approval: DLP policy check via `GDAndroid.getInstance().getApplicationPolicy()` then stream from `com.good.gd.file.FileInputStream` to `ContentResolver.openOutputStream(uri)`. Catalog row: `saf-java-outbound-001`. | tier1 | Data exfiltration risk. Defaults to `BLOCKED_PENDING_DEVELOPER_APPROVAL`. Phase 4 raises `[SECURITY-BLOCKER][externalStorage/saf-outbound-export]`. See `44-saf-trust-boundary.md` §1b. |
 | **SAF Activity Result Contracts** | `ActivityResultContracts.OpenDocument`, `OpenMultipleDocuments`, `CreateDocument`, `OpenDocumentTree`, `GetContent`, `GetMultipleContents` | Same directional rules as intent-based equivalents. Inbound: secure-copy into container. Outbound: block until developer approval + DLP. Catalog row: `saf-java-contracts-001`. | tier1 | Jetpack Activity Result API wrappers for SAF intents. Phase 4 SAF scanner detects these alongside raw intent actions. |
@@ -193,6 +207,14 @@ locally installed `sdk/libs/handheld/libs/gd/inc/` headers. If a POSIX
 call has no documented `GD_*` / `GD_UNISTD_*` equivalent, do **not**
 invent one — record a manual TODO and treat the call site as
 unsupported per `13-unsupported-feature-detection-matrix.md`.
+
+**MediaRecorder / MediaPlayer are not POSIX consumers.** `GD_fopen` and
+`GD_UNISTD_open` replace **application** NDK I/O. They do not return a
+kernel `FileDescriptor` for `MediaRecorder.setOutputFile` or
+`MediaPlayer.setDataSource`. Use prompt 05c / `steering/41-secure-media.md`
+(seekable MemoryFile or proxy FD, then Java GD streams). See public docs:
+`FileOutputStream` has no `getFD()`;
+https://developer.blackberry.com/files/blackberry-dynamics/android/classcom_1_1good_1_1gd_1_1file_1_1_file_output_stream.html
 
 **Header families (installed SDK — verify in `sdk/libs/handheld/libs/gd/inc/`):**
 
@@ -265,15 +287,16 @@ exists in scope:
 - Prebuilt native libraries under `src/main/jniLibs/<abi>/lib*.so`
 
 When any of these are present, run the native discovery and
-classification steps in prompts `00`, `05a`, `05b`, `05c`, and `06` and
-in `40-secure-file-storage.md` §8 (file I/O) and `46-native-ndk-direct-replacement.md` (networking).
+classification steps in prompts `00`, `05a`, `05b`, `05c`, `05z`, and `06` and
+in `40-secure-file-storage.md` §8 (file I/O), `41-secure-media.md` (media),
+and `46-native-ndk-direct-replacement.md` (networking).
 
 ## Kotlin/JDK helpers that silently bypass the container
 
 > **Source of truth** for the kit's stream-layer rule. See
 > `40-secure-file-storage.md` §5 for the full invariant, anti-pattern
 > list, and worked examples; this section is the cross-cutting catalog
-> that prompts (`05a`, `05b`) and `validate.sh` Phase 4 point at.
+> that prompts (`05a`, `05b`, `05c`) and `validate.sh` Phase 4 point at.
 >
 > See `40-secure-file-storage.md` §5 "Kotlin `File` extensions are
 > compile-time traps" for the canonical wording used in prompts and
@@ -352,7 +375,8 @@ in files importing `com.good.gd.file.*`, routed through
 
 ## SDK 15.0 crypto notes (`GDCryptoPKCS7` / OpenSSL 3.x)
 
-SDK 15.0 upgrades OpenSSL to **3.5.4**. Every flag that is semantically
+SDK 15.0 upgrades OpenSSL to **3.5.4**. SDK 15.1 refreshes the OpenSSL
+stack again (same PKCS#7 flag rules). Every flag that is semantically
 relevant to a PKCS#7 operation must be supplied at every call site
 (`GDPKCS7_add_signer`, `GDPKCS7_final`, `GDPKCS7_write`,
 `GDPKCS7_verify`, …). Missing flags can cause silent data corruption or

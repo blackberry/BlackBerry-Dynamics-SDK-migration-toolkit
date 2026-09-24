@@ -210,24 +210,18 @@ class SecurePersistentContainer {
   }
   ```
 
-### 5. Flag SwiftData (if detected)
+### 5. Hand SwiftData Off to Prompt 04c (if detected)
 
-If the app uses SwiftData (`@Model`, `ModelContainer`, `ModelContext`):
-- **STOP** — do NOT proceed with Core Data migration for SwiftData entities.
-- Flag as UNSUPPORTED in the migration report.
-- Generate a **SwiftData Redesign Plan** in the analysis artifact:
-  ```
-  swiftDataRedesignPlan:
-    entities: [list of @Model classes with properties]
-    repositories: [files that use ModelContext/ModelContainer]
-    recommendedPath: "Rewrite to Core Data + GDPersistentStoreCoordinator"
-    estimatedEffort: "high|medium"
-    blockers: [e.g., "@Query in SwiftUI views", "ModelContainer in App init"]
-  ```
-- Mark this prompt as **design-only pending developer approval** — the
-  developer must rewrite to Core Data before re-running this prompt.
-- Do NOT attempt to migrate SwiftData automatically or leave ambiguous
-  "TODO" comments that imply the pipeline can continue.
+If the app uses SwiftData (`@Model`, `ModelContainer`, `ModelContext`,
+`@Query`):
+- Do **not** rewrite those entities to Core Data.
+- Do **not** point `GDPersistentStoreCoordinator` at a SwiftData store URL.
+- Leave SwiftData call sites in the `secureSwiftData` domain for Prompt 04c
+  (`GDSecureModelConfiguration` / `GDSecureModelContainer.create`).
+- Core Data and SwiftData may coexist in the same app only with **separate
+  stores**. Same-store sharing is unsupported.
+
+This prompt owns classic Core Data only.
 
 ### 6. Ensure Post-Authorization Timing
 
@@ -311,13 +305,12 @@ Disposition rules for this prompt:
 - Core Data replacements can be `migrated` only when
   `GDPersistentStoreCoordinator` and encrypted store types are in place with
   explicit secure-container URLs.
-- SwiftData call sites are unsupported and must be explicit `blocked` with
-  rationale/evidence. Do not leave SwiftData as `migrated`, `deferred`, or
-  implicit TODO-only status.
+- SwiftData call sites belong in `secureSwiftData` (Prompt 04c), not this
+  domain. Do not mark SwiftData as `migrated` on a Core Data stack.
 - `blocked` and `deferred` are non-waivable for Prompt 04b completion.
 
 Prompt-scoped validation phases for this prompt are:
-`0-artifact-provenance, 6-secure-core-data-swiftdata`.
+`0-artifact-provenance, 6-secure-core-data`.
 
 ---
 
@@ -326,7 +319,7 @@ Prompt-scoped validation phases for this prompt are:
 - Core Data stack migrated to `GDPersistentStoreCoordinator`
 - `NSPersistentContainer` replaced with custom secure container
 - All context references updated
-- SwiftData usage flagged (if detected)
+- SwiftData usage left for Prompt 04c (separate store)
 - Core Data initialization moved to post-authorization
 - Build verification result
 

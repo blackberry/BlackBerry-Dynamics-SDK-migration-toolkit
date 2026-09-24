@@ -28,6 +28,12 @@ Include third-party readers:
 - `BitmapFactory.decodeFile(...)`
 - direct `java.io.File` / absolute path loads
 
+**Native media playback and metadata are prompt 05c**, not this
+prompt: `MediaPlayer.setDataSource(path)`, `VideoView.setVideoPath`,
+`MediaMetadataRetriever.setDataSource(path|File)`,
+`ThumbnailUtils.createVideoThumbnail`. Do not mark those `migrated`
+here. See `steering/41-secure-media.md`.
+
 **Enumerate text-format files, not just media.** Reader closure must
 cover **every** sensitive file format the app reads back, including:
 

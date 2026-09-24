@@ -135,7 +135,7 @@ FILES_TOUCHED=""
 STARTED_AT=""
 NOTE=""
 RETRY_GUIDANCE=false
-VALID_PROMPT_IDS=("00pre" "00" "00b" "01" "02" "03" "03b" "04" "05a" "05b" "05c" "06" "07" "08" "09" "11" "03c" "10" "12")
+VALID_PROMPT_IDS=("00pre" "00" "00b" "01" "02" "03" "03b" "04" "05a" "05b" "05c" "05z" "06" "07" "08" "09" "11" "03c" "10" "12")
 
 usage() {
     cat <<USAGE
@@ -143,7 +143,7 @@ Usage: bash dynamics-migration-tool/tooling/record-prompt-execution.sh [options]
 
 Required:
   --prompt-id <id>           One of: 00pre, 00, 00b, 01, 02, 03, 03b, 04,
-                             05a, 05b, 05c, 06, 07, 08, 09, 11, 03c, 10, 12
+                             05a, 05b, 05c, 05z, 06, 07, 08, 09, 11, 03c, 10, 12
   --status <status>          One of: completed, failed, aborted, skipped
 
 Optional:
@@ -778,7 +778,7 @@ report_schema_path = os.environ["REPORT_SCHEMA_FILE"]
 check_map_path = os.environ.get("CHECK_PROMPT_MAP", "")
 files_touched_raw = os.environ.get("FILES_TOUCHED", "")
 
-CLOSURE_PROMPTS = frozenset({"04", "05c", "06", "08", "09"})
+CLOSURE_PROMPTS = frozenset({"04", "05z", "06", "08", "09"})
 # Prompts 08/09: match executionPlan rows by domain (inventory may omit promptId).
 CLOSURE_PROMPT_DOMAINS = {
     "08": frozenset({"icc"}),
@@ -800,6 +800,7 @@ PROMPT_EVIDENCE_DOMAINS = {
     "05a": ("secureFileStorage",),
     "05b": ("secureFileStorage",),
     "05c": ("secureFileStorage",),
+    "05z": ("secureFileStorage",),
     "06": ("secureNetworking",),
     "07": ("webview",),
     "08": ("icc",),
@@ -1247,7 +1248,7 @@ def _domain_closed(domain, bootstrap, analysis, plan_state):
         # inventoried in migration-analysis.json, but its closure lives in
         # bootstrap.backgroundAuthorize.decisions[] rather than
         # migration-plan-state.json, whose schema is intentionally scoped to
-        # prompts 04/05c/06 data-plane call sites.
+        # prompts 04/05z/06 data-plane call sites.
         return _background_authorize_closed(bootstrap)
     plan = analysis.get("executionPlan") or []
     rows = [r for r in plan if isinstance(r, dict) and r.get("domain") == domain]
@@ -1360,7 +1361,7 @@ def _collect_open_egress_features(owner_prompt, analysis, plan_state):
 
     owner_prompt:
       - None => collect all applicable features
-      - "05a"/"08"/"09"/"10" => collect only features whose ownerPrompt matches
+      - "05a"/"05c"/"08"/"09"/"10" => collect only features whose ownerPrompt matches
     """
     features = analysis.get("egressFeatures")
     if features is None:
@@ -1787,7 +1788,7 @@ analysis = {}
 plan_state = {}
 bootstrap = {}
 if requires or prompt_id in (
-    "04", "05a", "05b", "05c", "06", "07", "08", "09", "11", "03c", "10"
+    "04", "05a", "05b", "05c", "05z", "06", "07", "08", "09", "11", "03c", "10"
 ):
     try:
         bootstrap = _load_json(bootstrap_path)
@@ -1809,7 +1810,7 @@ if requires or prompt_id in (
 if requires:
     _evaluate_requires(prompt_id, bootstrap, analysis, plan_state, requires)
 
-if prompt_id in ("04", "05a", "05b", "05c", "06", "07", "08", "09", "10"):
+if prompt_id in ("04", "05a", "05b", "05c", "05z", "06", "07", "08", "09", "10"):
     evidence_path = os.path.join(os.path.dirname(bootstrap_path), ".independent-evidence.json")
     tooling_dir = os.path.dirname(check_map_path) if check_map_path else os.path.join(
         os.path.dirname(bootstrap_path), "..", "tooling"
@@ -1962,7 +1963,7 @@ if missing_call_sites_key:
         file=sys.stderr,
     )
     print(
-        "   Re-run prompt 00-analyze-app.md — schemaVersion 1.2.0 requires callSites[] on each applicable 04/05c/06/08/09 row.",
+        "   Re-run prompt 00-analyze-app.md — schemaVersion 1.2.0 requires callSites[] on each applicable 04/05z/06/08/09 row.",
         file=sys.stderr,
     )
     print(
@@ -1992,7 +1993,7 @@ if not os.path.isfile(plan_state_path):
         file=sys.stderr,
     )
     print(
-        "   Prompts 04/05a/05c/06/08/09 must full-file-write migration-plan-state.json with dispositions[] and egressFeatureDecisions[] before recording completed.",
+        "   Prompts 04/05a/05c/05z/06/08/09 must full-file-write migration-plan-state.json with dispositions[] and egressFeatureDecisions[] before recording completed.",
         file=sys.stderr,
     )
     print(
@@ -2539,7 +2540,7 @@ else:
     action = "appended"
 
 # Keep ordering stable: sort by promptId using the canonical run order.
-ORDER = ["00pre", "00", "00b", "01", "02", "03", "03b", "04", "05a", "05b", "05c", "06", "07", "08", "09", "11", "03c", "10", "12"]
+ORDER = ["00pre", "00", "00b", "01", "02", "03", "03b", "04", "05a", "05b", "05c", "05z", "06", "07", "08", "09", "11", "03c", "10", "12"]
 
 
 def order_key(e):

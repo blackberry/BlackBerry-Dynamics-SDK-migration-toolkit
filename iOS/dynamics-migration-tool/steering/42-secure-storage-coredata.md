@@ -244,22 +244,20 @@ try coordinator.addPersistentStore(
 
 ---
 
-## SwiftData Incompatibility
+## SwiftData Is a Separate Domain (SDK 15.1)
 
-**SwiftData is NOT supported by the Dynamics SDK.** Apps using SwiftData
-(`@Model`, `ModelContainer`, `ModelContext`) cannot redirect their data
-to the Dynamics secure container.
+Classic Core Data stays on this prompt/steering file. SwiftData is **not**
+migrated by rewriting `@Model` types into `NSManagedObject`.
 
-If the app uses SwiftData:
-1. Flag it as an unsupported feature in the migration report
-2. Record SwiftData call sites as explicit `blocked` in the closure ledger
-   with rationale/evidence (do not mark as migrated or silently keep).
-3. Document it as a manual TODO — the developer must either:
-   - Rewrite the data layer using Core Data with `GDPersistentStoreCoordinator`
-   - Use `sqlite3enc` directly
-   - Accept that SwiftData data is not in the secure container (security risk)
+SDK 15.1 adds `GDSecureModelConfiguration` and
+`GDSecureModelContainer.create(...)`. Use Prompt 04c and
+`43-secure-storage-swiftdata.md` for those call sites (`secureSwiftData`).
 
-`blocked` and `deferred` are non-waivable for Prompt 04b completion.
+A Core Data stack and a SwiftData stack **must not** share a store URL.
+Keep existing Core Data entities on `GDPersistentStoreCoordinator`; put
+new or existing `@Model` types on `GDSecureModelContainer` with their own
+file. Persistent history tracking remains unsupported on both secure
+stores.
 
 ---
 

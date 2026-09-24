@@ -23,7 +23,7 @@ Common issues and solutions during Dynamics migration.
 
 ### Agent Reports "Blocked by Non-Waivable Findings" Without Fixing Them
 
-**Symptoms**: The agent stops at prompt 05a or 05c and produces a long
+**Symptoms**: The agent stops at prompt 05a or 05z and produces a long
 list of "remaining findings" — `java.io.File` construction,
 SharedPreferences, external storage APIs — and says they "require
 product/security decisions" or "manual intervention."
@@ -77,7 +77,7 @@ agent triages them first.
    backfilling Prompt-00 `callSites[]` inventory and matching
    `migration-plan-state.json` `dispositions[]`.
 4. Use targeted checks before another full sweep:
-   - `bash dynamics-migration-tool/tooling/validate.sh --check-prompt 05c`
+   - `bash dynamics-migration-tool/tooling/validate.sh --check-prompt 05z`
    - `bash dynamics-migration-tool/tooling/validate.sh --check-prompt 08`
    - `bash dynamics-migration-tool/tooling/validate.sh --check-prompt 09`
 5. Only re-run prompt 10 after the owner-prompt checks stop producing new
@@ -98,7 +98,7 @@ budget in `tooling/check-prompt-map.json` `retryPolicy`.
    - `dynamics-migration-tool/output/migration-loop-state.json`
    - `dynamics-migration-tool/output/.last-source-check.json` or
      `dynamics-migration-tool/output/.last-report-check.json`
-3. Route fixes to the owner prompt/domain (`05c`, `08`, `09`, etc.) and run
+3. Route fixes to the owner prompt/domain (`05z`, `08`, `09`, etc.) and run
    `validate.sh --check-prompt <id>` before another prompt-10 attempt.
 4. If the escalation is environment/config-related, fix toolchain/network
    issues first, then retry.
@@ -458,7 +458,7 @@ confirm `[AUTH-PREF-001]` passes. The scanner must flag Kotlin
 `preferences.theme.value` / `isLockEnabled` and
 `SecurePreferencesHelper.getString(` (object style) on launch
 Activities. See Pattern 13 in `21-authorization-deferral-patterns.md` and
-prompt `05c` step 1b.
+prompt `05z` step 1b.
 
 ### GDNotAuthorizedError in ViewModel init Block
 
@@ -588,14 +588,14 @@ AppKinetics samples) demonstrate usage.
 ### Compile Errors After minSdk Bump (Dead Code)
 
 **Symptoms**: `Unresolved reference` errors for resource IDs or API calls
-after bumping minSdk from a low value (e.g., 21) to 31.
+after bumping minSdk from a low value (e.g., 21) to 33.
 
-**Cause**: The app has `Build.VERSION.SDK_INT >= Build.VERSION_CODES.S`
-(or similar) checks. With minSdk 31, these checks are always true, making
-the `else` branch dead code. If the `else` branch references resource IDs
-that only exist in older layout variants (e.g., `layout/` but not
-`layout-v31/`), or calls APIs removed in newer SDK levels, the compiler
-reports errors.
+**Cause**: The app has `Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU`
+(or similar) checks. With minSdk 33, checks against API 33 and below are
+always true, making the `else` branch dead code. If the `else` branch
+references resource IDs that only exist in older layout variants (e.g.,
+`layout/` but not `layout-v33/`), or calls APIs removed in newer SDK
+levels, the compiler reports errors.
 
 **Fix**: Search for `Build.VERSION.SDK_INT` checks against API levels at
 or below the new minSdk. Remove the dead `else` branches and keep only
@@ -609,7 +609,7 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
     setListItemTextView(item, R.id.CheckBoxText, color)  // Unresolved reference
 }
 
-// [OK] AFTER — dead branch removed, minSdk 31 guarantees API 31+
+// [OK] AFTER — dead branch removed, minSdk 33 guarantees API 33+
 setListItemTextView(item, R.id.CheckBox, color)
 ```
 
@@ -893,17 +893,17 @@ pattern.
 ### Gradle Sync Fails — Dynamics SDK Version Not Found
 
 **Symptoms**: Gradle sync fails with "Could not find any matches for
-com.blackberry.blackberrydynamics:android_handheld_platform:15.0.+"
-(or an older `14.0.+` / `14.1.+` range).
+com.blackberry.blackberrydynamics:android_handheld_platform:15.1.+"
+(or an older `15.0.+` / `14.0.+` / `14.1.+` range).
 
 **Cause**: The Dynamics SDK does not follow simple semantic versioning.
 Maven coordinates include build identifiers (for example
-`15.0.8513.64`). Dynamic ranges like `15.0.+` or `14.0.+` often fail to
+`15.1.8766.18`). Dynamic ranges like `15.1.+` or `15.0.+` often fail to
 resolve, and Maven metadata can lag behind a newly published release.
 
-**Fix**: Pin to the toolkit's verified 15.0 release:
+**Fix**: Pin to the toolkit's verified 15.1 release:
 ```groovy
-def dynamics_version = '15.0.8513.64'
+def dynamics_version = '15.1.8766.18'
 ```
 
 Check available versions:
@@ -912,7 +912,7 @@ curl -s https://software.download.blackberry.com/repository/maven/com/blackberry
 ```
 
 If metadata still lists only 14.x while the public API reference shows
-15.0, wait for Maven publication or override with
+15.1, wait for Maven publication or override with
 `BOOTSTRAP_DYNAMICS_SDK_VERSION` once the artifact is reachable.
 
 ---

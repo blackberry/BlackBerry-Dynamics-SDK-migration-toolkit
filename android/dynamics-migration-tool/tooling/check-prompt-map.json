@@ -29,6 +29,7 @@
     "perPrompt": {
       "05a": { "maxIdenticalFailures": 4 },
       "05c": { "maxIdenticalFailures": 4 },
+      "05z": { "maxIdenticalFailures": 4 },
       "08": { "maxIdenticalFailures": 4 }
     }
   },
@@ -85,6 +86,10 @@
       "description": "UI/library reader closure (subset of Phase 4) — includes the stream-layer closure checks above when run via validate.sh --check-prompt 05b so readers (readText/readBytes/FileReader/Files.readAllBytes/decodeFile) can be diagnosed before prompt 10."
     },
     "05c": {
+      "phases": ["4", "10"],
+      "description": "Secure media (seekable FD capture/playback) — Phase 4 stream-layer rules 4L / 4H.mediaplayer-path / 4H.retriever-path / 4H.camerax-video per steering/41-secure-media.md. Prompt 10 remains the hard recorder gate."
+    },
+    "05z": {
       "phases": ["4", "10"],
       "description": "SharedPreferences + final secure-file closure"
     },

@@ -4,12 +4,13 @@
   "title": "Dynamics Android API Replacement Catalog v1.0.0",
   "description": "Machine-readable catalog of Android-to-Dynamics API replacements. Source of truth for apisReplaced[] cross-checks and validator allowlisting. Human-readable view: steering/14-api-provenance-and-replacement-catalog.md.",
   "catalogVersion": "1.2.0",
-  "sdkVersionVerified": "15.0.8513.64",
+  "sdkVersionVerified": "15.1.8766.18",
   "generatedFrom": "steering/14-api-provenance-and-replacement-catalog.md",
   "provenance": {
     "officialDocs": "https://docs.blackberry.com/en/blackberry-dynamics-sdk/15.x/blackberry-dynamics-sdk-for-android/",
     "apiReference": "https://developer.blackberry.com/files/blackberry-dynamics/android/",
     "releaseNotes15": "https://docs.blackberry.com/en/blackberry-dynamics-sdk/15.x/blackberry-dynamics-sdk-for-android/blackberry-dynamics-sdk-for-android-release-notes/blackberry-dynamics-sdk-for-android-version-15.0",
+    "releaseNotes151": "https://docs.blackberry.com/en/blackberry-dynamics-sdk/15.x/blackberry-dynamics-sdk-for-android/blackberry-dynamics-sdk-for-android-release-notes/blackberry-dynamics-sdk-for-android-version-15.1",
     "publicSamples": "https://github.com/blackberry/BlackBerry-Dynamics-Android-Samples",
     "cApiReference": "https://developer.blackberry.com/files/blackberry-dynamics/android/capi.html",
     "cApiList": "https://developer.blackberry.com/devzone/files/blackberry-dynamics/android/group__cryptolist.html",
@@ -105,6 +106,61 @@
       "samplePath": null,
       "notes": "Direct replacement but BEHAVIORAL DIFFERENCE: java.io.File.listFiles() returns null for non-existent directories; com.good.gd.file.File.listFiles() throws NPE internally in the native layer (FileImpl.cwgjn). Kotlin ?. safe-call does NOT protect. Always guard with exists() check before calling.",
       "behavioralNote": "GD File.listFiles() throws NPE on non-existent directory (unlike java.io.File which returns null). Always guard with if (!dir.exists()) return before the listFiles()/list() call. See steering/40-secure-file-storage.md §10."
+    },
+    {
+      "id": "fs-java-media-record-001",
+      "sourceApi": "MediaRecorder.setOutputFile(path|file) / MPEG-4 on ParcelFileDescriptor.createPipe()",
+      "dynamicsApi": "MediaRecorder.setOutputFile(seekable MemoryFile or proxy FileDescriptor) then com.good.gd.file.FileOutputStream",
+      "domain": "secureFileStorage",
+      "tier": "tier1",
+      "supportStatus": "supported",
+      "docUrl": "https://developer.blackberry.com/files/blackberry-dynamics/android/classcom_1_1good_1_1gd_1_1file_1_1_file_output_stream.html",
+      "samplePath": "templates/file/SeekableGdMediaCapture.kt",
+      "notes": "GD FileOutputStream has no getFD(). Pipe + MPEG-4 fails MediaRecorder.start(). Sequential AAC_ADTS/AMR pipes remain allowed. Prompt 05c / steering/41-secure-media.md. Phase 4 4L + 4H.mediarecorder."
+    },
+    {
+      "id": "fs-java-media-play-001",
+      "sourceApi": "MediaPlayer.setDataSource(path) / VideoView.setVideoPath / ExoPlayer FileDataSource",
+      "dynamicsApi": "MediaPlayer.setDataSource(FileDescriptor) from MemoryFile or proxy FD loaded via com.good.gd.file.FileInputStream",
+      "domain": "secureFileStorage",
+      "tier": "tier1",
+      "supportStatus": "supported",
+      "docUrl": "https://developer.blackberry.com/files/blackberry-dynamics/android/classcom_1_1good_1_1gd_1_1file_1_1_file_input_stream.html",
+      "samplePath": "templates/file/SeekableGdMediaPlayback.kt",
+      "notes": "gdFile.absolutePath is a virtual container path. Prompt 05c. Phase 4 4H.mediaplayer-path."
+    },
+    {
+      "id": "fs-java-media-muxer-001",
+      "sourceApi": "new MediaMuxer(path|File, format)",
+      "dynamicsApi": "new MediaMuxer(seekable FileDescriptor, format) then copy into com.good.gd.file.FileOutputStream",
+      "domain": "secureFileStorage",
+      "tier": "tier1",
+      "supportStatus": "supported",
+      "docUrl": "https://developer.blackberry.com/files/blackberry-dynamics/android/classcom_1_1good_1_1gd_1_1file_1_1_file_output_stream.html",
+      "samplePath": "templates/file/SeekableGdMediaCapture.kt",
+      "notes": "Same seekable-FD rule as MediaRecorder. Do not use createPipe for MP4. Prompt 05c."
+    },
+    {
+      "id": "fs-java-media-video-capture-001",
+      "sourceApi": "androidx.camera.video.FileOutputOptions / MediaStoreOutputOptions",
+      "dynamicsApi": "FileDescriptorOutputOptions on a seekable MemoryFile or proxy FD, then GD FileOutputStream; MediaStore output is an external-storage blocker",
+      "domain": "secureFileStorage",
+      "tier": "tier1",
+      "supportStatus": "supported",
+      "docUrl": "https://developer.blackberry.com/files/blackberry-dynamics/android/classcom_1_1good_1_1gd_1_1file_1_1_file_output_stream.html",
+      "samplePath": null,
+      "notes": "Video muxers need seekable FDs. Phase 4 4H.camerax-video. Still ImageCapture.Builder(File) remains 4H.camerax / 05a."
+    },
+    {
+      "id": "fs-java-media-retriever-001",
+      "sourceApi": "MediaMetadataRetriever.setDataSource(path|File) / ThumbnailUtils.createVideoThumbnail(File|path)",
+      "dynamicsApi": "setDataSource(FileDescriptor) from MemoryFile loaded via com.good.gd.file.FileInputStream",
+      "domain": "secureFileStorage",
+      "tier": "tier1",
+      "supportStatus": "supported",
+      "docUrl": "https://developer.blackberry.com/files/blackberry-dynamics/android/classcom_1_1good_1_1gd_1_1file_1_1_file_input_stream.html",
+      "samplePath": "templates/file/SeekableGdMediaPlayback.kt",
+      "notes": "Path overloads bypass the container. Prompt 05c. Phase 4 4H.retriever-path."
     },
     {
       "id": "fs-java-ext-001",

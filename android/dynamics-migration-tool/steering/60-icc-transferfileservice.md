@@ -355,7 +355,7 @@ rg "java\.io\.File\b|java\.io\.FileOutputStream|java\.io\.FileInputStream" \
 
 If the app still stores shareable business data using standard `java.io.File` /
 sandbox / public storage APIs, **stop ICC implementation** and complete storage
-migration (prompts `05a`–`05c`, `40-secure-file-storage.md` §7). Prompt `08`
+migration (prompts `05a`–`05z`, `40-secure-file-storage.md` §7). Prompt `08`
 may still be recorded mid-run, but prompt `10` will fail the final gate while
 `secureFileStorage` remains open.
 

@@ -43,16 +43,27 @@ verify authorization, policy enforcement, and secure API functionality.
 
 ### 4. Secure Storage
 
-1. Store data using `GDFileManager` / `GDPersistentStoreCoordinator`
+1. Store data using `GDFileManager` / `GDPersistentStoreCoordinator` /
+   `GDSecureModelContainer` (SwiftData, SDK 15.1)
 2. Lock and unlock the container
 3. Verify: Data persists across lock/unlock cycles
 4. Verify: Data is not accessible via standard `FileManager`
+5. If SwiftData is in use: container is created after authorization (not
+   via App/scene `.modelContainer(for:)`); `@Query` views render after unlock
 
 ### 5. Secure Networking
 
 1. Access an enterprise resource through `GDURLLoadingSystem`
 2. Verify: Request succeeds through Dynamics infrastructure
 3. Verify: Direct access (without Dynamics) would fail (resource behind firewall)
+4. Regress TLS 1.3 AES-GCM endpoints (SDK 15.1; AES-CCM is not supported)
+
+### 5b. Screenshot / Siri DLP (SDK 15.1)
+
+1. Enable UEM **Do not allow screenshots**
+2. Verify: screenshots of the Dynamics app are blocked
+3. Verify: Siri / Apple Intelligence cannot read on-screen or selected text
+   from the Dynamics app (policy-driven; no extra API)
 
 ### 6. Remote Wipe
 
@@ -69,6 +80,7 @@ Some Dynamics features work on the iOS Simulator:
 - Enterprise Simulation mode (no UEM needed)
 - Secure storage APIs
 - Core Data migration
+- SwiftData (`GDSecureModelContainer`) persistence after unlock
 - File system operations
 
 Features that require a real device:

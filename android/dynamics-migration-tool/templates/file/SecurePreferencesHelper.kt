@@ -1,7 +1,7 @@
 // [BB_DYNAMICS-MIGRATION] Preference key-value storage inside the Dynamics
 // secure container. Replaces steady-state SharedPreferences persistence.
 //
-// Copy into the app (replace __APP_PACKAGE__) during prompt 05c.
+// Copy into the app (replace __APP_PACKAGE__) during prompt 05z.
 // Pair with call-site deferral (Pattern 13): launch Activities must still
 // not treat pre-auth defaults as stored values.
 //
