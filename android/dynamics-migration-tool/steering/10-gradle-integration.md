@@ -150,17 +150,35 @@ as errors if the dead branch references missing resources.
 
 ## Software Requirements
 
-Before integrating, verify the project meets these requirements:
+Official published floor (do not invent stricter pins):
+https://docs.blackberry.com/en/blackberry-dynamics-sdk/15.x/blackberry-dynamics-sdk-for-android/blackberry-dynamics-sdk-for-android-development-guide/requirements-and-support-for-platform-specific-features/software-requirements
 
-| Requirement | Minimum |
+### Migration mandates (change the app for these)
+
+| Requirement | Action |
 |-------------|---------|
-| Android OS target | Android 13 (API 33) or later |
-| Java | Java 17 or later |
-| Gradle | 9.3.1 or later |
-| Android Gradle Plugin | 9.1.1 or later |
-| compileSdk / targetSdk | 36 (Android 17-ready; do not lower to satisfy Dynamics) |
-| AndroidX | Required (must use AndroidX support libraries) |
-| Character encoding | UTF-8 (no BOM) for all build/config files |
+| `minSdk` | **33** (Android 13+). Raise if below; never lower a higher value. This is the only Android API-level bump this prompt performs. |
+| Runtime JDK | **17 or later**. Environment check only — do not inject `compileOptions` / `kotlinOptions`. |
+| AndroidX | Required (`android.useAndroidX=true`). |
+| Character encoding | UTF-8 (no BOM) for build/config files. |
+
+### Published toolchain floor (record only — do not upgrade as a Dynamics step)
+
+The public Software requirements page currently publishes Gradle **8.11.1**
+and Android Gradle Plugin **8.9.1**. Gradle, AGP, NDK, `compileSdk`, and
+`targetSdk` are **not** migration upgrades:
+
+- Record the project's Gradle, AGP, `compileSdk`, `targetSdk`, and
+  `ndkVersion` in analysis / bootstrap / report.
+- If Gradle or AGP is below that published floor, record a gap. Do **not**
+  bump the Gradle wrapper, AGP, NDK, `compileSdk`, or `targetSdk` solely
+  to satisfy Dynamics.
+- Upgrade those only if `./gradlew assembleDebug` fails **after** adding
+  the Dynamics SDK, and then only as far as needed to restore a green
+  build.
+- Do **not** raise `compileSdk` / `targetSdk` to 36, and do **not** pin
+  NDK `27.3.13750724`, as a Dynamics requirement. Keep the app's existing
+  values. Do not lower them either.
 
 ### Java Compatibility Rule (Critical)
 
@@ -197,7 +215,9 @@ Use the latest stable version of each library when possible.
    - App module
 2. Add required repositories if missing
 3. Add Dynamics dependencies following official samples
-4. **Verify minSdk meets Dynamics SDK requirements**
+4. **Verify minSdk meets Dynamics SDK requirements** (raise to 33 if
+   below; never lower). Do **not** bump Gradle, AGP, NDK, `compileSdk`,
+   or `targetSdk` as a Dynamics step.
 5. **Verify Java 17 compatibility**
    - Runtime/JDK compatibility check only; do not force module language
      level via new `compileOptions`/`kotlinOptions` blocks.

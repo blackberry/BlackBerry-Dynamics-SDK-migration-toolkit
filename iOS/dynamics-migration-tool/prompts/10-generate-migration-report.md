@@ -271,7 +271,8 @@ Also include the run provenance block (values from `bootstrap.json`):
 "runProvenance": {
   "runId": "<bootstrap.json runId>",
   "bootstrapTimestamp": "<bootstrap.json timestamp>",
-  "toolkitVersion": "<value from VERSION file>"
+  "toolkitVersion": "<value from VERSION file>",
+  "sdkResolvedVersion": "<bootstrap.json provenance.sdkResolvedVersion — Dynamics SDK pin from supported-sdk.properties>"
 }
 ```
 
@@ -495,6 +496,8 @@ status.
 - `releaseReadiness` must be present with go/go-with-risks/no-go recommendation
 - report must contain explicit data-at-rest and data-in-transit security summaries
 - `runProvenance.runId` must match `bootstrap.json` runId (recorder enforces this)
+- `runProvenance.sdkResolvedVersion` must match `bootstrap.json
+  provenance.sdkResolvedVersion` when bootstrap recorded a Dynamics SDK pin
 - Report is **not the final acceptance gate**: after this prompt succeeds, the developer
   must run the recorder (`record-prompt-execution.sh --prompt-id 10 --status completed`) to seal the migration state
 - Do not silently skip the Prompt 12 handoff. Always ask the developer whether

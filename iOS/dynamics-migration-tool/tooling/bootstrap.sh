@@ -365,6 +365,7 @@ bootstrap = {
     "provenance": {
         "generatedBy": "tooling/bootstrap.sh",
         "toolkitVersion": "$TOOL_VERSION",
+        "sdkResolvedVersion": "$SUPPORTED_SDK_VERSION",
     },
 }
 

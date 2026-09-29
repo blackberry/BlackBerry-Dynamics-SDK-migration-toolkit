@@ -241,7 +241,11 @@
       "required": ["generatedBy", "toolkitVersion"],
       "properties": {
         "generatedBy": { "type": "string" },
-        "toolkitVersion": { "type": "string" }
+        "toolkitVersion": { "type": "string" },
+        "sdkResolvedVersion": {
+          "type": ["string", "null"],
+          "description": "Dynamics SDK version this toolkit run targets (from supported-sdk.properties)."
+        }
       }
     }
   },

@@ -58,6 +58,17 @@ this prompt.
 If the developer answers `yes`, record `permissions.developerConfirmedAt`
 as the current ISO-8601 UTC timestamp.
 
+Tell the developer the following. Do **not** wait for a device. Do **not**
+run `adb` as a bootstrap gate. Do **not** add a bootstrap attestation
+for this.
+
+> A connected Android device or emulator is **not** required to complete
+> this migration. Source edits, `./gradlew assembleDebug`, and
+> `validate.sh` run on the host. If a target is already connected later,
+> prompt 03b may run a pre-auth logcat smoke; if `adb devices` is empty,
+> that smoke is skipped and migration continues. UEM activation testing
+> is a separate post-migration step (`steering/90-test-against-uem.md`).
+
 ### 2. Collect UEM Credentials
 
 UEM credentials are the only required human input for the migration.

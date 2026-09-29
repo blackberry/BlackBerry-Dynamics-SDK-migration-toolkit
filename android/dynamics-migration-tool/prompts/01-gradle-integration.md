@@ -156,6 +156,14 @@ After bumping:
 - Remove dead `else` branches that reference missing resources or APIs
 - The compiler will flag these as errors
 
+Do **not** also bump the Gradle wrapper, Android Gradle Plugin,
+`ndkVersion`, `compileSdk`, or `targetSdk`. Those are not Dynamics
+migration mandates. If Gradle or AGP is below the published Software
+requirements floor, that gap was recorded in prompt 00 — leave it
+unless `assembleDebug` in step 10 fails after adding the SDK, in which
+case apply the smallest toolchain fix that restores the build. See
+`steering/10-gradle-integration.md` → "Software Requirements".
+
 ### 5. Verify Java Runtime Compatibility (Do NOT force compileOptions)
 
 Verify the build environment can run Dynamics tooling with JDK 17+, but

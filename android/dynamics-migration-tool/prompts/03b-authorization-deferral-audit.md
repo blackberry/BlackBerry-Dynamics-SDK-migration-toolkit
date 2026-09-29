@@ -248,7 +248,10 @@ MediatorLiveData / StateFlow implementations.
 ### 5. Post-Audit Build and Smoke Check (Mandatory)
 
 Run `./gradlew assembleDebug` to confirm no compile errors from deferral
-changes, then verify the following before marking this prompt complete:
+changes, then complete the **static** checks below before marking this
+prompt complete. Host-side `assembleDebug` plus the static audit are
+the 03b completion gate. A connected device or emulator is **not**
+required.
 
 **Pre-authorization scan** — confirm no secure API remains in Phase 1:
 ```bash
@@ -267,26 +270,45 @@ Re-run the audit from Step 2 as well. Every hit should now be either:
 - In a secondary Activity (safe — user navigated there post-auth)
 - In a user-triggered action (safe — UI is only interactive post-auth)
 
-**Pre-authorization runtime smoke (required)** — this catches issues static
-shape checks can miss (for example Room queries triggered by ViewModel
-observers on `arch_disk_io` before `onAuthorized()`):
+**Pre-authorization runtime smoke (when a device is already connected)** —
+this catches issues static shape checks can miss (for example Room
+queries triggered by ViewModel observers on `arch_disk_io` before
+`onAuthorized()`). The validator does **not** install the APK or read
+logcat; this smoke is agent-executed and optional.
 
-1. Clean install or clear app data.
-2. Launch the app and do **not** interact past activation/authorization yet.
-3. Capture startup logs:
+1. Probe only — do not start an emulator or wait for the developer to
+   attach hardware:
    ```bash
-   adb logcat -d | rg "GDNotAuthorizedError|RoomTrackingLiveData|getWritableDatabase|arch_disk_io"
+   adb devices
    ```
-4. Treat any hit during first-launch pre-auth as a hard failure for 03b.
-5. Fix by deferring ViewModel/Fragment observer wiring until
-   `authorized == true` (and `databaseReady == true` where applicable), then
-   repeat the smoke until clean.
+2. If `adb` is missing, the command fails, or no row reports status
+   `device`, **skip the rest of this smoke**. Record
+   `runtimeSmoke: skipped-no-device` in the prompt output. Do **not**
+   STOP. Do **not** ask the developer to connect a device as a
+   condition of completing 03b. Proceed to record execution.
+3. If at least one `device` row is present, then:
+   - Clean install or clear app data.
+   - Launch the app and do **not** interact past
+     activation/authorization yet.
+   - Capture startup logs:
+     ```bash
+     adb logcat -d | rg "GDNotAuthorizedError|RoomTrackingLiveData|getWritableDatabase|arch_disk_io"
+     ```
+   - Treat any hit during first-launch pre-auth as a hard failure for
+     03b. Fix by deferring ViewModel/Fragment observer wiring until
+     `authorized == true` (and `databaseReady == true` where
+     applicable), then repeat the smoke until clean.
+   - Also run the deferred-init nullability smoke:
+     ```bash
+     adb logcat -d | rg "NullPointerException|getObservable|setupObserver|onViewCreated"
+     ```
+     Any startup NPE that traces to delayed model fields is a hard
+     failure for 03b.
+   - Record `runtimeSmoke: ran` in the prompt output.
 
-**Deferred-init nullability smoke**:
-```bash
-adb logcat -d | rg "NullPointerException|getObservable|setupObserver|onViewCreated"
-```
-Any startup NPE that traces to delayed model fields is a hard failure for 03b.
+Do **not** invoke `tooling/emulator-probs.sh` as a 03b gate. That helper
+is optional and non-blocking; install/logcat are not part of
+`validate.sh` or `record-prompt-execution.sh`.
 
 **Rollback instruction**: If deferral changes cause a build error or crash:
 - Check that all `lateinit var` conversions to nullable properties have
@@ -308,6 +330,8 @@ Any startup NPE that traces to delayed model fields is a hard failure for 03b.
 - Code changes made
 - Verification that no pre-auth secure API access remains
 - Build verified after changes (`./gradlew assembleDebug` passes)
+- `runtimeSmoke`: `ran` or `skipped-no-device` (empty `adb devices` is
+  not a failure)
 - Startup state-machine note included (`PRE_AUTH -> AUTH_READY -> UI_ATTACHED`)
 
 See `21-authorization-deferral-patterns.md` for the full steering reference
@@ -318,7 +342,8 @@ with code examples for each pattern.
 ## Record execution
 
 After the deferral audit is complete and the build passes, append the
-execution record:
+execution record. Do **not** refuse `--status completed` solely because
+`adb devices` was empty or logcat smoke was skipped:
 
 ```bash
 bash dynamics-migration-tool/tooling/record-prompt-execution.sh \

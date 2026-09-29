@@ -86,6 +86,8 @@ Use this checklist to track BlackBerry Dynamics integration progress.
 - [ ] Audit utility functions that create directories or access GD file APIs — add guards
 - [ ] Audit `!!` (non-null assertions) on deferred fields — convert to `?.` safe calls
 - [ ] Run systematic grep audit (see checklist in `21-authorization-deferral-patterns.md`)
+- [ ] If `adb devices` shows a connected target, run prompt 03b logcat
+      smoke; if empty, skip (`runtimeSmoke: skipped-no-device`) and continue
 
 ## Phase 4: Secure Databases
 - [ ] Inventory all SQLite/Room usage
