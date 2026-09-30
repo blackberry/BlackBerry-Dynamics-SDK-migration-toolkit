@@ -31,7 +31,8 @@ Reports with `schemaVersion: "2.0.0"` are **rejected** by the validator.
   "runProvenance": {
     "runId": "string — from bootstrap.json runId",
     "bootstrapTimestamp": "ISO-8601 timestamp from bootstrap.json",
-    "toolkitVersion": "string — from VERSION file"
+    "toolkitVersion": "string — from VERSION file",
+    "sdkResolvedVersion": "string | null — Dynamics SDK version from bootstrap.json provenance.sdkResolvedVersion (supported-sdk.properties pin)"
   },
   "targetMapSummary": {
     "buildEntrypointType": "workspace | project | unresolved",
@@ -315,6 +316,11 @@ Always `"iOS"` for this migration tool.
 ### runProvenance
 - `runProvenance.runId` must match `bootstrap.json.runId` exactly.
 - `runProvenance.toolkitVersion` must match `dynamics-migration-tool/VERSION`.
+- `runProvenance.sdkResolvedVersion` must match
+  `bootstrap.json provenance.sdkResolvedVersion` when that field is
+  present (the toolkit pin from `supported-sdk.properties`). Copy it
+  into the report so run provenance records the Dynamics SDK version.
+  Null is allowed only when bootstrap itself has no pin.
 - The recorder enforces run-ID consistency when sealing prompt `10`.
 
 ### targetMapSummary

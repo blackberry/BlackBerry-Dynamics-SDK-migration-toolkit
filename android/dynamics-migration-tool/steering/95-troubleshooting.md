@@ -494,10 +494,13 @@ while the container is still locked.
      observers.
 2. Ensure no startup path (`init {}`, `onCreate`, `onViewCreated`,
    `onStart`, `onResume`) calls DAO query methods pre-auth.
-3. Re-run Prompt 03b Step 5 pre-auth runtime smoke:
+3. Re-run Prompt 03b Step 5 pre-auth runtime smoke **when a device is
+   already connected**:
    ```bash
    adb logcat -d | rg "GDNotAuthorizedError|RoomTrackingLiveData|getWritableDatabase|arch_disk_io"
    ```
+   If `adb devices` is empty, skip this smoke; the 03b completion gate
+   is `assembleDebug` plus the static deferral audit.
 
 **Prevention**: Validator Phase 11 includes a ViewModel/Room pre-auth
 scan and fails when Room observer wiring in `init {}` appears ungated.

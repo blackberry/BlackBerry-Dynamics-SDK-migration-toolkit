@@ -133,17 +133,23 @@ rg "compose|@Composable" -g "*.kt" -g "*.gradle" -g "*.gradle.kts" -l 2>/dev/nul
 **Record these values** in the analysis output.
 
 **minSdk / toolchain rules for Dynamics SDK 15.1:**
-- BlackBerry Dynamics SDK 15.1 requires `minSdk` >= **33** (Android 13).
-  Android 12 (API 31–32) is not supported.
-- If the project already targets 33 or higher, **keep the existing target**.
-  Only raise it to 33 if it is below 33. Never lower a higher target.
-- If the project targets a version above 33, it may use APIs unavailable at
-  API 33. Flag these as `preExistingApiAvailabilityRisks` in the analysis
-  artifact if the target must change.
-- SDK 15.1 software requirements: Gradle **≥ 9.3.1**, Android Gradle
-  Plugin **9.1.1**, NDK **27.3.13750724**, compile/target **API 36**
-  (Android 17-ready). Record gaps; do not silently downgrade the app
-  toolchain.
+- The **only** required Android API-level bump is `minSdk` >= **33**
+  (Android 13). Android 12 (API 31–32) is not supported.
+- If the project already has `minSdk` 33 or higher, **keep it**. Only
+  raise it to 33 if it is below 33. Never lower a higher `minSdk`.
+- If `compileSdk` / `targetSdk` is above 33, the app may use APIs
+  unavailable at API 33. Flag those as `preExistingApiAvailabilityRisks`
+  only if `minSdk` or compile/target must change for an independent
+  reason — do not change compile/target to "satisfy Dynamics."
+- Gradle, AGP, NDK, `compileSdk`, and `targetSdk` are **not** migration
+  upgrades. Record the project's current values. If Gradle or AGP is
+  below the published Software requirements floor (currently Gradle
+  **8.11.1**, AGP **8.9.1**), record a gap — do **not** bump them in
+  later prompts unless `assembleDebug` fails after adding the SDK.
+  Do not raise `compileSdk` / `targetSdk` / NDK to any SDK-tested pin
+  (including API 36 or NDK `27.3.13750724`). Do not lower existing
+  values. Official floor:
+  https://docs.blackberry.com/en/blackberry-dynamics-sdk/15.x/blackberry-dynamics-sdk-for-android/blackberry-dynamics-sdk-for-android-development-guide/requirements-and-support-for-platform-specific-features/software-requirements
 - Flag and plan removal of `android_handheld_blackberry_protect_support`
   and Protect Mobile API usage (unsupported as of SDK 15.0).
 - Flag native `GDCryptoPKCS7` / PKCS#7 call sites for OpenSSL 3.x flag

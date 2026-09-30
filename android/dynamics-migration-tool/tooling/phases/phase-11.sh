@@ -263,7 +263,7 @@ AUTH_PREF_001=ERROR"
             check_pass "[AUTH-DB-001] No Room-aware ViewModel patterns detected for pre-auth scan"
             ;;
         *)
-            check_warn "[AUTH-DB-001] ViewModel/Room pre-auth guard scan could not run cleanly — manually verify prompt 03b Step 5 runtime smoke"
+            check_warn "[AUTH-DB-001] ViewModel/Room pre-auth guard scan could not run cleanly — if a device is connected, verify prompt 03b Step 5 runtime smoke; otherwise rely on the static 03b audit"
             ;;
     esac
 
@@ -281,7 +281,7 @@ AUTH_PREF_001=ERROR"
             check_pass "[AUTH-UI-001] No auth-deferred startup markers detected for nullability scan"
             ;;
         *)
-            check_warn "[AUTH-UI-001] Deferred-init nullability scan could not run cleanly — run prompt 03b startup NPE smoke"
+            check_warn "[AUTH-UI-001] Deferred-init nullability scan could not run cleanly — if a device is connected, run prompt 03b startup NPE smoke; otherwise rely on the static 03b audit"
             ;;
     esac
 

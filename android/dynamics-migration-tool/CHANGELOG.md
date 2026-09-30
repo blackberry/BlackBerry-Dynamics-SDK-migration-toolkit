@@ -29,11 +29,28 @@ Dynamics SDK **15.1** (`15.1.8766.18`).
 - Retargeted the Android toolkit to Dynamics SDK **15.1**
   (`15.1.8766.18`): Maven pin
   `com.blackberry.blackberrydynamics:android_handheld_platform:15.1.8766.18`,
-  **minSdk 33** (Android 13; Android 12 / API 31–32 removed), Gradle
-  **≥ 9.3.1**, AGP **9.1.1**, NDK **27.3.13750724**, compile/target
-  **API 36** (Android 17-ready). No new public persistence API (unlike
-  iOS SwiftData). TLS 1.3 AES-GCM is a runtime-stack change; SQLite /
-  cURL / OpenSSL are library refreshes.
+  **minSdk 33** (Android 13; Android 12 / API 31–32 removed). Gradle /
+  AGP / NDK / `compileSdk` are **not** migration mandates — follow the
+  published Software requirements page (Gradle **8.11.1**, AGP **8.9.1**
+  as of 17 Sep 2026); record gaps; do not upgrade those as a Dynamics
+  step unless the post-SDK build fails. No new public persistence API
+  (unlike iOS SwiftData). TLS 1.3 AES-GCM is a runtime-stack change;
+  SQLite / cURL / OpenSSL are library refreshes.
+- Clarified Android toolchain policy in prompt `00` / `01`,
+  `steering/10-gradle-integration.md`, and the provenance catalog: the
+  only required API bump is `minSdk` 33 (plus a JDK 17 runtime check).
+  Steering no longer lists Gradle 9.3.1 / AGP 9.1.1 / NDK 27.3 /
+  compileSdk 36 as migration minimums.
+- Prompt **03b** no longer treats pre-auth `adb logcat` smoke as a
+  completion gate. If `adb devices` is empty, record
+  `runtimeSmoke: skipped-no-device` and continue. `assembleDebug` plus
+  the static deferral audit remain the 03b gate. A device/emulator is
+  optional at bootstrap (README / `00pre` / `migrate.sh`).
+- Report viewer **Run Provenance** card now shows **Dynamics SDK
+  Version** from `provenance.sdkResolvedVersion` (fallback:
+  `sdkProbe.dynamicsSdkResolvedVersion`). The card title is
+  **Android Run Provenance** or **iOS Run Provenance** from
+  `toolkit.platform` / `platform`.
 - Former SharedPreferences + closure prompt **05c** is now **05z**,
   so later 05* steps can insert before domain closure. Fresh
   migrations only; do not switch toolkit versions mid-run. Prompt

@@ -18,6 +18,8 @@ other AI coding agents.
 - Target Dynamics SDK **15.1** (`15.1.8766.18` default pin); **minSdk 33** (Android 13+)
 - From your UEM administrator: `GDApplicationID` and `GDApplicationVersion`
 - An AI coding agent (Cursor recommended; Kiro, Codex, or generic also supported)
+- A connected device or emulator is **optional** (recommended later for
+  UEM / logcat smoke). Empty `adb devices` does **not** block migration.
 
 ---
 

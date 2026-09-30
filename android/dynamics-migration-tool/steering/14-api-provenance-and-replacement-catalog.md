@@ -59,11 +59,11 @@ code changes):
 
 | Area | SDK 15.1 change | Migration action |
 |------|-----------------|------------------|
-| Minimum Android | Android 12 (API 31–32) removed; **minSdk 33** (Android 13+) | Raise `minSdk` / `minSdkVersion` only if below 33; never lower a higher target |
-| OS readiness | Android 17 supported (`compileSdk` / `targetSdk` 36) | Record toolchain; do not lower compile/target to satisfy Dynamics |
+| Minimum Android | Android 12 (API 31–32) removed; **minSdk 33** (Android 13+) | Raise `minSdk` / `minSdkVersion` only if below 33; never lower a higher `minSdk`. This is the only required Android API-level bump. |
+| OS readiness | Android 17 supported | Record `compileSdk` / `targetSdk`; do not raise or lower them solely to satisfy Dynamics |
 | TLS | TLS 1.3 with AES-GCM cipher suites (AES-CCM not supported) | No API swap; regress `GDHttpClient` / `GDSocket` / OkHttp+`BBCustomInterceptor` against TLS 1.3 endpoints |
 | Third-party libraries | SQLite, cURL, and OpenSSL updated | Regression for secure SQL and networking; no app API rename |
-| Toolchain | Gradle **≥ 9.3.1**, AGP **9.1.1**, NDK **27.3.13750724** | Record gaps in bootstrap / report; do not silently downgrade |
+| Toolchain | Public Software requirements floor: Gradle **8.11.1**, AGP **8.9.1**. Gradle / AGP / NDK / `compileSdk` are not migration upgrades. | Record if Gradle/AGP is below the published floor; do not bump wrapper, AGP, NDK, or compile/target as a Dynamics step unless `assembleDebug` fails after adding the SDK |
 
 SDK 15.0 deltas that remain in force (do not re-attribute them to 15.1):
 

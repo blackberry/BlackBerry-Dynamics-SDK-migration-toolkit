@@ -36,6 +36,10 @@ option. See `steering/18-fresh-dynamics-install.md`.
 7. **IDE permissions** for your agent before you start (see step 4
    below). Prompt `00pre` confirms these — it does not configure them
    for you.
+8. A connected Android device or emulator is **optional**. Recommended
+   later for UEM activation and prompt 03b logcat smoke. The kit does
+   not install the APK or read logcat as a validation gate. If
+   `adb devices` is empty, migration continues.
 
 Do NOT guess the UEM values. Prompt `00pre-bootstrap.md` collects them
 once, up front, and every subsequent prompt reads them from
@@ -519,6 +523,7 @@ it auto-loads `output/migration-report.json` or lets you pick a file manually.
 | Agent invents APIs that don't exist | Tell it: "Only use APIs from the steering files. Do not invent APIs." |
 | Build fails after migration | Run `./gradlew build --stacktrace`, check `steering/95-troubleshooting.md` |
 | `GDNotAuthorizedError` at runtime | Secure APIs called before `onAuthorized()` — tell your agent to re-run Prompt 03b (deferral audit) |
+| Agent stops at prompt 03b because `adb devices` is empty | Not a blocker. Prompt 03b logcat smoke is optional. Tell the agent to record `runtimeSmoke: skipped-no-device`, finish the static audit + `assembleDebug`, and record 03b completed. |
 | `GDInitializationError` at runtime | Missing kit-policy initialization, duplicate Activity initialization, or missing global listener — tell your agent to re-run Prompt 03 |
 | `IllegalStateException: Can not perform this action after onSaveInstanceState` right after activation/unlock | A `runOnAuthorized(...)` callback is committing fragment transactions after Activity state is saved. Re-run Prompt 03 and apply lifecycle-safe auth UI init (`isStateSaved` guard + deferred retry in `onPostResume`) before calling fragment `commit()`. |
 | Validation fails on a specific phase | The recorder surfaces violations in its stderr and in the latest sidecar (`output/.last-check.json` mirror) plus prompt-10 gate sidecars (`output/.last-source-check.json` and `output/.last-report-check.json`). Tell your agent which checks failed and ask it to re-run the relevant prompt. |

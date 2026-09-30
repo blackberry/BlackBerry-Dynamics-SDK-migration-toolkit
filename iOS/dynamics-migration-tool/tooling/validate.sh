@@ -3283,6 +3283,7 @@ report_path = Path("$REPORT_FILE")
 catalog_path = Path("$API_CATALOG_FILE")
 auth_reachability_path = Path("$AUTH_REACHABILITY_FILE")
 analysis_path = Path("$ANALYSIS_FILE")
+bootstrap_path = Path("$BOOTSTRAP_FILE")
 expected_run = "$CURRENT_RUN_ID"
 expected_version = "$TOOL_VERSION"
 errors = []
@@ -3416,6 +3417,26 @@ else:
         errors.append("runProvenance.runId is required")
     if expected_run and run and run != expected_run:
         errors.append(f"runProvenance.runId mismatch (expected {expected_run}, got {run})")
+    boot_sdk = None
+    if bootstrap_path.exists():
+        try:
+            boot = json.loads(bootstrap_path.read_text(encoding="utf-8"))
+            boot_prov = boot.get("provenance") if isinstance(boot, dict) else None
+            if isinstance(boot_prov, dict):
+                boot_sdk = boot_prov.get("sdkResolvedVersion")
+        except Exception:
+            boot_sdk = None
+    report_sdk = rp.get("sdkResolvedVersion")
+    if isinstance(boot_sdk, str) and boot_sdk.strip():
+        if not isinstance(report_sdk, str) or not report_sdk.strip():
+            warnings.append(
+                "runProvenance.sdkResolvedVersion is missing — copy bootstrap.json "
+                "provenance.sdkResolvedVersion into the report"
+            )
+        elif report_sdk != boot_sdk:
+            errors.append(
+                f"runProvenance.sdkResolvedVersion mismatch (expected {boot_sdk!r}, got {report_sdk!r})"
+            )
 
 handoff = report.get("uemAdminHandoff", {})
 if not isinstance(handoff, dict):

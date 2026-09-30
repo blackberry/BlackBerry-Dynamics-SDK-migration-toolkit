@@ -281,6 +281,31 @@ function resolveBootstrapTimestamp(d) {
   return pv.bootstrapGeneratedAt || rp.bootstrapTimestamp || '';
 }
 
+function resolveSdkVersion(d) {
+  d = d || {};
+  var pv = d.provenance || {};
+  var rp = d.runProvenance || {};
+  var probe = d.sdkProbe || {};
+  return pv.sdkResolvedVersion || rp.sdkResolvedVersion || probe.dynamicsSdkResolvedVersion || '';
+}
+
+function resolvePlatformLabel(d) {
+  d = d || {};
+  var tk = d.toolkit || {};
+  var raw = tk.platform || d.platform || '';
+  if (!raw) return '';
+  var lower = String(raw).toLowerCase();
+  if (lower === 'android') return 'Android';
+  if (lower === 'ios') return 'iOS';
+  return String(raw);
+}
+
+function runProvenanceTitle(d) {
+  var platform = resolvePlatformLabel(d);
+  if (platform === 'Android' || platform === 'iOS') return platform + ' Run Provenance';
+  return 'Run Provenance';
+}
+
 function renderReport(d) {
   // Schema-tolerant on purpose: render known sections when present. Unlike
   // the iOS viewer, this file does not reject reports whose schemaVersion
@@ -329,9 +354,11 @@ function renderReport(d) {
     provenance += row('Bootstrap Timestamp', esc(bootstrapTs));
     provenance += row('Toolkit Version', esc(tk.version || (d.provenance && d.provenance.toolkitVersion) || (d.runProvenance && d.runProvenance.toolkitVersion) || ''));
     provenance += row('Toolkit Schema', esc(tk.reportSchemaVersion || ''));
+    var sdkVer = resolveSdkVersion(d);
+    provenance += row('Dynamics SDK Version', sdkVer ? '<code>' + esc(sdkVer) + '</code>' : '—');
     if (d.provenance && d.provenance.catalogVersion) provenance += row('Catalog Version', esc(d.provenance.catalogVersion));
     provenance += '</table>';
-    html += card('Run Provenance', provenance);
+    html += card(runProvenanceTitle(d), provenance);
   }
 
   // Coverage

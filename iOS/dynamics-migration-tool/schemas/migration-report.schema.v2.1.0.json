@@ -59,7 +59,11 @@
       "properties": {
         "runId": { "type": "string", "minLength": 1 },
         "bootstrapTimestamp": { "type": "string" },
-        "toolkitVersion": { "type": "string", "minLength": 1 }
+        "toolkitVersion": { "type": "string", "minLength": 1 },
+        "sdkResolvedVersion": {
+          "type": ["string", "null"],
+          "description": "Dynamics SDK version for this run, copied from bootstrap.json provenance.sdkResolvedVersion (supported-sdk.properties pin)."
+        }
       },
       "additionalProperties": false
     },
