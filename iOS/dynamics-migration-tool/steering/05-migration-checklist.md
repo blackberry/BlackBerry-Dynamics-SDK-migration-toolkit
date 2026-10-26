@@ -36,7 +36,7 @@ Use this checklist to track migration progress. Each phase maps to a prompt.
 
 - [ ] Deployment target >= 18.0 ensured (raised only if below; higher targets preserved)
 - [ ] BlackBerryDynamics integrated via selected method (CocoaPods, SPM, or manual)
-- [ ] If SPM: official URL `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK` pinned at `v15.1.18` / `15.1.18` (or later published `15.*`); products `BlackBerryDynamics` + `GSEProvider` linked
+- [ ] If SPM: official URL `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK` pinned at `v15.3.41` / `15.3.41` (or later published `15.*`); products `BlackBerryDynamics` + `GSEProvider` linked
 - [ ] GSEProvider.xcframework / `GSEProvider` product added (manual embed or SPM product link)
 - [ ] Pre-15.0 Certicom frameworks removed (if upgrading an existing Dynamics app)
 - [ ] Protect Mobile / SafeBrowsing usage flagged for removal (if present)

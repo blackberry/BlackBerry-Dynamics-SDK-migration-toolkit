@@ -158,7 +158,7 @@ List any app features that are incompatible with Dynamics:
   `17-app-extensions-and-share-extensions.md`)
 - **Other App Extensions** — WidgetKit, SiriKit, Notification Service, etc.
 - **SwiftData persistent history / same-store Core Data mixing** — only when
-  those unsupported 15.1 limitations are present. Migrated `@Model` stores
+  those unsupported 15.1+ limitations are present. Migrated `@Model` stores
   using `GDSecureModelContainer` are a coverage area, not an unsupported feature.
 - **BitCode** — if was enabled (now disabled)
 - **App Clips** — if App Clip target detected

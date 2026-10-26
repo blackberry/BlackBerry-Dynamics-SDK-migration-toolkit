@@ -61,7 +61,7 @@ use_frameworks!
 
 target 'YourApp' do
   # [BB_DYNAMICS-MIGRATION] Added BlackBerryDynamics SDK
-  pod 'BlackBerryDynamics', '~> 15.1'
+  pod 'BlackBerryDynamics', '~> 15.3'
 end
 
 post_install do |installer|
@@ -114,7 +114,7 @@ Dynamics Swift package. Do not invent alternate package URLs.
 |-------|-------|
 | Repository | https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK |
 | Package name | `BlackBerryDynamics` |
-| Toolkit-approved pin | SPM tag / version `v15.1.18` (ships SDK build `15.1.8766.18`) |
+| Toolkit-approved pin | SPM tag / version `v15.3.41` (ships SDK build `15.3.8766.41`) |
 | Declared platform | iOS 18+ |
 | Required products | `BlackBerryDynamics`, `GSEProvider` |
 | Optional product | `BlackBerryDynamicsAutomatedTestSupportLibrary` (test targets only) |
@@ -123,8 +123,8 @@ Dynamics Swift package. Do not invent alternate package URLs.
 
 1. File → Add Package Dependencies…
 2. Enter URL: `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK`
-3. Set Dependency Rule to **Up to Next Major** from `15.1.18`, or pin
-   **Exact Version** `15.1.18` for reproducible migrations.
+3. Set Dependency Rule to **Up to Next Major** from `15.3.41`, or pin
+   **Exact Version** `15.3.41` for reproducible migrations.
 4. Add products to the **app target**:
    - `BlackBerryDynamics` (required)
    - `GSEProvider` (required — FIPS crypto provider for SDK 15.0+)
@@ -140,7 +140,7 @@ declare the dependency explicitly:
 // [BB_DYNAMICS-MIGRATION] Official BlackBerry Dynamics SPM (prompt 01)
 .package(
     url: "https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK",
-    from: "15.1.18"
+    from: "15.3.41"
 )
 ```
 
@@ -154,7 +154,7 @@ And link products on the app target:
 ### SPM rules
 
 - Use only the official GitHub URL above (with or without a trailing `.git`).
-- Pin to `15.1.18` (tag `v15.1.18`) or a later published `15.1.*` / `15.*` release that
+- Pin to `15.3.41` (tag `v15.3.41`) or a later published `15.3.*` / `15.*` release that
   BlackBerry tags on that repository — do not invent checksums or mirror URLs.
 - Link both `BlackBerryDynamics` and `GSEProvider` on every production app
   target that uses Dynamics APIs.

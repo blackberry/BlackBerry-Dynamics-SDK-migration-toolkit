@@ -39,7 +39,7 @@ let fileManager = GDFileManager.default
 
 ```ruby
 # [BB_DYNAMICS-MIGRATION] Added BlackBerryDynamics SDK dependency
-  pod 'BlackBerryDynamics', '~> 15.1'
+  pod 'BlackBerryDynamics', '~> 15.3'
 ```
 
 ### Storyboard / XIB (XML)

@@ -371,7 +371,7 @@ Fix:
    Versions.
 4. Ensure network access to GitHub and
    `software.download.blackberry.com` (binary target host).
-5. Pin to published tag `v15.1.18` (SDK `15.1.8766.18`) or a later official
+5. Pin to published tag `v15.3.41` (SDK `15.3.8766.41`) or a later official
    `15.*` tag on that repository.
 
 ### CocoaPods error: "Unable to find compatibility version string for object version '70'"

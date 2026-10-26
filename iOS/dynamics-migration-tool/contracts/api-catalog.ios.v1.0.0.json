@@ -1,7 +1,7 @@
 {
   "catalogVersion": "1.0.0",
   "platform": "ios",
-  "sdkVersionVerified": "15.1.8766.18",
+  "sdkVersionVerified": "15.3.8766.41",
   "provenanceSources": [
     {
       "id": "bb-api-ref",
@@ -22,7 +22,7 @@
       "id": "bb-spm",
       "description": "Official BlackBerry Dynamics iOS SDK Swift Package",
       "url": "https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK",
-      "notes": "Tag v15.1.18 ships SDK build 15.1.8766.18; required products BlackBerryDynamics + GSEProvider"
+      "notes": "Tag v15.3.41 ships SDK build 15.3.8766.41; required products BlackBerryDynamics + GSEProvider"
     },
     {
       "id": "installed-sdk-headers",

@@ -57,7 +57,7 @@ If using CocoaPods:
 
    target 'YourApp' do
      # [BB_DYNAMICS-MIGRATION] Added BlackBerryDynamics SDK
-     pod 'BlackBerryDynamics', '~> 15.1'
+     pod 'BlackBerryDynamics', '~> 15.3'
    end
 
    post_install do |installer|
@@ -116,7 +116,7 @@ If not using CocoaPods **and** not using SPM:
    - `BlackBerryDynamics.xcframework` → Embed & Sign
    - `GSEProvider.xcframework` → Embed & Sign
 
-   **Version note**: This toolkit targets public SDK `15.1` (`15.1.8766.18`).
+   **Version note**: This toolkit targets public SDK `15.3` (`15.3.8766.41`).
    SDK 15.0 replaced `BlackBerryCerticom.xcframework` /
    `BlackBerryCerticomSBGSE.xcframework` with a single `GSEProvider.xcframework`.
    Do not keep the old Certicom pair when integrating 15.0+.
@@ -146,10 +146,10 @@ If the integration matrix selects SPM:
    alternate URLs:
    - URL: `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK`
    - Xcode: File → Add Package Dependencies… → paste the URL
-2. Dependency rule: **Up to Next Major** from `15.1.18`, or **Exact**
-   `15.1.18` for a reproducible migration pin.
-   - Tag `v15.1.18` ships SDK build `15.1.8766.18` (this toolkit's target).
-3. Link both products required by SDK 15.1 on the **app target**:
+2. Dependency rule: **Up to Next Major** from `15.3.41`, or **Exact**
+   `15.3.41` for a reproducible migration pin.
+   - Tag `v15.3.41` ships SDK build `15.3.8766.41` (this toolkit's target).
+3. Link both products required by SDK 15.3 on the **app target**:
    - `BlackBerryDynamics` (required)
    - `GSEProvider` (required)
    - Do **not** link `BlackBerryDynamicsAutomatedTestSupportLibrary` to the
@@ -160,7 +160,7 @@ If the integration matrix selects SPM:
    // [BB_DYNAMICS-MIGRATION] Official BlackBerry Dynamics SPM (prompt 01)
    .package(
        url: "https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK",
-       from: "15.1.18"
+       from: "15.3.41"
    )
    ```
 
@@ -197,7 +197,7 @@ See `10-xcode-integration.md` Method 1b for the full SPM reference.
 
 ### 4. Ensure Deployment Target is at Least iOS 18
 
-BlackBerry Dynamics SDK 15.1 requires iOS **>= 18.0** (CocoaPods platform).
+BlackBerry Dynamics SDK 15.3 requires iOS **>= 18.0** (CocoaPods and SPM platform).
 Do NOT force the target to exactly 18.0 — preserve higher targets.
 
 - **If current target < 18.0**: raise to 18.0 in Xcode and Podfile

@@ -1,6 +1,6 @@
 # Steering: Secure SwiftData Storage (iOS)
 
-Dynamics SDK **15.1** provides an encrypted SwiftData backing store so
+Dynamics SDK **15.1+** provides an encrypted SwiftData backing store so
 apps keep Apple's SwiftData programming model while data at rest lives
 in the BlackBerry Dynamics secure container.
 

@@ -157,7 +157,7 @@ xcodebuild -showBuildSettings -scheme YourApp 2>/dev/null | grep IPHONEOS_DEPLOY
 **Record both values** in the analysis output.
 
 **Deployment target rules for Dynamics:**
-- BlackBerry Dynamics SDK 15.1 requires iOS **>= 18.0**.
+- BlackBerry Dynamics SDK 15.3 requires iOS **>= 18.0** (Xcode 16, 26, and 27 supported).
 - If the project already targets 18.0 or higher, **keep the existing target**.
   Only raise it to 18.0 if it is below 18.0. Never lower a higher target.
 - If the project targets a version above 18.0 (e.g., iOS 26, 27), it may use
@@ -286,7 +286,7 @@ Read ALL Swift and Objective-C source files in the project. For each file, ident
     references and source usage. If a model directory is orphaned (not
     referenced by project/code), flag it as `manualTodoCandidates`:
     "abandoned Core Data schema candidate for removal".
-- **SwiftData** (SDK 15.1 secure store): `@Model`, `ModelContainer`,
+- **SwiftData** (SDK 15.1+ secure store): `@Model`, `ModelContainer`,
   `ModelContext`, `@Query`, `#Predicate`, `ModelConfiguration`. Plan Prompt
   04c (`secureSwiftData`) to replace configuration/factory with
   `GDSecureModelConfiguration` + `GDSecureModelContainer.create(...)` after

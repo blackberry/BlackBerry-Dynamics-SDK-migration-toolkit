@@ -6,12 +6,12 @@ with provenance to public documentation and the installed SDK.
 ## Source Provenance
 
 - Public API reference: `https://developer.blackberry.com/files/blackberry-dynamics/ios/`
-  (generated from the installed SDK headers; version 15.1.8766.18 at time of last review).
+  (generated from the installed SDK headers; version 15.3.8766.41 at time of last review).
 - Public development guide: BlackBerry Dynamics SDK for iOS documentation at
   `https://docs.blackberry.com/en/development-tools/blackberry-dynamics-sdk-ios/`.
 - Public samples: `https://github.com/blackberry/BlackBerry-Dynamics-iOS-Samples`.
 - Official SPM package: `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK`
-  (tag `v15.1.18` ships SDK build `15.1.8766.18`; products `BlackBerryDynamics`
+  (tag `v15.3.41` ships SDK build `15.3.8766.41`; products `BlackBerryDynamics`
   + `GSEProvider`).
 - Installed SDK headers: headers present in `Pods/BlackBerryDynamics/` after
   `pod install`, in the SPM checkout after package resolution, or in the
@@ -25,16 +25,24 @@ and add a `manualTodo`.
 
 ## Target SDK release
 
-This toolkit revision targets **BlackBerry Dynamics SDK for iOS 15.1**
-(public API reference / CocoaPods build **15.1.8766.18**).
+This toolkit revision targets **BlackBerry Dynamics SDK for iOS 15.3**
+(public API reference / CocoaPods build **15.3.8766.41**; official SPM tag **v15.3.41**).
 
 Release-note deltas that affect migration steering (not every app needs
 code changes):
 
+| Area | SDK 15.3 change | Migration action |
+|------|-----------------|------------------|
+| Packaging | CocoaPods `15.3.8766.41` + official SPM tag `v15.3.41`; crypto via `GSEProvider.xcframework` | Use `pod 'BlackBerryDynamics', '~> 15.3'` **or** SPM URL `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK` (`15.3.41` / tag `v15.3.41`) linking products `BlackBerryDynamics` + `GSEProvider` |
+| Xcode compatibility | Adds support for **Xcode 27** (Xcode 16, 26, and 27 supported; Xcode 27 requires SDK 15.3+) | No code change required; verify unsigned simulator build on the active Xcode 16/26/27 toolchain |
+| iPhone Duo devices | Enhancements for compatibility with **iPhone Duo** devices | Runtime/UI enhancement in the SDK (full-window Launcher / multi-screen compatibility); keep standard SDK-managed window ownership (`self.window`) and avoid hardcoding single-screen geometry |
+| Seclore interoperability | Fixes to improve interoperability between BlackBerry Dynamics apps and the Seclore app | Runtime/ICC fix in the SDK; keep AppKinetics / secure file transfer on cataloged `GDService` / `GDServiceClient` paths |
+
+SDK 15.1 deltas that remain in force (do not re-attribute them to 15.3):
+
 | Area | SDK 15.1 change | Migration action |
 |------|-----------------|------------------|
 | Minimum iOS | iOS 17 removed; **iOS 18+** required (iOS 27 supported) | Raise `IPHONEOS_DEPLOYMENT_TARGET` / `platform :ios` only if below 18.0; never lower a higher target |
-| Packaging | CocoaPods + official SPM tag `v15.1.18`; crypto via `GSEProvider.xcframework` | Use `pod 'BlackBerryDynamics', '~> 15.1'` **or** SPM URL `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK` (`15.1.18`) linking products `BlackBerryDynamics` + `GSEProvider` |
 | SwiftData | `GDSecureModelConfiguration` + `GDSecureModelContainer.create(...)` | Migrate `@Model` stores in Prompt 04c; do not rewrite to Core Data |
 | Siri / Apple Intelligence DLP | Screenshot restriction also blocks Siri AI from on-screen and selected text | Policy-driven; remove app-level screenshot hacks; verify UEM "Do not allow screenshots" |
 | TLS | TLS 1.3 with AES-GCM cipher suites (AES-CCM not supported) | No API swap; regress `GDURLLoadingSystem` / `URLSession` / `GDSocket` against TLS 1.3 endpoints |
