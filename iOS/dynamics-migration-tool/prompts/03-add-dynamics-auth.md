@@ -229,33 +229,100 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate, GDiOSDelegate {
 - Do not create a second `UIWindow(windowScene:)` in `scene(_:willConnectTo:)`.
 - Do not use static auth flags directly inside the SwiftUI `App` body.
 
-### 3a. Handle SceneDelegate (if applicable)
+### 3a. Handle SceneDelegate and Xcode 16 / 26 / 27 Lifecycle Compatibility
 
-If the app already uses `UISceneDelegate`:
-- Keep authorization setup in the scene lifecycle path.
-- Reuse `windowScene.keyWindow` (SDK-managed window) when possible.
-- Queue external scene actions (`openURLContexts`, `continue userActivity`) and
-  process them only after authorization.
-- Install the business root controller in `onAuthorized()` only.
+The Dynamics SDK supports both `UIApplicationDelegate` and `UISceneDelegate`
+lifecycles, but **Apple's iOS 27 SDK (Xcode 27)** enforces `UIScene` adoption at
+runtime:
 
-### 4. Handle UIMainStoryboardFile Removal
+| Active Toolchain | Existing App Lifecycle | Migration Action |
+|---|---|---|
+| **Xcode 16 or Xcode 26** (`xcodebuild -version` major < 27) | `UIApplicationDelegate`-only (no `SceneDelegate`) | **Preserve `UIApplicationDelegate`-only lifecycle** to avoid unnecessary UI refactoring. Use `self.window` on `AppDelegate` (never the removed `GDiOS.getWindow`). Do **not** add `UIApplicationSceneManifest` to `Info.plist`. Record a `manualTodo` / advisory warning in the migration report that `UIScene` lifecycle adoption (Apple TN3187) will be required when upgrading to Xcode 27 / iOS 27. |
+| **Xcode 27+** (`xcodebuild -version` major >= 27) | `UIApplicationDelegate`-only (no `SceneDelegate`) | **Add a `UISceneDelegate` bridge (mandatory for iOS 27 launch).** Apps built with Xcode 27 link against the iOS 27 SDK and crash on launch on iOS 27 (`_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption`) if `UIScene` is not adopted. Add `UIApplicationSceneManifest` to `Info.plist`, implement `application(_:configurationForConnecting:options:)` in `AppDelegate`, add a `SceneDelegate` (`UIWindowSceneDelegate`) that captures `windowScene.keyWindow` and syncs `appDelegate.window = self.window`, and coordinate post-auth UI installation when **both** authorization and `sceneDelegate` are ready. Also audit any `AppDelegate` foreground/background or `openURL` callbacks and forward/move them to `SceneDelegate`. |
+| **Any Xcode (16, 26, 27)** | Already uses `UISceneDelegate` or SwiftUI `@main App` | Keep `UISceneDelegate`, reuse `windowScene.keyWindow` (SDK-managed window), queue external scene actions (`openURLContexts`, `continue userActivity`) pre-auth, and install the business root controller only after both `GDAppEventAuthorized` and `scene(_:willConnectTo:options:)` have completed. |
 
-If the app uses a main storyboard (`UIMainStoryboardFile` in Info.plist),
+**Coordinating `GDiOSDelegate` and `SceneDelegate` (Race-Safe Two-Phase Launch):**
+Because `scene(_:willConnectTo:options:)` and `GDAppEventAuthorized` can complete
+in either order (initial activation vs. warm unlock), coordinate UI launch with a
+readiness helper that checks **both** `isAuthorized` and `sceneDelegate != nil`:
+
+```objc
+// Objective-C SceneDelegate pattern (required on Xcode 27; works on Xcode 16/26/27)
+// SceneDelegate.h
+#import <UIKit/UIKit.h>
+
+@interface SceneDelegate : UIResponder <UIWindowSceneDelegate>
+@property (strong, nonatomic) UIWindow *window;
+- (void)launchApplicationUI;
+@end
+
+// SceneDelegate.m
+#import "SceneDelegate.h"
+#import "AppDelegate.h"
+#import "AppGDiOSDelegate.h"
+
+@implementation SceneDelegate
+
+- (void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session
+      options:(UISceneConnectionOptions *)connectionOptions {
+    if (![scene isKindOfClass:[UIWindowScene class]]) { return; }
+    UIWindowScene *windowScene = (UIWindowScene *)scene;
+
+    // [BB_DYNAMICS-MIGRATION] Reuse the SDK-adopted window on the scene
+    self.window = windowScene.keyWindow;
+    // Keep AppDelegate.window in sync if legacy code references appDelegate.window
+    AppDelegate *appDelegate = (AppDelegate *)UIApplication.sharedApplication.delegate;
+    if ([appDelegate respondsToSelector:@selector(setWindow:)]) {
+        appDelegate.window = self.window;
+    }
+
+    [AppGDiOSDelegate sharedInstance].sceneDelegate = self;
+}
+
+- (void)launchApplicationUI {
+    UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"Main" bundle:nil];
+    self.window.rootViewController = [storyboard instantiateInitialViewController];
+}
+@end
+```
+
+And in `AppGDiOSDelegate.m`, trigger `launchApplicationUI` only when **both**
+`self.hasAuthorized` and `self.sceneDelegate` are ready (one-shot):
+```objc
+- (void)setSceneDelegate:(SceneDelegate *)sceneDelegate {
+    _sceneDelegate = sceneDelegate;
+    [self onSceneDelegateAndAuthorizationReady];
+}
+
+- (void)onSceneDelegateAndAuthorizationReady {
+    if (self.hasAuthorized && self.sceneDelegate && !self.didLaunchUI) {
+        self.didLaunchUI = YES;
+        [self.sceneDelegate launchApplicationUI];
+    }
+}
+```
+
+### 4. Handle UIMainStoryboardFile / UISceneStoryboardFile Removal
+
+If the app uses a main storyboard (`UIMainStoryboardFile` in Info.plist or
+`UISceneStoryboardFile` inside `UIApplicationSceneManifest`),
 it loads the root ViewController before authorization completes, breaking
-two-phase startup. Remove or nullify `UIMainStoryboardFile` and set up
-the UI programmatically in `onAuthorized`:
+two-phase startup. Remove `UIMainStoryboardFile` (and `UISceneStoryboardFile`
+if present) from `Info.plist` (and omit `config.storyboard` in
+`configurationForConnectingSceneSession`) and set up the UI programmatically
+after authorization:
 
-- Remove `<key>UIMainStoryboardFile</key>` and its `<string>` from Info.plist
-- In `onAuthorized`, set the rootViewController on the **existing**
-  `self.window?` — do NOT create a new `UIWindow`. The Dynamics SDK
-  manages the window during activation/unlock. Creating a new window
-  replaces the SDK-managed window and causes `EXC_BAD_ACCESS` crashes
-  (especially on iOS 16+ where `UIScreen.main` is deprecated).
+- Remove `<key>UIMainStoryboardFile</key>` (and `<key>UISceneStoryboardFile</key>`) from Info.plist
+- In `onAuthorized` (or `launchApplicationUI` when using `SceneDelegate`), set
+  the `rootViewController` on the **existing** SDK-managed window (`self.window`
+  on `AppDelegate` for Xcode 16/26 `AppDelegate`-only apps, or `self.window`
+  from `windowScene.keyWindow` on `SceneDelegate`) — do NOT create a new
+  `UIWindow(frame: UIScreen.main.bounds)`. The Dynamics SDK manages the window
+  during activation/unlock.
 
-  **Note**: Removing `UIMainStoryboardFile` does NOT delete the `.storyboard`
-  file — the storyboard resource stays in the bundle. You can still
-  load it programmatically. The key only controls automatic pre-launch
-  loading by UIKit:
+  **Note**: Removing `UIMainStoryboardFile` / `UISceneStoryboardFile` does NOT
+  delete the `.storyboard` file — the storyboard resource stays in the bundle.
+  You can still load it programmatically:
   ```swift
   // CORRECT — reuse SDK-managed window; load storyboard manually post-auth
   self.window?.rootViewController = UIStoryboard(name: "Main", bundle: nil)
@@ -268,9 +335,16 @@ the UI programmatically in `onAuthorized`:
   nil, the storyboard has no "Is Initial View Controller" set — fall back
   to instantiating a specific VC by storyboard identifier.
 
-- For ObjC, use `[[GDiOS sharedInstance] getWindow]` to obtain the
-  SDK-managed window explicitly; `self.window` on UIApplicationDelegate
-  is equivalent in Swift
+- **CRITICAL — `-[GDiOS getWindow]` is REMOVED in SDK 15.1+**: Never call
+  `[[GDiOS sharedInstance] getWindow]` or `GDiOS.sharedInstance().getWindow()`.
+  That deprecated method was removed from `GDiOS.h` in SDK 15.1 and will fail to
+  compile. In Objective-C and Swift alike:
+  - In `SceneDelegate`-based apps: obtain the SDK-managed window via
+    `self.window = windowScene.keyWindow` inside `scene:willConnectToSession:options:`.
+  - In `AppDelegate`-only apps (Xcode 16/26): declare
+    `@property (strong, nonatomic) UIWindow *window;` on `AppDelegate` — the
+    Dynamics SDK swizzles `UIApplicationDelegate` and assigns its managed
+    `UIWindow` to `self.window` automatically.
 
 ### 5. Restructure Main Startup (Two-Phase Initialization)
 
@@ -363,11 +437,20 @@ from module 'BlackBerryDynamics.Runtime' before it is required".
 
 See `10-xcode-integration.md` for the full import reference table.
 
-Use `[[GDiOS sharedInstance] getWindow]` instead of manually creating
-`UIWindow` — this returns the SDK-managed window that integrates with
-the Dynamics lock/activation UI.
+**Window ownership in Objective-C (SDK 15.1 / 15.3):**
+- Do **NOT** call `[[GDiOS sharedInstance] getWindow]` — it was removed from
+  `GDiOS.h` in SDK 15.1. If migrating an older Dynamics sample or app that
+  called `[[GDiOS sharedInstance] getWindow]`, remove that call.
+- For `UISceneDelegate` apps (mandatory on Xcode 27): capture
+  `self.window = windowScene.keyWindow;` in `scene:willConnectToSession:options:`
+  and set `self.window.rootViewController` once both `hasAuthorized` and
+  `sceneDelegate` are ready.
+- For `UIApplicationDelegate`-only apps (supported on Xcode 16 and Xcode 26):
+  keep `@property (strong, nonatomic) UIWindow *window;` on `AppDelegate` and
+  set `self.window.rootViewController` in `onAuthorized` (the SDK assigns
+  `self.window` automatically at startup).
 
-See `20-auth-initialization.md` for both ObjC patterns and `getWindow`
+See `20-auth-initialization.md` for both ObjC patterns and window setup
 examples.
 
 ### 7. Build and Verify

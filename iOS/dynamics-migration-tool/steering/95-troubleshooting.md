@@ -371,7 +371,7 @@ Fix:
    Versions.
 4. Ensure network access to GitHub and
    `software.download.blackberry.com` (binary target host).
-5. Pin to published tag `v15.1.18` (SDK `15.1.8766.18`) or a later official
+5. Pin to published tag `v15.3.41` (SDK `15.3.8766.41`) or a later official
    `15.*` tag on that repository.
 
 ### CocoaPods error: "Unable to find compatibility version string for object version '70'"
@@ -409,6 +409,35 @@ Classification:
   - Data loading in `viewDidLoad` of root ViewController
   - Lazy properties that access secure APIs
   - `@StateObject` inits that access secure storage
+
+### Crash on launch on iOS 27 when built with Xcode 27: `_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption` (`SIGTRAP`)
+
+**Symptom**: App builds cleanly with Xcode 27, launches on an iOS 27 device or
+simulator, and crashes immediately before the Dynamics activation UI appears
+with `EXC_BREAKPOINT (SIGTRAP)` in:
+`UIKitCore ___UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption_block_invoke`
+(`Application failed to launch: UIScene life cycle is required for apps built with this SDK`).
+
+**Root cause**:
+- Building with **Xcode 27** links the application against the **iOS 27 SDK**
+  (regardless of `IPHONEOS_DEPLOYMENT_TARGET`).
+- On iOS 27+, Apple UIKit terminates any app linked against the iOS 27 SDK
+  that has not adopted the `UIScene` lifecycle (Apple TN3187).
+- By contrast, building the same `UIApplicationDelegate`-only app with
+  **Xcode 16 or Xcode 26** links against an older SDK and only logs a UIKit
+  console warning.
+
+**Fix**:
+1. Add `UIApplicationSceneManifest` (with `UIApplicationSupportsMultipleScenes = false`
+   and `UISceneConfigurations` pointing to your `UIWindowSceneDelegate` class)
+   in `Info.plist` (do not set `UISceneStoryboardFile` so storyboards load
+   post-authorization).
+2. Implement `application(_:configurationForConnecting:options:)` in
+   `AppDelegate`.
+3. Create a `UIWindowSceneDelegate` class that captures `self.window = windowScene.keyWindow`
+   in `scene(_:willConnectTo:options:)` and installs `rootViewController` only
+   after both `GDAppEventAuthorized` and `sceneDelegate` are ready (see
+   `prompts/03-add-dynamics-auth.md` Step 3a and `steering/20-auth-initialization.md`).
 
 ### Pre-auth lifecycle executes app logic (two-phase startup violation)
 
@@ -770,6 +799,8 @@ Also verify these related keys are present (same root cause if missing):
 <key>LSRequiresIPhoneOS</key>
 <true/>
 
+<!-- Include UIApplicationSceneManifest only if the app uses UISceneDelegate / SwiftUI App,
+     or is built with Xcode 27 (which requires UIScene lifecycle on iOS 27). -->
 <key>UIApplicationSceneManifest</key>
 <dict>
     <key>UIApplicationSupportsMultipleScenes</key>

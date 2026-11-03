@@ -2,8 +2,8 @@
 
 Migrate your native iOS app to BlackBerry Dynamics using AI-assisted guidance.
 
-This revision targets **BlackBerry Dynamics SDK for iOS 15.1**
-(`15.1.8766.18`; CocoaPods `~> 15.1`; SPM `15.1.18`). Minimum iOS **18.0**.
+This revision targets **BlackBerry Dynamics SDK for iOS 15.3**
+(`15.3.8766.41`; CocoaPods `~> 15.3`; SPM `15.3.41` / tag `v15.3.41`). Minimum iOS **18.0**; Xcode **16, 26, or 27** supported.
 
 This tool provides structured prompts, steering files, and validation scripts
 that work with any AI coding agent (Kiro, Copilot, Cursor, etc.) to automate
@@ -119,7 +119,7 @@ dynamics-migration-tool/
 | 03b | `03b-authorization-deferral-audit.md` | REQUIRED | Systematic audit of ViewControllers, SwiftUI views, Combine, async/await |
 | 04 | `04-sqlite-migrate-to-secure-sql.md` | if applicable | Migrates raw SQLite to encrypted SQLite (sqlite3enc) |
 | 04b | `04b-coredata-migrate-to-gdpersistentstore.md` | if applicable | Migrates Core Data to GDPersistentStoreCoordinator |
-| 04c | `04c-swiftdata-migrate-to-gdsecuremodel.md` | if applicable | Migrates SwiftData to GDSecureModelContainer (SDK 15.1) |
+| 04c | `04c-swiftdata-migrate-to-gdsecuremodel.md` | if applicable | Migrates SwiftData to GDSecureModelContainer (SDK 15.1+) |
 | 05 | `05-filesystem-migrate-to-gdfilemanager.md` | if applicable | Migrates file I/O to GDFileManager/GDFileHandle |
 | 06 | `06-secure-networking-audit-and-migrate.md` | if applicable | Migrates URLSession/sockets to secure networking |
 | 07 | `07-wkwebview-secure-migration.md` | if applicable | Enables secure WKWebView via WKWebView+GDNET |
@@ -146,7 +146,7 @@ manual interventions, and recommended toolkit improvements.
 6. **Authorization Deferral** — Audit all pre-auth secure API access
 7. **Secure SQL** — Raw SQLite to encrypted SQLite (if applicable)
 8. **Secure Core Data** — NSPersistentStoreCoordinator to GDPersistentStoreCoordinator (if applicable)
-9. **Secure SwiftData** — ModelContainer to GDSecureModelContainer.create (if applicable; SDK 15.1)
+9. **Secure SwiftData** — ModelContainer to GDSecureModelContainer.create (if applicable; SDK 15.1+)
 10. **Secure File Storage** — FileManager/FileHandle to GDFileManager/GDFileHandle
 11. **Secure Networking** — GDURLLoadingSystem, GDSocket
 12. **Secure WebView** — WKWebView+GDNET (if applicable)

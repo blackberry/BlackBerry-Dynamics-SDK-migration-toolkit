@@ -1,6 +1,6 @@
 # BlackBerry Dynamics SDK Migration Toolkit
 
-# Version 1.1.0.22
+# Version 1.1.0.24
 
 AI-assisted tooling that helps migrate native mobile apps to
 [BlackBerry Dynamics](https://developers.blackberry.com/us/en/products/blackberry-dynamics.html).
