@@ -29,7 +29,7 @@ extension). See `steering/17-app-extensions-and-share-extensions.md`.
 ## What You Need Before Starting
 
 1. Your iOS app source code (must build cleanly before migration)
-2. Xcode 16 or newer installed (plus command-line tools; SDK 15.1 requires iOS 18)
+2. Xcode 26 or 27 installed (plus command-line tools). SDK 15.3 requires iOS 18+ and does not support Xcode 16. See the [software requirements](https://docs.blackberry.com/en/blackberry-dynamics-sdk/15.x/blackberry-dynamics-sdk-for-ios/blackberry-dynamics-sdk-for-ios-development-guide/requirements-and-support-for-platform-specific-features/software-requirements).
 3. An AI coding agent (Cursor, Kiro, or equivalent — see "Using Other AI Agents" below)
 4. A web browser (for viewing the visual migration report)
 5. Git installed locally. No remote, GitHub account, or network access is
@@ -515,4 +515,4 @@ file manually.
 | Report viewer shows nothing | Check that the JSON is valid: `python3 -m json.tool dynamics-migration-tool/output/migration-report.json` |
 | `validate.sh` or recorder exits `3` (`ESCALATION REQUIRED`) | Retry budget is exhausted for repeated failures. Review `output/migration-loop-state.json`, fix the owner prompt/domain, and rerun targeted checks before another full attempt. |
 | CocoaPods integration fails | Ensure `pod install` completes cleanly first; use the `.xcworkspace` entrypoint; see CocoaPods guidance in `steering/10-xcode-integration.md` |
-| SPM package resolution fails | Use official URL `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK` (`15.1.18`); try `File > Packages > Reset Package Caches` in Xcode; see SPM guidance in `steering/10-xcode-integration.md` |
+| SPM package resolution fails | Use official URL `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK` (`15.3.41` / tag `v15.3.41`); try `File > Packages > Reset Package Caches` in Xcode; see SPM guidance in `steering/10-xcode-integration.md` |

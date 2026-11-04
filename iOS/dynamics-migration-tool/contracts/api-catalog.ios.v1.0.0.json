@@ -1,7 +1,7 @@
 {
   "catalogVersion": "1.0.0",
   "platform": "ios",
-  "sdkVersionVerified": "15.1.8766.18",
+  "sdkVersionVerified": "15.3.8766.41",
   "provenanceSources": [
     {
       "id": "bb-api-ref",
@@ -22,7 +22,7 @@
       "id": "bb-spm",
       "description": "Official BlackBerry Dynamics iOS SDK Swift Package",
       "url": "https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK",
-      "notes": "Tag v15.1.18 ships SDK build 15.1.8766.18; required products BlackBerryDynamics + GSEProvider"
+      "notes": "Tag v15.3.41 ships SDK build 15.3.8766.41; required products BlackBerryDynamics + GSEProvider"
     },
     {
       "id": "installed-sdk-headers",
@@ -41,7 +41,10 @@
       "GDNativePasteboardAccess.open",
       "GDNativePasteboardAccess.close",
       "GDNativePasteboardAccess.open()",
-      "GDNativePasteboardAccess.close()"
+      "GDNativePasteboardAccess.close()",
+      "-[GDiOS getWindow]",
+      "GDiOS.sharedInstance().getWindow",
+      "GDiOS.sharedInstance().getWindow()"
     ]
   },
   "rows": [
@@ -74,6 +77,21 @@
       "provenanceRef": ["bb-api-ref", "installed-sdk-headers"],
       "limitations": "GDiOSDelegate exposes handleEvent: only. Dispatch app-owned helper methods (for example onAuthorized/onNotAuthorized) from handleEvent: based on GDAppEvent type.",
       "reportRequirements": "Coverage area 'authorization' must be 'migrated' or 'partial'."
+    },
+    {
+      "id": "ios-auth-003",
+      "domain": "authorization",
+      "nativeApi": "Legacy GDiOS.getWindow / UIApplicationDelegate-only window setup",
+      "nativeHeaders": [],
+      "dynamicsReplacement": "UIApplicationDelegate.window (self.window on Xcode 26 AppDelegate-only) or UIWindowScene.keyWindow (UISceneDelegate, required when building with Xcode 27 for iOS 27)",
+      "dynamicsHeaders": [],
+      "languages": ["swift", "objc"],
+      "tier": "tier1",
+      "severity": "blocking",
+      "sdkEvidence": "bb-dev-guide",
+      "provenanceRef": ["bb-api-ref", "bb-dev-guide"],
+      "limitations": "-[GDiOS getWindow] was removed from GDiOS.h in SDK 15.1. On Xcode 26, AppDelegate-only apps may keep UIApplicationDelegate.window (self.window) with an advisory warning for future Xcode 27 / iOS 27 migration. SDK 15.3 does not support Xcode 16. When building with Xcode 27 (iOS 27 SDK), UIKit enforces UIScene lifecycle adoption at launch (TN3187); apps must configure UIApplicationSceneManifest + UIWindowSceneDelegate and reuse windowScene.keyWindow.",
+      "reportRequirements": "Report must record window strategy and Xcode 27 UIScene lifecycle readiness."
     },
     {
       "id": "ios-storage-file-001",

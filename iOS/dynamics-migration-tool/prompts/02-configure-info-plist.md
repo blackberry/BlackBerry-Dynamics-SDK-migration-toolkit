@@ -75,7 +75,7 @@ Dynamics window management:
 |------------------------|----------------------|----------------|
 | `INFOPLIST_KEY_UILaunchScreen_Generation = YES` | `UILaunchScreen` | **Absence causes legacy layout mode — SDK activation UI appears as a card instead of full-screen** |
 | `INFOPLIST_KEY_LSRequiresIPhoneOS = YES` | `LSRequiresIPhoneOS` | Requires the iOS runtime environment (does NOT restrict to iPhone hardware — iPad runs iOS too) |
-| `INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES` | `UIApplicationSceneManifest` | Required for scene lifecycle |
+| `INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES` | `UIApplicationSceneManifest` | Required when the app uses `UIScene` / `UIWindowSceneDelegate` (and mandatory when building with **Xcode 27** for iOS 27). **Do NOT add a bare `UIApplicationSceneManifest` without a `UISceneDelegate` or SwiftUI `App` scene** — the Dynamics SDK detects `UIApplicationSceneManifest` to enable scene-lifecycle mode and waits for scene connection before completing unlock. |
 | `INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = …` | `UISupportedInterfaceOrientations` | Declares supported orientations on iPhone |
 | `INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = …` | `UISupportedInterfaceOrientations~ipad` | Declares supported orientations on iPad (universal apps only) |
 
@@ -106,10 +106,27 @@ Then transcribe any other `INFOPLIST_KEY_*` values found in the audit.
 <key>UILaunchScreen</key>
 <dict/>
 
+<!-- Include UIApplicationSceneManifest ONLY when the app uses UISceneDelegate / SwiftUI App,
+     or when building with Xcode 27 (which requires UIScene lifecycle on iOS 27).
+     For UIKit UISceneDelegate apps, include UISceneConfigurations with UISceneDelegateClassName
+     (and omit UISceneStoryboardFile so the main storyboard is loaded post-auth).
+     Do NOT add UIApplicationSceneManifest to an AppDelegate-only app on Xcode 26 without a SceneDelegate. -->
 <key>UIApplicationSceneManifest</key>
 <dict>
     <key>UIApplicationSupportsMultipleScenes</key>
     <false/>
+    <key>UISceneConfigurations</key>
+    <dict>
+        <key>UIWindowSceneSessionRoleApplication</key>
+        <array>
+            <dict>
+                <key>UISceneConfigurationName</key>
+                <string>Default Configuration</string>
+                <key>UISceneDelegateClassName</key>
+                <string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+            </dict>
+        </array>
+    </dict>
 </dict>
 
 <!-- iPhone orientations -->
@@ -159,19 +176,40 @@ Then transcribe any other `INFOPLIST_KEY_*` values found in the audit.
   **not** mean "iPhone hardware only". iPad runs iOS so this key is correct
   for universal apps.
 
-If the app uses a scene configuration (SceneDelegate / scene-based
-lifecycle), the `UIApplicationSceneManifest` will need the full
-`UISceneConfigurations` sub-dictionary copied from the generated plist.
-The minimal template above is a safe default for apps without explicit
-scene configurations. Use the "Preferred approach" (DerivedData copy)
-to preserve any scene configuration the app already has.
+If the app uses a scene configuration (`UISceneDelegate` / scene-based
+lifecycle) or is being built with **Xcode 27** (which requires the UIKit
+`UIScene` lifecycle on iOS 27 per Apple TN3187):
+- Include `UIApplicationSceneManifest` with `UIApplicationSupportsMultipleScenes = false`
+  (Dynamics supports a single application scene only) and `UISceneConfigurations`
+  binding `UIWindowSceneSessionRoleApplication` to the app's `UISceneDelegate` class
+  (for Objective-C, use the bare class name such as `SceneDelegate`; for Swift, use
+  `$(PRODUCT_MODULE_NAME).SceneDelegate`).
+- Remove `<key>UISceneStoryboardFile</key>` from `UIApplicationSceneManifest` if the
+  storyboard initializes sensitive views/coordinators pre-auth, and instantiate the
+  storyboard in the post-authorization handler instead (Prompt 03).
+- **Important backward-compatibility rule (Xcode 26):** If the app is a
+  legacy `UIApplicationDelegate`-only UIKit app and the active toolchain is **Xcode 26**,
+  do **not** add `UIApplicationSceneManifest` to `Info.plist` unless
+  the app also implements `UISceneDelegate` (Prompt 03). Presence of
+  `UIApplicationSceneManifest` in `Info.plist` causes the Dynamics SDK runtime to
+  enter scene mode and wait for a `UISceneDelegate` connection.
 
 **If `GENERATE_INFOPLIST_FILE = NO` or a physical `Info.plist` already exists:**
 - Proceed with the standard steps below.
-- Verify that `UILaunchScreen`, `UIApplicationSceneManifest`,
+- Verify that `UILaunchScreen` (or `UILaunchStoryboardName`),
   `UISupportedInterfaceOrientations`, and (for universal apps)
   `UISupportedInterfaceOrientations~ipad` are present. If any are
   missing, add them now using the template above.
+- Check `UIApplicationSceneManifest` against the active Xcode version and app lifecycle:
+  - If `xcodebuild -version` major is **below 26** (including Xcode 16), **stop**.
+    SDK 15.3 supports Xcode 26 and Xcode 27 only.
+  - If the app uses `UISceneDelegate` or is built with **Xcode 27+**, ensure
+    `UIApplicationSceneManifest` is present with `UIApplicationSupportsMultipleScenes = false`
+    and a valid `UISceneDelegateClassName` (or `application(_:configurationForConnecting:options:)`
+    in `AppDelegate`).
+  - If the app is `UIApplicationDelegate`-only on **Xcode 26**, keep it
+    without `UIApplicationSceneManifest` and record an advisory warning that `UIScene`
+    adoption is required before upgrading to Xcode 27 / iOS 27.
 - Verify synthesized bundle identity keys are present:
   `CFBundleExecutable`, `CFBundleIdentifier`, `CFBundleName`,
   `CFBundlePackageType`, `CFBundleShortVersionString`, and `CFBundleVersion`.

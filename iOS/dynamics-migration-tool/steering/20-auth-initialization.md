@@ -298,31 +298,61 @@ Then in AppDelegate:
 
 ---
 
-## Window Setup with GDiOS.getWindow (Objective-C)
+## Window Setup and `GDiOS.getWindow` Removal (SDK 15.1+)
 
-In Objective-C Dynamics apps, use `[[GDiOS sharedInstance] getWindow]`
-to obtain the app window instead of creating one manually. This returns
-the SDK-managed window that properly integrates with the Dynamics UI
-(lock screen, activation screen, etc.):
+**CRITICAL**: `-[GDiOS getWindow]` was deprecated and **removed** from `GDiOS.h`
+in BlackBerry Dynamics iOS SDK 15.1. Never call `[[GDiOS sharedInstance] getWindow]`
+or `GDiOS.sharedInstance().getWindow()` — it will fail to compile.
 
-```objc
-- (void)onAuthorized {
-    // [BB_DYNAMICS-MIGRATION] Use GDiOS.getWindow for the SDK-managed window
-    self.window = [[GDiOS sharedInstance] getWindow];
-    self.window.rootViewController = [[RootViewController alloc] init];
-    [self.window makeKeyAndVisible];
-}
-```
+Instead, obtain the SDK-managed `UIWindow` according to the app's lifecycle:
 
-In Swift, the SDK intercepts `self.window` through its UIApplicationDelegate
-swizzling — **do not create a new UIWindow**. After authorization, simply
-set the `rootViewController` on the existing `self.window?`:
+1. **`UISceneDelegate` lifecycle (mandatory when building with Xcode 27 for iOS 27; supported on Xcode 26 and 27):**
+   In `scene(_:willConnectTo:options:)` / `scene:willConnectToSession:options:`,
+   the Dynamics SDK swizzles `UISceneDelegate` and attaches its managed
+   application window as `windowScene.keyWindow` **before** calling your
+   delegate method. Capture `windowScene.keyWindow` and install `rootViewController`
+   after both `GDAppEventAuthorized` and `sceneDelegate` are ready:
 
-```swift
-// Swift — post-authorization window setup
-self.window?.rootViewController = UIStoryboard(name: "Main", bundle: nil)
-    .instantiateInitialViewController()
-```
+   ```objc
+   // SceneDelegate.m (Objective-C)
+   - (void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session
+         options:(UISceneConnectionOptions *)connectionOptions {
+       if (![scene isKindOfClass:[UIWindowScene class]]) { return; }
+       UIWindowScene *windowScene = (UIWindowScene *)scene;
+       // [BB_DYNAMICS-MIGRATION] Reuse SDK-managed window from windowScene.keyWindow
+       self.window = windowScene.keyWindow;
+       [AppGDiOSDelegate sharedInstance].sceneDelegate = self;
+   }
+
+   - (void)launchApplicationUI {
+       UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"Main" bundle:nil];
+       self.window.rootViewController = [storyboard instantiateInitialViewController];
+   }
+   ```
+
+2. **`UIApplicationDelegate`-only lifecycle (backward-compatible on Xcode 26):**
+   When an app does not use scenes and is built with Xcode 26, the
+   Dynamics SDK swizzles `UIApplicationDelegate` and assigns its managed
+   `UIWindow` directly to `AppDelegate.window` (`self.window`). After
+   authorization, set `rootViewController` on `self.window`:
+
+   ```objc
+   // AppDelegate.m (Objective-C — Xcode 26 AppDelegate-only)
+   - (void)onAuthorized {
+       // [BB_DYNAMICS-MIGRATION] Reuse SDK-managed self.window on AppDelegate
+       UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"Main" bundle:nil];
+       self.window.rootViewController = [storyboard instantiateInitialViewController];
+   }
+   ```
+
+   ```swift
+   // Swift — post-authorization window setup
+   self.window?.rootViewController = UIStoryboard(name: "Main", bundle: nil)
+       .instantiateInitialViewController()
+   ```
+   *(Note: If the developer later upgrades to **Xcode 27**, Apple UIKit requires
+   migrating `UIApplicationDelegate`-only apps to the `UIScene` lifecycle per
+   Apple TN3187.)*
 
 ---
 
@@ -445,8 +475,7 @@ and recorder gates:
   networking/webview load, policy reads, ICC/DLP sensitive payload handling.
 - **Post-auth entry**: first verified authorized event (`GDAppEventAuthorized`
   or `GDState.isAuthorized == true`) triggers business startup.
-- **Window strategy**: preserve SDK-managed window (`self.window?` in Swift,
-  `[[GDiOS sharedInstance] getWindow]` in ObjC), then install business root UI.
+- **Window strategy**: preserve SDK-managed window (`windowScene.keyWindow` in `UISceneDelegate`, or `self.window` on `UIApplicationDelegate` for Xcode 26 `AppDelegate`-only apps; never call removed `-[GDiOS getWindow]`), then install business root UI.
 - **Scene strategy**: queue URL/user-activity callbacks until authorization and
   replay exactly once.
 - **Failure/lock behavior**: authorization failures and re-lock events must not
@@ -539,7 +568,7 @@ setting `window.rootViewController`. Attaching first lets Dynamics Launcher
 or UIKit probe status-bar properties while the IUO is still nil → Swift
 runtime abort on first activate.
 
-Or for ObjC using `GDiOS.getWindow`:
+Or for Objective-C (using `self.window` on `AppDelegate` or `SceneDelegate` — never `GDiOS.getWindow`):
 
 ```objc
 - (void)onAuthorized:(GDAppEvent *)event {
@@ -547,19 +576,19 @@ Or for ObjC using `GDiOS.getWindow`:
     _started = YES;
 
     // [BB_DYNAMICS-MIGRATION] Removed UIMainStoryboardFile — loading UI
-    // programmatically post-authorization using GDiOS.getWindow
-    self.window = [[GDiOS sharedInstance] getWindow];
+    // programmatically post-authorization on the SDK-managed window
     UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"Main" bundle:nil];
     self.window.rootViewController = [storyboard instantiateInitialViewController];
-    [self.window makeKeyAndVisible];
 
     [self loadData];
 }
 ```
 
 If the app uses `UISceneDelegate`, the scene configuration in Info.plist
-may also reference a storyboard via `UISceneStoryboardFile` — evaluate
-whether that also needs deferral.
+may also reference a storyboard via `UISceneStoryboardFile` — remove
+`UISceneStoryboardFile` (and do not set `config.storyboard` in
+`configurationForConnectingSceneSession`) so the main storyboard is only
+instantiated post-authorization.
 
 ---
 
@@ -583,8 +612,7 @@ whether that also needs deferral.
    // window?.rootViewController = ...
    // window?.makeKeyAndVisible()
    ```
-   In Objective-C, use `[[GDiOS sharedInstance] getWindow]` which returns
-   the SDK-managed window explicitly.
+   In both Swift and Objective-C, reuse the SDK-managed `self.window` (or `windowScene.keyWindow` in `UISceneDelegate`). Never call `[[GDiOS sharedInstance] getWindow]`, which was removed in SDK 15.1.
 2. **Accessing Core Data in `didFinishLaunchingWithOptions`** — the
    persistent store coordinator must be initialized post-authorization
 3. **Loading data in `viewDidLoad` of the root ViewController** — if the

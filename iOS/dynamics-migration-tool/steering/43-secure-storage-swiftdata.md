@@ -1,11 +1,11 @@
 # Steering: Secure SwiftData Storage (iOS)
 
-Dynamics SDK **15.1** provides an encrypted SwiftData backing store so
+Dynamics SDK **15.1+** provides an encrypted SwiftData backing store so
 apps keep Apple's SwiftData programming model while data at rest lives
 in the BlackBerry Dynamics secure container.
 
 This is an iOS-specific migration area with no Android equivalent.
-It requires **iOS 18+** and Xcode 16+. The integration is built on
+It requires **iOS 18+** and Xcode 26 or 27 (SDK 15.3 does not support Xcode 16). The integration is built on
 SwiftData's custom `DataStore` API, which Apple introduced in iOS 18.
 
 Do **not** invent a competing persistence API. The public substitutions

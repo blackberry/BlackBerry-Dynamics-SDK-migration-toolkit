@@ -34,7 +34,7 @@ APIs. This means:
 - `FileHandle` → `GDFileHandle` for encrypted file handle access
 - `NSPersistentStoreCoordinator` → `GDPersistentStoreCoordinator` for Core Data
 - `ModelConfiguration` / `ModelContainer` → `GDSecureModelConfiguration` /
-  `GDSecureModelContainer.create(...)` for SwiftData (iOS 18+, SDK 15.1)
+  `GDSecureModelContainer.create(...)` for SwiftData (iOS 18+, SDK 15.1+)
 - `sqlite3_open()` → `sqlite3enc_open()` for raw SQLite
 - `UserDefaults` for sensitive data → secure file storage (no leftover
   UserDefaults copy; `18-fresh-dynamics-install.md`)
@@ -74,7 +74,7 @@ Choose the method from the dependency topology matrix in
 
 Add to your `Podfile`:
 ```ruby
-pod 'BlackBerryDynamics', '~> 15.1'
+pod 'BlackBerryDynamics', '~> 15.3'
 ```
 
 Run `pod install` and open the `.xcworkspace` file.
@@ -84,7 +84,7 @@ Run `pod install` and open the `.xcworkspace` file.
 When the matrix selects SPM, add the official package:
 
 - URL: https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK
-- Version: `15.1.18` (SDK build `15.1.8766.18`) or a later published `15.*` tag
+- Version: `15.3.41` (tag `v15.3.41`, SDK build `15.3.8766.41`) or a later published `15.*` tag
 - Products (app target): `BlackBerryDynamics` + `GSEProvider`
 
 In Xcode: File → Add Package Dependencies… → paste the URL above → link
@@ -161,7 +161,7 @@ See `10-xcode-integration.md` for the full module import reference table.
 
 - **iOS Deployment Target**: >= 18.0 (minimum). If the project already targets
   a higher version, keep the existing target — do NOT lower it.
-- **Xcode**: 16 or newer (SDK 15.1 requires iOS 18)
+- **Xcode**: 26 or 27 (SDK 15.3; Xcode 16 is not supported). Requires iOS 18+
 - **Languages**: Swift 4/4.2/5/6, Objective-C
 - **Swift Version Awareness**: Detect the project's `SWIFT_VERSION` build
   setting. Swift 6 projects with strict concurrency may require `@Sendable`
@@ -214,7 +214,7 @@ Before Prompt 10, review:
 | Activity init | `activityInit()` per Activity | Not needed (single AppDelegate) |
 | File storage | `GDFileSystem` | `GDFileManager` (subclass of `NSFileManager`) |
 | Core Data | N/A | `GDPersistentStoreCoordinator` |
-| SwiftData | N/A | `GDSecureModelConfiguration` + `GDSecureModelContainer.create` (SDK 15.1) |
+| SwiftData | N/A | `GDSecureModelConfiguration` + `GDSecureModelContainer.create` (SDK 15.1+) |
 | SQLite | `com.good.gd.database.sqlite` | `sqlite3enc.h` (C API) |
 | Networking | `GDHttpClient`, `GDSocket` | `GDURLLoadingSystem` (routed `URLSession`), `GDSocket` |
 | WebView | `BBWebView` | `WKWebView+GDNET` |

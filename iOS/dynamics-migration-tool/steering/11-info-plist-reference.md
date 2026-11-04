@@ -16,7 +16,7 @@ Their absence causes critical runtime failures:
 |-----|-----------------|
 | `UILaunchScreen` | iOS runs app in legacy 320×480 compatibility mode — **SDK activation UI appears as a non-full-screen card** |
 | `LSRequiresIPhoneOS` | App may not be recognised as an iOS app by the system. Note: this key means "requires the iOS runtime" — it does **not** restrict the app to iPhone hardware; iPad also runs iOS |
-| `UIApplicationSceneManifest` | Scene lifecycle not configured; may prevent scene-based apps from launching correctly |
+| `UIApplicationSceneManifest` | Required for `UIScene`-based apps (and mandatory when building with **Xcode 27** for iOS 27 per Apple TN3187). **Never** add a bare `UIApplicationSceneManifest` to an `AppDelegate`-only app without a `UISceneDelegate` or SwiftUI `App` scene — the Dynamics SDK uses `UIApplicationSceneManifest` to detect scene mode. |
 | `UISupportedInterfaceOrientations` | iPhone orientation defaults to undefined behaviour |
 | `UISupportedInterfaceOrientations~ipad` | iPad falls back to portrait-only (missing on universal apps causes orientation regression on iPad) |
 
@@ -30,10 +30,26 @@ for apps that support both iPhone and iPad:
 <key>UILaunchScreen</key>
 <dict/>
 
+<!-- Include UIApplicationSceneManifest when the app uses UISceneDelegate / SwiftUI App,
+     or when building with Xcode 27 (which enforces UIScene lifecycle on iOS 27).
+     Do NOT include UIApplicationSceneManifest in an AppDelegate-only app on Xcode 26
+     that does not implement UISceneDelegate. -->
 <key>UIApplicationSceneManifest</key>
 <dict>
     <key>UIApplicationSupportsMultipleScenes</key>
     <false/>
+    <key>UISceneConfigurations</key>
+    <dict>
+        <key>UIWindowSceneSessionRoleApplication</key>
+        <array>
+            <dict>
+                <key>UISceneConfigurationName</key>
+                <string>Default Configuration</string>
+                <key>UISceneDelegateClassName</key>
+                <string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+            </dict>
+        </array>
+    </dict>
 </dict>
 
 <!-- iPhone orientations -->

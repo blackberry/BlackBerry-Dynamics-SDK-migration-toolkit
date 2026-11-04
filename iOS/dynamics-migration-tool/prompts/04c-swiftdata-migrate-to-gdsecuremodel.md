@@ -11,7 +11,7 @@ Dynamics secure container.
 
 **Skip this prompt if the app does not use SwiftData.**
 This is an iOS-specific migration step with no Android equivalent.
-It requires Dynamics SDK **15.1** and **iOS 18+** (the integration is
+It requires Dynamics SDK **15.1+** and **iOS 18+** (the integration is
 built on SwiftData's custom `DataStore` API, which Apple introduced in
 iOS 18).
 
@@ -25,7 +25,7 @@ in the same app only with **separate stores**.
 
 ### 0. SDK Surface Verification (Mandatory)
 
-Before making any changes, confirm the public 15.1 SwiftData types exist
+Before making any changes, confirm the public 15.1+ SwiftData types exist
 in the installed SDK (CocoaPods, SPM checkout, or linked xcframework).
 Search the installed product for:
 
@@ -46,7 +46,7 @@ Expected public surface (iOS 18+):
   `ModelContext`, `@Query`, `FetchDescriptor`, `#Predicate`,
   `SortDescriptor`
 
-If the types are absent, the project is not on Dynamics SDK 15.1. Stop
+If the types are absent, the project is not on Dynamics SDK 15.1+. Stop
 and fix Prompt 01 integration before continuing. Do **not** invent
 replacement type names.
 
@@ -96,7 +96,7 @@ let config = try GDSecureModelConfiguration(name: "MyApp",
 let container = try GDSecureModelContainer.create(config)
 ```
 
-**Hard rules verified against the public 15.1 API:**
+**Hard rules verified against the public 15.1+ API:**
 
 1. Always use `GDSecureModelContainer.create(...)`. Never construct
    `ModelContainer(for:configurations:)` with a

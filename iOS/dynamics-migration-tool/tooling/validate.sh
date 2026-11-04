@@ -2535,15 +2535,206 @@ PY
             fi
         fi
 
+        local has_scene_delegate=false
+        local has_swiftui_app=false
+        local has_uiapplication_delegate=false
         if app_grep "UISceneDelegate\|UIWindowSceneDelegate" --include="*.swift" --include="*.m" --include="*.h"; then
+            has_scene_delegate=true
+        fi
+        if app_grep "@main[[:space:]]+struct[[:space:]].*:[[:space:]]*App" --include="*.swift"; then
+            has_swiftui_app=true
+        fi
+        if app_grep "UIApplicationDelegate" --include="*.swift" --include="*.m" --include="*.h"; then
+            has_uiapplication_delegate=true
+        fi
+
+        if [[ "$has_scene_delegate" == true ]]; then
             if app_grep "openURLContexts\|continue userActivity\|willConnectTo" --include="*.swift" --include="*.m"; then
                 app_grep "state\\.isAuthorized\|GDStateChange\|GDAppEventAuthorized\|onAuthorized" --include="*.swift" --include="*.m" && pass "Scene lifecycle callbacks show authorization-aware handling" || fail "Scene lifecycle callbacks found without Dynamics authorization-aware handling (GDStateChange / GDAppEventAuthorized / state.isAuthorized)"
             fi
         fi
 
-        if app_grep "UIWindow\\(frame:[[:space:]]*UIScreen\\.main\\.bounds\\)\|UIWindow\\(windowScene:" --include="*.swift" --include="*.m"; then
-            fail "Manual UIWindow construction detected; SDK-managed window must be reused instead"
+        local has_scene_manifest=false
+        local has_scene_storyboard=false
+        local multiple_scenes_enabled=false
+        if [[ -n "$INFO_PLIST" ]]; then
+            local plist_scene_check
+            plist_scene_check=$(python3 - "$INFO_PLIST" <<'PY' 2>/dev/null
+import plistlib, sys
+from pathlib import Path
+try:
+    with Path(sys.argv[1]).open("rb") as fh:
+        d = plistlib.load(fh)
+except Exception:
+    sys.exit(0)
+manifest = d.get("UIApplicationSceneManifest")
+if isinstance(manifest, dict):
+    print("MANIFEST:1")
+    if manifest.get("UIApplicationSupportsMultipleScenes") is True:
+        print("MULTI:1")
+    configs = manifest.get("UISceneConfigurations")
+    if isinstance(configs, dict):
+        for role_list in configs.values():
+            if isinstance(role_list, list):
+                for item in role_list:
+                    if isinstance(item, dict) and item.get("UISceneStoryboardFile"):
+                        print("STORYBOARD:1")
+PY
+) || plist_scene_check=""
+            [[ "$plist_scene_check" == *"MANIFEST:1"* ]] && has_scene_manifest=true
+            [[ "$plist_scene_check" == *"MULTI:1"* ]] && multiple_scenes_enabled=true
+            [[ "$plist_scene_check" == *"STORYBOARD:1"* ]] && has_scene_storyboard=true
         fi
+
+        if [[ "$multiple_scenes_enabled" == true ]]; then
+            fail "UIApplicationSupportsMultipleScenes is true in Info.plist; BlackBerry Dynamics supports a single application scene only (set to false)"
+        fi
+
+        if [[ "$has_scene_storyboard" == true ]]; then
+            warn "UISceneStoryboardFile present in UIApplicationSceneManifest; verify storyboard root does not execute sensitive logic before GDAppEventAuthorized (prefer programmatic post-auth instantiation)"
+        fi
+
+        if [[ "$has_scene_manifest" == true && "$has_scene_delegate" == false && "$has_swiftui_app" == false ]]; then
+            fail "UIApplicationSceneManifest is present in Info.plist without a UISceneDelegate/UIWindowSceneDelegate or SwiftUI App scene; either implement UISceneDelegate or remove UIApplicationSceneManifest (on Xcode 26 AppDelegate-only apps)"
+        fi
+
+        if [[ "$has_uiapplication_delegate" == true && "$has_scene_delegate" == false && "$has_swiftui_app" == false ]]; then
+            local active_xcode_major=0
+            if [[ -n "${GD_XCODE_MAJOR_OVERRIDE:-}" ]]; then
+                active_xcode_major="${GD_XCODE_MAJOR_OVERRIDE}"
+            elif command -v xcodebuild >/dev/null 2>&1; then
+                active_xcode_major=$(xcodebuild -version 2>/dev/null | awk '/^Xcode / { split($2, a, "."); print a[1]; exit }' || echo "0")
+            fi
+            if [[ "${active_xcode_major:-0}" =~ ^[0-9]+$ ]] && [[ "${active_xcode_major:-0}" -ge 27 ]]; then
+                fail "Xcode ${active_xcode_major} detected with legacy UIApplicationDelegate-only lifecycle (no UISceneDelegate): apps built with Xcode 27 link against the iOS 27 SDK and crash on launch on iOS 27 (_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption). Add UIApplicationSceneManifest + UIWindowSceneDelegate (Prompt 02/03)"
+            elif [[ "${active_xcode_major:-0}" =~ ^[0-9]+$ ]] && [[ "${active_xcode_major:-0}" -ge 26 ]]; then
+                warn "Xcode ${active_xcode_major} detected with legacy UIApplicationDelegate-only lifecycle (no UISceneDelegate): supported on Xcode 26, but Apple requires UIScene lifecycle adoption (TN3187) when upgrading to Xcode 27 / iOS 27 SDK"
+            elif [[ "${active_xcode_major:-0}" =~ ^[0-9]+$ ]] && [[ "${active_xcode_major:-0}" -gt 0 ]]; then
+                fail "Xcode ${active_xcode_major} is not supported by BlackBerry Dynamics SDK 15.3 (supported toolchains: Xcode 26 and 27)."
+            else
+                warn "Legacy UIApplicationDelegate-only lifecycle detected (no UISceneDelegate; active Xcode version not detected): verify toolchain — SDK 15.3 supports Xcode 26 and 27. AppDelegate-only is supported on Xcode 26, but UIScene lifecycle adoption (TN3187) is required when building with Xcode 27 / iOS 27 SDK"
+            fi
+        fi
+
+        local window_api_output
+        window_api_output=$(python3 - "$PROJECT_ROOT" "$TOOL_DIR/tooling/lib" "$TARGET_MAP_FILE" <<'PY' 2>/dev/null
+import json
+import re
+import sys
+from pathlib import Path
+
+project_root = Path(sys.argv[1])
+lib_dir = Path(sys.argv[2])
+target_map_path = Path(sys.argv[3])
+
+sys.path.insert(0, str(lib_dir))
+from source_parsing import extract_braced_blocks, strip_comments_and_strings  # type: ignore
+
+skip_parts = {
+    "dynamics-migration-tool", ".cursor", ".kiro", "Pods", ".build",
+    "DerivedData", ".git", "Tests", "Examples", "Example",
+}
+skip_suffixes = ("Tests", "UITests", "-macOS", "-watchOS", "-tvOS")
+excluded_roots = set()
+if target_map_path.is_file():
+    try:
+        tm = json.loads(target_map_path.read_text(encoding="utf-8"))
+        for t in tm.get("targets") or []:
+            if isinstance(t, dict) and t.get("type") in {"framework", "library", "tests", "other"}:
+                for root in t.get("sourceRoots") or []:
+                    if isinstance(root, str) and root.strip():
+                        excluded_roots.add(root.strip().strip("/"))
+    except Exception:
+        pass
+
+GDIOS_GET_WINDOW_PATTERNS = (
+    re.compile(r"\[\s*\[\s*GDiOS\s+sharedInstance\s*\]\s+getWindow\s*\]"),
+    re.compile(r"\[\s*GDiOS\s+sharedInstance\s*\]\s*\.\s*getWindow\b"),
+    re.compile(r"\bGDiOS\.sharedInstance\(\)\s*\.\s*getWindow\s*\(\)"),
+)
+
+MAIN_SCREEN_WINDOW_RE = re.compile(
+    r"UIWindow\s*\(\s*frame:\s*UIScreen\.main\.bounds\s*\)"
+    r"|\[\s*\[\s*UIWindow\s+alloc\s*\]\s+initWithFrame:\s*\[\s*\[\s*UIScreen\s+mainScreen\s*\]\s+bounds\s*\]\s*\]"
+)
+
+WINDOW_SCENE_INIT_RE = re.compile(r"\bUIWindow\s*\(\s*windowScene:|\binitWithWindowScene:")
+KEY_WINDOW_RE = re.compile(r"\bwindowScene\.keyWindow\b")
+METHOD_DECL_RE = re.compile(
+    r"(?:\bfunc\s+[A-Za-z_][A-Za-z0-9_]*|^\s*[-+]\s*\([^)]+\)[^{;]+)",
+    re.MULTILINE,
+)
+
+found_get_window = False
+found_main_screen_window = False
+found_window_scene_init = False
+found_unguarded_window_scene_init = False
+
+for suffix in ("*.swift", "*.m", "*.mm"):
+    for path in sorted(project_root.rglob(suffix)):
+        if not path.is_file():
+            continue
+        parts = path.parts
+        if skip_parts.intersection(parts) or any(p.endswith(skip_suffixes) for p in parts):
+            continue
+        try:
+            rel = path.relative_to(project_root).as_posix()
+        except ValueError:
+            continue
+        if any(rel == root or rel.startswith(root + "/") for root in excluded_roots):
+            continue
+        try:
+            raw = path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        stripped = strip_comments_and_strings(raw, nested_block_comments=True)
+
+        if any(pat.search(stripped) for pat in GDIOS_GET_WINDOW_PATTERNS):
+            found_get_window = True
+
+        if MAIN_SCREEN_WINDOW_RE.search(stripped):
+            found_main_screen_window = True
+
+        win_matches = list(WINDOW_SCENE_INIT_RE.finditer(stripped))
+        if win_matches:
+            found_window_scene_init = True
+            method_blocks = extract_braced_blocks(stripped, METHOD_DECL_RE)
+            for wm in win_matches:
+                pos = wm.start()
+                enclosing = [
+                    (b_open, b_close)
+                    for (_m, b_open, b_close, _body) in method_blocks
+                    if b_open < pos < b_close
+                ]
+                if not enclosing:
+                    found_unguarded_window_scene_init = True
+                    break
+                inner_open, _inner_close = max(enclosing, key=lambda span: span[0])
+                method_prefix = stripped[inner_open:pos]
+                if not KEY_WINDOW_RE.search(method_prefix):
+                    found_unguarded_window_scene_init = True
+                    break
+
+if found_get_window:
+    print("FAIL:Removed API -[GDiOS getWindow] detected; use self.window on UIApplicationDelegate (Xcode 26) or windowScene.keyWindow in UISceneDelegate")
+if found_main_screen_window:
+    print("FAIL:Manual UIWindow(frame: UIScreen.main.bounds) construction detected; SDK-managed window (self.window or windowScene.keyWindow) must be reused instead")
+if found_window_scene_init:
+    if found_unguarded_window_scene_init:
+        print("FAIL:Manual UIWindow(windowScene:) construction detected without prior windowScene.keyWindow check in the same method body; reuse SDK-managed windowScene.keyWindow first")
+    else:
+        print("PASS:SceneDelegate checks windowScene.keyWindow before UIWindow(windowScene:) fallback in the same method body")
+PY
+) || window_api_output="WARN:Window API lifecycle check helper failed"
+        while IFS= read -r line; do
+            [[ -z "$line" ]] && continue
+            case "$line" in
+                PASS:*) pass "${line#PASS:}" ;;
+                WARN:*) warn "${line#WARN:}" ;;
+                FAIL:*) fail "${line#FAIL:}" ;;
+                *) warn "$line" ;;
+            esac
+        done <<< "$window_api_output"
 
         if [[ -n "$XCODEPROJ" ]] && grep -q "SWIFT_VERSION = 6.0" "$XCODEPROJ/project.pbxproj" 2>/dev/null; then
             if app_grep "@preconcurrency[[:space:]]+.*GDiOSDelegate" --include="*.swift"; then
@@ -3670,6 +3861,21 @@ PYEOF
 run_preflight_mode() {
     echo -e "${BOLD}Preflight Environment${NC}"
     command -v xcodebuild >/dev/null 2>&1 && pass "xcodebuild available" || fail "xcodebuild missing"
+    local active_xcode_major=0
+    local xcode_version_line="unknown"
+    if [[ -n "${GD_XCODE_MAJOR_OVERRIDE:-}" ]]; then
+        active_xcode_major="${GD_XCODE_MAJOR_OVERRIDE}"
+    elif command -v xcodebuild >/dev/null 2>&1; then
+        xcode_version_line=$(xcodebuild -version 2>/dev/null | awk 'NR==1 { print; exit }' || echo "unknown")
+        active_xcode_major=$(printf '%s\n' "$xcode_version_line" | awk '/^Xcode / { split($2, a, "."); print a[1]; exit }')
+    fi
+    if [[ "${active_xcode_major:-0}" =~ ^[0-9]+$ ]] && [[ "${active_xcode_major:-0}" -ge 26 ]]; then
+        pass "Xcode ${active_xcode_major} is a supported Dynamics SDK 15.3 toolchain (Xcode 26 or 27)"
+    elif [[ "${active_xcode_major:-0}" =~ ^[0-9]+$ ]] && [[ "${active_xcode_major:-0}" -gt 0 ]]; then
+        fail "Xcode ${active_xcode_major} is not supported by BlackBerry Dynamics SDK 15.3 (supported toolchains: Xcode 26 and 27)."
+    else
+        warn "Active Xcode version not detected; Dynamics SDK 15.3 requires Xcode 26 or 27"
+    fi
     if compgen -G "$PROJECT_ROOT/*.xcodeproj" >/dev/null || compgen -G "$PROJECT_ROOT/*.xcworkspace" >/dev/null; then
         pass "Xcode project/workspace detected"
     else

@@ -141,12 +141,15 @@ any `extensionPointIdentifier` / Share-named targets.
 
 If none detected, continue normally.
 
-### 0a. Detect Swift Language Version and Deployment Target Compatibility
+### 0a. Detect Xcode Toolchain, Swift Language Version, and Deployment Target Compatibility
 
-Capture the project's Swift version and deployment target early — these drive API
-usage patterns throughout the migration.
+Capture the active Xcode version, Swift version, and deployment target early —
+these drive lifecycle and API usage patterns throughout the migration.
 
 ```bash
+# Active Xcode version (critical: Xcode 27 links against iOS 27 SDK and enforces UIScene lifecycle)
+xcodebuild -version 2>/dev/null
+
 # Swift version from build settings
 xcodebuild -showBuildSettings -scheme YourApp 2>/dev/null | grep SWIFT_VERSION
 
@@ -154,10 +157,22 @@ xcodebuild -showBuildSettings -scheme YourApp 2>/dev/null | grep SWIFT_VERSION
 xcodebuild -showBuildSettings -scheme YourApp 2>/dev/null | grep IPHONEOS_DEPLOYMENT_TARGET
 ```
 
-**Record both values** in the analysis output.
+**Record these values** in the analysis output.
+
+**Xcode 26 / 27 & `UIScene` Lifecycle Compatibility Matrix:**
+- **Earlier than Xcode 26 (including Xcode 16; `xcodebuild -version` major < 26):**
+  - **Stop.** BlackBerry Dynamics SDK 15.3 supports **Xcode 26 and Xcode 27** only. Xcode 16 is not a supported toolchain. Switch the active developer directory to Xcode 26 or 27 before continuing.
+- **Xcode 26 (`xcodebuild -version` major == 26):**
+  - If the app already uses `UISceneDelegate` or SwiftUI `@main App`, keep `UISceneDelegate` and wire Dynamics post-auth window/event queueing.
+  - If the app uses the legacy `UIApplicationDelegate`-only lifecycle (`hasSceneDelegate == false`), **preserve `UIApplicationDelegate`-only** (use `self.window` on `AppDelegate`, never the removed `-[GDiOS getWindow]`, and do **not** add `UIApplicationSceneManifest` to `Info.plist`). Add a `manualTodoCandidates` advisory warning noting that Apple requires `UIScene` lifecycle adoption (Apple TN3187) before upgrading to **Xcode 27 / iOS 27**.
+- **Xcode 27+ (`xcodebuild -version` major >= 27):**
+  - Building with Xcode 27 links the binary against the **iOS 27 SDK** regardless of `IPHONEOS_DEPLOYMENT_TARGET`. On iOS 27, UIKit aborts on launch (`_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption`) if the app has not adopted the `UIScene` lifecycle.
+  - If `hasSceneDelegate == false` on Xcode 27+, flag this in `preAuthRisks` and plan `UISceneDelegate` bridge adoption in Prompt 02 (`UIApplicationSceneManifest`) + Prompt 03 (`UIWindowSceneDelegate` + two-phase UI launch coordination).
+- **Removed API (`-[GDiOS getWindow]`):**
+  - If the project is a partially-migrated or older Dynamics app that calls `[[GDiOS sharedInstance] getWindow]` or `GDiOS.sharedInstance().getWindow()`, flag it in the `authorization` domain for replacement (`self.window` or `windowScene.keyWindow` — `getWindow` was removed in SDK 15.1).
 
 **Deployment target rules for Dynamics:**
-- BlackBerry Dynamics SDK 15.1 requires iOS **>= 18.0**.
+- BlackBerry Dynamics SDK 15.3 requires iOS **>= 18.0** and **Xcode 26 or 27** (Xcode 16 is not supported).
 - If the project already targets 18.0 or higher, **keep the existing target**.
   Only raise it to 18.0 if it is below 18.0. Never lower a higher target.
 - If the project targets a version above 18.0 (e.g., iOS 26, 27), it may use
@@ -286,7 +301,7 @@ Read ALL Swift and Objective-C source files in the project. For each file, ident
     references and source usage. If a model directory is orphaned (not
     referenced by project/code), flag it as `manualTodoCandidates`:
     "abandoned Core Data schema candidate for removal".
-- **SwiftData** (SDK 15.1 secure store): `@Model`, `ModelContainer`,
+- **SwiftData** (SDK 15.1+ secure store): `@Model`, `ModelContainer`,
   `ModelContext`, `@Query`, `#Predicate`, `ModelConfiguration`. Plan Prompt
   04c (`secureSwiftData`) to replace configuration/factory with
   `GDSecureModelConfiguration` + `GDSecureModelContainer.create(...)` after

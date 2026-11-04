@@ -252,8 +252,18 @@ echo ""
 echo -e "${CYAN}[3/6] Checking prerequisites...${NC}"
 
 if command -v xcodebuild &>/dev/null; then
-    XCODE_VERSION=$(xcodebuild -version 2>/dev/null | head -1 || echo "unknown")
-    echo -e "  ${GREEN}✓${NC} Xcode: $XCODE_VERSION"
+    XCODE_VERSION=$(xcodebuild -version 2>/dev/null | awk 'NR==1 { print; exit }' || echo "unknown")
+    XCODE_MAJOR=$(printf '%s\n' "$XCODE_VERSION" | awk '/^Xcode / { split($2, a, "."); print a[1]; exit }')
+    if [[ "${XCODE_MAJOR:-0}" =~ ^[0-9]+$ ]] && [[ "${XCODE_MAJOR:-0}" -ge 26 ]]; then
+        echo -e "  ${GREEN}✓${NC} Xcode: $XCODE_VERSION"
+    elif [[ "${XCODE_MAJOR:-0}" =~ ^[0-9]+$ ]] && [[ "${XCODE_MAJOR:-0}" -gt 0 ]]; then
+        echo -e "  ${RED}✗${NC} Xcode: $XCODE_VERSION"
+        echo "    BlackBerry Dynamics SDK 15.3 requires Xcode 26 or 27."
+        echo "    Detected Xcode ${XCODE_MAJOR} is not supported."
+        exit 1
+    else
+        echo -e "  ${YELLOW}⚠${NC} Xcode: $XCODE_VERSION (could not confirm major version; SDK 15.3 requires Xcode 26 or 27)"
+    fi
 else
     echo -e "  ${RED}✗${NC} Xcode command-line tools not found"
     echo "    Install with: xcode-select --install"
