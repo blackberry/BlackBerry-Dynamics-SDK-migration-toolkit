@@ -5,10 +5,25 @@
 <key>UILaunchScreen</key>
 <dict/>
 
+<!-- Include UIApplicationSceneManifest only when the app uses UISceneDelegate / SwiftUI App,
+     or when building with Xcode 27 (which requires UIScene lifecycle on iOS 27).
+     Omit UISceneStoryboardFile so the main storyboard is loaded post-authorization. -->
 <key>UIApplicationSceneManifest</key>
 <dict>
     <key>UIApplicationSupportsMultipleScenes</key>
     <false/>
+    <key>UISceneConfigurations</key>
+    <dict>
+        <key>UIWindowSceneSessionRoleApplication</key>
+        <array>
+            <dict>
+                <key>UISceneConfigurationName</key>
+                <string>Default Configuration</string>
+                <key>UISceneDelegateClassName</key>
+                <string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+            </dict>
+        </array>
+    </dict>
 </dict>
 
 <key>UISupportedInterfaceOrientations</key>

@@ -6,12 +6,12 @@ with provenance to public documentation and the installed SDK.
 ## Source Provenance
 
 - Public API reference: `https://developer.blackberry.com/files/blackberry-dynamics/ios/`
-  (generated from the installed SDK headers; version 15.1.8766.18 at time of last review).
+  (generated from the installed SDK headers; version 15.3.8766.41 at time of last review).
 - Public development guide: BlackBerry Dynamics SDK for iOS documentation at
   `https://docs.blackberry.com/en/development-tools/blackberry-dynamics-sdk-ios/`.
 - Public samples: `https://github.com/blackberry/BlackBerry-Dynamics-iOS-Samples`.
 - Official SPM package: `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK`
-  (tag `v15.1.18` ships SDK build `15.1.8766.18`; products `BlackBerryDynamics`
+  (tag `v15.3.41` ships SDK build `15.3.8766.41`; products `BlackBerryDynamics`
   + `GSEProvider`).
 - Installed SDK headers: headers present in `Pods/BlackBerryDynamics/` after
   `pod install`, in the SPM checkout after package resolution, or in the
@@ -25,16 +25,25 @@ and add a `manualTodo`.
 
 ## Target SDK release
 
-This toolkit revision targets **BlackBerry Dynamics SDK for iOS 15.1**
-(public API reference / CocoaPods build **15.1.8766.18**).
+This toolkit revision targets **BlackBerry Dynamics SDK for iOS 15.3**
+(public API reference / CocoaPods build **15.3.8766.41**; official SPM tag **v15.3.41**).
 
 Release-note deltas that affect migration steering (not every app needs
 code changes):
 
+| Area | SDK 15.3 change | Migration action |
+|------|-----------------|------------------|
+| Packaging | CocoaPods `15.3.8766.41` + official SPM tag `v15.3.41`; crypto via `GSEProvider.xcframework` | Use `pod 'BlackBerryDynamics', '~> 15.3'` **or** SPM URL `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK` (`15.3.41` / tag `v15.3.41`) linking products `BlackBerryDynamics` + `GSEProvider` |
+| Xcode compatibility | **Xcode 26 and 27** (Xcode 16 support removed for SDK 15.3; Xcode 27 requires SDK 15.3+) | On **Xcode 26**, `UIApplicationDelegate`-only apps can retain `self.window` (with an advisory warning for future Xcode 27 readiness). When building with **Xcode 27** (links iOS 27 SDK), Apple UIKit requires the **`UIScene` lifecycle** (`UIApplicationSceneManifest` + `UIWindowSceneDelegate`, Apple TN3187) or the app traps on launch on iOS 27 (`_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption`). Do not build SDK 15.3 with Xcode 16. |
+| iPhone Duo devices | Enhancements for compatibility with **iPhone Duo** devices | Runtime/UI enhancement in the SDK (full-window Launcher / multi-screen compatibility); keep standard SDK-managed window ownership (`self.window` or `windowScene.keyWindow`) and avoid hardcoding single-screen geometry |
+| Seclore interoperability | Fixes to improve interoperability between BlackBerry Dynamics apps and the Seclore app | Runtime/ICC fix in the SDK; keep AppKinetics / secure file transfer on cataloged `GDService` / `GDServiceClient` paths |
+
+SDK 15.1 deltas that remain in force (do not re-attribute them to 15.3):
+
 | Area | SDK 15.1 change | Migration action |
 |------|-----------------|------------------|
 | Minimum iOS | iOS 17 removed; **iOS 18+** required (iOS 27 supported) | Raise `IPHONEOS_DEPLOYMENT_TARGET` / `platform :ios` only if below 18.0; never lower a higher target |
-| Packaging | CocoaPods + official SPM tag `v15.1.18`; crypto via `GSEProvider.xcframework` | Use `pod 'BlackBerryDynamics', '~> 15.1'` **or** SPM URL `https://github.com/blackberry/BlackBerry-Dynamics-iOS-SDK` (`15.1.18`) linking products `BlackBerryDynamics` + `GSEProvider` |
+| Window API removal | Deprecated `-[GDiOS getWindow]` removed from `GDiOS.h` | Never call `[[GDiOS sharedInstance] getWindow]` or `GDiOS.sharedInstance().getWindow()`. Use `self.window` on `UIApplicationDelegate` (Xcode 26 `AppDelegate`-only) or `windowScene.keyWindow` in `UIWindowSceneDelegate` (`UIScene` lifecycle) |
 | SwiftData | `GDSecureModelConfiguration` + `GDSecureModelContainer.create(...)` | Migrate `@Model` stores in Prompt 04c; do not rewrite to Core Data |
 | Siri / Apple Intelligence DLP | Screenshot restriction also blocks Siri AI from on-screen and selected text | Policy-driven; remove app-level screenshot hacks; verify UEM "Do not allow screenshots" |
 | TLS | TLS 1.3 with AES-GCM cipher suites (AES-CCM not supported) | No API swap; regress `GDURLLoadingSystem` / `URLSession` / `GDSocket` against TLS 1.3 endpoints |
@@ -62,6 +71,7 @@ https://docs.blackberry.com/en/blackberry-dynamics-sdk/15.x/blackberry-dynamics-
 | Domain | Native API / Pattern | Dynamics Replacement | Tier | Notes |
 |---|---|---|---|---|
 | Authorization | App launches and accesses secure data immediately | `GDiOS.authorize()` + defer to authorized callback | tier1 | Mandatory for all Dynamics apps |
+| Window / Scene lifecycle | Legacy `-[GDiOS getWindow]` or `UIApplicationDelegate`-only window setup | `self.window` (`UIApplicationDelegate` on Xcode 26) or `windowScene.keyWindow` (`UIWindowSceneDelegate`, mandatory when building with Xcode 27 for iOS 27) | tier1 | `-[GDiOS getWindow]` removed in SDK 15.1; Xcode 27 / iOS 27 SDK requires `UIScene` lifecycle (Apple TN3187). SDK 15.3 toolchains are Xcode 26 and 27. |
 | Secure files | `FileManager`, `FileHandle`, stream file I/O for sensitive data | `GDFileManager`, `GDFileHandle`, `GDCReadStream`, `GDCWriteStream` | tier1 | Keep non-sensitive cache native if justified |
 | Secure SQLite | `sqlite3_open*` for sensitive DB | `sqlite3enc_open*` via Dynamics `sqlite3.h` + `sqlite3enc.h` (all `sqlite3_*` from Dynamics on iOS) | tier1 | Paths in secure container; never mix with system libsqlite3 |
 | FMDB | FMDB over `sqlite3_open` | Direct `sqlite3enc_*` **or** retain FMDB with full iOS Dynamics SQLite linkage | tier2 | Open-only bridges → SIGSEGV; see `41-secure-storage-sql.md` |

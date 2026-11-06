@@ -128,6 +128,12 @@ List anything the agent could not automate:
 - UEM entitlement configuration
 - Runtime testing with UEM server
 - Credential and activation testing
+- **Xcode 27 / iOS 27 `UIScene` lifecycle advisory (when `hasSceneDelegate == false` on Xcode 26)**:
+  If the app was migrated on Xcode 26 and retained a legacy
+  `UIApplicationDelegate`-only lifecycle, include a `medium`-priority `manualTodo`
+  warning the developer that Apple enforces `UIScene` lifecycle adoption
+  (`UIApplicationSceneManifest` + `UIWindowSceneDelegate` per Apple TN3187)
+  when building with **Xcode 27** for iOS 27 (`_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption`).
 - Third-party library compatibility verification
 - SwiftData factory verification (`GDSecureModelContainer.create`) if detected
 - App Extension compatibility (if detected)
@@ -158,7 +164,7 @@ List any app features that are incompatible with Dynamics:
   `17-app-extensions-and-share-extensions.md`)
 - **Other App Extensions** — WidgetKit, SiriKit, Notification Service, etc.
 - **SwiftData persistent history / same-store Core Data mixing** — only when
-  those unsupported 15.1 limitations are present. Migrated `@Model` stores
+  those unsupported 15.1+ limitations are present. Migrated `@Model` stores
   using `GDSecureModelContainer` are a coverage area, not an unsupported feature.
 - **BitCode** — if was enabled (now disabled)
 - **App Clips** — if App Clip target detected
